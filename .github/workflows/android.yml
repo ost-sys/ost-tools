@@ -30,7 +30,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :app:bundleRelease
+        run: ./gradlew :app:bundleRelease :app:assembleRelease
 
       - name: Build wear Release AAB
         env:
@@ -38,16 +38,28 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :wear:bundleRelease
+        run: ./gradlew :wear:bundleRelease :wear:assembleRelease
 
       - name: Upload app AAB
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: app-release-aab
           path: app/build/outputs/bundle/release/*.aab
+
+      - name: Upload app APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
 
       - name: Upload wear AAB
         uses: actions/upload-artifact@v4
         with:
-          name: wear-release
+          name: wear-release-aab
           path: wear/build/outputs/bundle/release/*.aab
+
+      - name: Upload wear APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wear-release-apk
+          path: wear/build/outputs/apk/release/*.apk
