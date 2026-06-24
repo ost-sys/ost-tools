@@ -27,42 +27,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build app Release AAB
+      - name: Build Release
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/ost_key.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :app:bundleRelease :app:assembleRelease
+        run: |
+          ./gradlew :app:assembleRelease :app:bundleRelease
+          ./gradlew :wear:assembleRelease :wear:bundleRelease
 
-      - name: Build wear Release AAB
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/ost_key.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :wear:bundleRelease :wear:assembleRelease
-
-      - name: Upload app AAB
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: app-release-aab
-          path: app/build/outputs/bundle/release/*.aab
-
-      - name: Upload app APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: app/build/outputs/apk/release/*.apk
-
-      - name: Upload wear AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: wear-release-aab
-          path: wear/build/outputs/bundle/release/*.aab
-
-      - name: Upload wear APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: wear-release-apk
-          path: wear/build/outputs/apk/release/*.apk
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            wear/build/outputs/apk/release/*.apk
+            wear/build/outputs/bundle/release/*.aab
