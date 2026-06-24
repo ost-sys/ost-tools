@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,7 +38,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           ./gradlew :app:assembleRelease :app:bundleRelease
-          ./gradlew :wear:assembleRelease :wear:bundleRelease
+          ./gradlew :wear-app:assembleRelease :wear-app:bundleRelease
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -45,5 +48,5 @@ jobs:
           files: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
-            wear/build/outputs/apk/release/*.apk
-            wear/build/outputs/bundle/release/*.aab
+            wear-app/build/outputs/apk/release/*.apk
+            wear-app/build/outputs/bundle/release/*.aab
