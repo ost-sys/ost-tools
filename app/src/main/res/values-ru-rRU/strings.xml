@@ -360,4 +360,7 @@
     <string name="get_token">Получить токен</string>
     <string name="load_repositories">Загрузить репозитории</string>
     <string name="no_repositories_found">Репозиториев нет</string>
+    <string name="root_access">ROOT-доступ</string>
+    <string name="ra_perm_info">Разблокировка расширенных функций, требующих прав суперпользователя</string>
+    <string name="please_grant_all_essential_permissions_to_proceed_with_the_setup">Предоставьте все необходимые разрешения для продолжения настройки</string>
 </resources>

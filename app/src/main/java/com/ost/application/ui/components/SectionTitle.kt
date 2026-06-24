@@ -1,6 +1,5 @@
-package com.ost.application.util
+package com.ost.application.ui.components
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -17,11 +16,11 @@ fun SectionTitle(
     title: String,
 ) {
     Card(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(100.dp)) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text(title,
-                style = MaterialTheme.typography.titleMediumEmphasized,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        Text(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            text = title,
+            style = MaterialTheme.typography.titleMediumEmphasized,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }

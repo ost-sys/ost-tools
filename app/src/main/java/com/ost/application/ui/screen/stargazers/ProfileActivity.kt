@@ -79,7 +79,7 @@ import com.ost.application.data.model.GitHubUser
 import com.ost.application.ui.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.WavyDivider
+import com.ost.application.ui.components.WavyDivider
 import java.io.File
 import java.io.FileOutputStream
 

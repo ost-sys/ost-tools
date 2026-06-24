@@ -23,7 +23,6 @@ public class RadialGradientView extends View {
 
     private static final String TAG = "[RadialGradientView]";
 
-    // Вложенные Enum'ы
     public enum AnimationState { NONE, START, REPEAT, END }
     public enum AlignType { LTR, RTL }
 
@@ -60,8 +59,8 @@ public class RadialGradientView extends View {
 
     boolean mFlagInit;
     boolean mFlagShowArc;
-    int mGradientRadial; // Было 0, теперь будет установлено
-    float mGradientScale; // Было 0.0f, теперь будет установлено
+    int mGradientRadial;
+    float mGradientScale;
 
     Paint mPaint;
     Paint mPaintArc;
@@ -80,7 +79,6 @@ public class RadialGradientView extends View {
     float scale2;
     float scale3;
     public boolean isAnimating = false;
-    // Конструкторы
     public RadialGradientView(Context context) {
         super(context);
         Log.d(TAG, "Constructor called");
@@ -99,24 +97,23 @@ public class RadialGradientView extends View {
         initDefaultValues();
     }
 
-    // Инициализация значений по умолчанию (вызывается из конструкторов)
     private void initDefaultValues() {
         mAlignType = AlignType.LTR;
         mFlagShowArc = false;
         mFlagInit = false;
 
-        mColor1 = 0xFFFF0000; // Красный
-        mColor2 = 0xFF00FF00; // Зеленый
-        mColor3 = 0xFFFFFF00; // Желтый
+        mColor1 = 0xFFFF0000;
+        mColor2 = 0xFF00FF00;
+        mColor3 = 0xFFFFFF00;
 
         mBitmapGradientPatternWhite = null;
         mColorFilter1 = null;
         mColorFilter2 = null;
         mColorFilter3 = null;
 
-        mStartDuration = 7000; // 2 секунды
-        mStartGradient1_Delay = 5000; // 0.4 секунды
-        mRepeatDuration = 5000; // 4 секунды
+        mStartDuration = 1000;
+        mStartGradient1_Delay = 5000;
+        mRepeatDuration = 5000;
 
         baseScaleWidth = 0.0f;
         baseScaleHeight = 0.0f;
@@ -141,13 +138,11 @@ public class RadialGradientView extends View {
         gradient3_AlphaValue = 0.0f;
         gradient3_ScaleValue = 0.0f;
 
-        // *** ФИКС: Инициализация mGradientRadial и mGradientScale здесь! ***
         mGradientRadial = 2048;
         mGradientScale = 1.0f;
         Log.d(TAG, "initDefaultValues(): mGradientRadial set to " + mGradientRadial + ", mGradientScale set to " + mGradientScale);
     }
 
-    // Основной метод инициализации View
     public void init(AlignType type, int gradientPatternResId) {
         Log.d(TAG, "init() called with type: " + type.name() + ", resource ID: " + gradientPatternResId);
         if (mBitmapGradientPatternWhite != null && !mBitmapGradientPatternWhite.isRecycled()) {
@@ -167,8 +162,6 @@ public class RadialGradientView extends View {
             gradient2_x = -0.20000005f; gradient2_y = -0.09f;
             gradient3_x = 0.55f; gradient3_y = 0.43f;
         }
-
-        // *** УДАЛЕНЫ СТРОКИ mGradientRadial и mGradientScale отсюда, так как они в initDefaultValues() ***
 
         InputStream inputStream = null;
         Bitmap gradientBitmap = null;
@@ -212,7 +205,7 @@ public class RadialGradientView extends View {
             gradientBitmap.recycle();
         } else {
             Log.e(TAG, "gradientBitmap is NULL after decodeStream. Check raw resource file.");
-            mBitmapGradientPatternWhite = Bitmap.createBitmap(1, 1, Bitmap.Config.ALPHA_8); // Заглушка
+            mBitmapGradientPatternWhite = Bitmap.createBitmap(1, 1, Bitmap.Config.ALPHA_8);
         }
 
         mPaint = new Paint();
@@ -222,7 +215,6 @@ public class RadialGradientView extends View {
 
         mAnimationState = AnimationState.NONE;
 
-        // Настройка аниматоров
         mStartGradient1_Animator = new ValueAnimator();
         mStartGradient1_Animator.setInterpolator(new LinearInterpolator());
         mStartGradient1_Animator.setRepeatCount(0);
@@ -249,17 +241,17 @@ public class RadialGradientView extends View {
         mStartGradient3_Animator.setRepeatCount(0);
         mStartGradient3_Animator.setFloatValues(0.0f, 1.0f);
         mStartGradient3_Animator.setDuration(mStartDuration);
-        mStartGradient3_Animator.addUpdateListener(animation -> invalidate()); // Обновление для отрисовки
+        mStartGradient3_Animator.addUpdateListener(animation -> invalidate());
 
         mRepeatAnimator = new ValueAnimator();
         mRepeatAnimator.setInterpolator(new LinearInterpolator());
         mRepeatAnimator.setRepeatCount(ValueAnimator.INFINITE);
         mRepeatAnimator.setRepeatMode(ValueAnimator.REVERSE);
-        mRepeatAnimator.setFloatValues(1.0f, 0.0f, 1.0f); // Пульсация от 1 до 0 и обратно
+        mRepeatAnimator.setFloatValues(1.0f, 0.0f, 1.0f);
         mRepeatAnimator.setDuration(mRepeatDuration);
-        mRepeatAnimator.addUpdateListener(animation -> invalidate()); // Обновление для отрисовки
+        mRepeatAnimator.addUpdateListener(animation -> invalidate());
 
-        setColors(mColor1, mColor2, mColor3); // Установка начальных ColorFilter'ов
+        setColors(mColor1, mColor2, mColor3);
 
         mFlagInit = true;
         Log.d(TAG, "init() finished. mFlagInit: " + mFlagInit);
@@ -288,12 +280,9 @@ public class RadialGradientView extends View {
 
         Log.d(TAG, "View dimensions: Width=" + mViewWidth + ", Height=" + mViewHeight);
         Log.d(TAG, "mGradientRadial=" + mGradientRadial + ", mGradientScale=" + mGradientScale);
-        // *** ФИКС: Теперь mGradientRadial не 0, деления на NaN не будет ***
         baseScaleWidth = (float) mViewWidth / (mGradientRadial + mGradientRadial) * mGradientScale;
-        baseScaleHeight = baseScaleWidth; // Высота масштабируется так же
         Log.d(TAG, "Calculated baseScaleWidth=" + baseScaleWidth);
 
-        // Логика анимации для обновления значений альфа и масштаба
         if (mAnimationState == AnimationState.START) {
             float animatedValue1 = (Float) mStartGradient1_Animator.getAnimatedValue();
             gradient1_AlphaValue = EasingSineFunc.getInstance().easeInOut(animatedValue1, 0.0f, 1.0f, 1.0f);
@@ -308,13 +297,9 @@ public class RadialGradientView extends View {
             gradient1_AlphaValue = EasingSineFunc.getInstance().easeInOut(animatedValue, 0.0f, 1.0f, 1.0f);
             gradient3_AlphaValue = EasingSineFunc.getInstance().easeInOut(animatedValue, 0.0f, 1.0f, 1.0f);
 
-            // TODO: Проверить точность коэффициентов (0.85 и 0.35) по оригинальному Smali, если анимация не идеальна
             gradient1_ScaleValue = (float)(0.85 * scale1 * baseScaleWidth + (scale1 * baseScaleWidth * gradient1_AlphaValue * 0.35));
             gradient3_ScaleValue = (float)(0.85 * scale3 * baseScaleWidth + (scale3 * baseScaleWidth * gradient3_AlphaValue * 0.35));
         }
-        // В состоянии NONE/END значения alphaValue и scaleValue могут быть просто базовыми.
-        // onDraw вызывается часто, поэтому важно, чтобы значения были консистентны.
-        // Сейчас они сохраняют последнее анимированное значение или дефолтные 0.0f.
 
         Log.d(TAG, "Current animation values: G1_Alpha=" + gradient1_AlphaValue + ", G1_Scale=" + gradient1_ScaleValue +
                 ", G3_Alpha=" + gradient3_AlphaValue + ", G3_Scale=" + gradient3_ScaleValue);
@@ -322,14 +307,13 @@ public class RadialGradientView extends View {
 
         final float FULL_ALPHA_FLOAT = 255.0f;
 
-        // Рисование Градиента 3 (нижний слой)
         mPaint.setColorFilter(mColorFilter3);
         int alpha3;
         if (mAnimationState == AnimationState.START) {
             alpha3 = (int) (gradient3_alpha * gradient3_AlphaValue * FULL_ALPHA_FLOAT);
         } else if (mAnimationState == AnimationState.REPEAT) {
-            alpha3 = (int) (gradient3_alpha * FULL_ALPHA_FLOAT); // В цикле альфа градиента 3 фиксирована на gradient3_alpha
-        } else { // NONE or END
+            alpha3 = (int) (gradient3_alpha * FULL_ALPHA_FLOAT);
+        } else {
             alpha3 = (int) (gradient3_alpha * FULL_ALPHA_FLOAT);
         }
         mPaint.setAlpha(alpha3);
@@ -343,15 +327,14 @@ public class RadialGradientView extends View {
             canvas.drawBitmap(mBitmapGradientPatternWhite, 0.0f, 0.0f, mPaint);
 
             if (mFlagShowArc) {
-                mPaintArc.setColor(0xFFFFFF00); // Желтая дуга
+                mPaintArc.setColor(0xFFFFFF00);
                 canvas.drawArc(-mGradientRadial, -mGradientRadial, mGradientRadial, mGradientRadial, 270.0f, 90.0f, false, mPaintArc);
             }
             canvas.restore();
         }
 
-        // Рисование Градиента 2 (средний слой)
         mPaint.setColorFilter(mColorFilter2);
-        int alpha2 = (int) (gradient2_alpha * FULL_ALPHA_FLOAT); // Альфа градиента 2 всегда фиксирована
+        int alpha2 = (int) (gradient2_alpha * FULL_ALPHA_FLOAT);
         mPaint.setAlpha(alpha2);
         Log.d(TAG, "G2 drawing alpha: " + alpha2);
 
@@ -362,20 +345,19 @@ public class RadialGradientView extends View {
             canvas.rotate(i * 90.0f, 0.0f, 0.0f);
             canvas.drawBitmap(mBitmapGradientPatternWhite, 0.0f, 0.0f, mPaint);
             if (mFlagShowArc) {
-                mPaintArc.setColor(0xFF888888); // Серая дуга
+                mPaintArc.setColor(0xFF888888);
                 canvas.drawArc(-mGradientRadial, -mGradientRadial, mGradientRadial, mGradientRadial, 270.0f, 90.0f, false, mPaintArc);
             }
             canvas.restore();
         }
 
-        // Рисование Градиента 1 (верхний слой)
         mPaint.setColorFilter(mColorFilter1);
         int alpha1;
         if (mAnimationState == AnimationState.START) {
             alpha1 = (int) (gradient1_alpha * gradient1_AlphaValue * FULL_ALPHA_FLOAT);
         } else if (mAnimationState == AnimationState.REPEAT) {
-            alpha1 = (int) (gradient1_alpha * FULL_ALPHA_FLOAT); // В цикле альфа градиента 1 фиксирована на gradient1_alpha
-        } else { // NONE or END
+            alpha1 = (int) (gradient1_alpha * FULL_ALPHA_FLOAT);
+        } else {
             alpha1 = (int) (gradient1_alpha * FULL_ALPHA_FLOAT);
         }
         mPaint.setAlpha(alpha1);
@@ -388,7 +370,7 @@ public class RadialGradientView extends View {
             canvas.rotate(i * 90.0f, 0.0f, 0.0f);
             canvas.drawBitmap(mBitmapGradientPatternWhite, 0.0f, 0.0f, mPaint);
             if (mFlagShowArc) {
-                mPaintArc.setColor(0xFF00FF00); // Зеленая дуга
+                mPaintArc.setColor(0xFF00FF00);
                 canvas.drawArc(-mGradientRadial, -mGradientRadial, mGradientRadial, mGradientRadial, 270.0f, 90.0f, false, mPaintArc);
             }
             canvas.restore();
@@ -417,7 +399,7 @@ public class RadialGradientView extends View {
 
     public void setColors(int iColor1, int iColor2, int iColor3) {
         if(mStartGradient3_Animator != null) {
-            mStartGradient3_Animator.setCurrentPlayTime(0); // Сброс аниматора при смене цвета
+            mStartGradient3_Animator.setCurrentPlayTime(0);
         }
 
         mColor1 = iColor1 | 0xFF000000;
@@ -435,7 +417,7 @@ public class RadialGradientView extends View {
         Log.d(TAG, "startAnimation() called. Current state: " + mAnimationState);
         if (mAnimationState != AnimationState.START) {
             stopAnimation();
-            isAnimating = true; // <-- ДОБАВЬ ЭТУ СТРОКУ
+            isAnimating = true;
             mAnimationState = AnimationState.START;
             mStartGradient1_Animator.start();
             mStartGradient3_Animator.start();
@@ -446,22 +428,21 @@ public class RadialGradientView extends View {
     public void stopAnimation() {
         Log.d(TAG, "stopAnimation() called. Current state: " + mAnimationState);
         if (mAnimationState == AnimationState.START || mAnimationState == AnimationState.REPEAT) {
-            isAnimating = false; // <-- ДОБАВЬ ЭТУ СТРОКУ
+            isAnimating = false;
             mAnimationState = AnimationState.END;
             if(mStartGradient1_Animator != null) mStartGradient1_Animator.cancel();
-            if(mStartGradient3_Animator != null) mStartGradient3_Animator.cancel(); // Если есть такой аниматор
+            if(mStartGradient3_Animator != null) mStartGradient3_Animator.cancel();
             if(mRepeatAnimator != null) mRepeatAnimator.cancel();
             Log.d(TAG, "Animation cancelled. New state: " + mAnimationState);
         }
         invalidate();
     }
 
-    // Метод для освобождения ресурсов (важно для Bitmap!)
     public void releaseResources() {
         Log.d(TAG, "releaseResources() called.");
-        stopAnimation(); // Останавливаем анимации перед освобождением
+        stopAnimation();
         if (mBitmapGradientPatternWhite != null) {
-            mBitmapGradientPatternWhite.recycle(); // Освобождаем память битмапа
+            mBitmapGradientPatternWhite.recycle();
             mBitmapGradientPatternWhite = null;
             Log.d(TAG, "Bitmap recycled.");
         }
@@ -476,6 +457,6 @@ public class RadialGradientView extends View {
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         Log.d(TAG, "onDetachedFromWindow() called.");
-        releaseResources(); // Вызываем освобождение ресурсов при отсоединении View
+        releaseResources();
     }
 }

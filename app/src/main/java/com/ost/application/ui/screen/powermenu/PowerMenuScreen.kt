@@ -22,11 +22,9 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,10 +44,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
 import com.ost.application.util.AdaptiveSquareCard
+import com.ost.application.util.TooltipAction
+import com.ost.application.util.TooltipWrapper
+import com.ost.application.util.tooltip
 import kotlin.math.max
+import kotlin.time.Duration.Companion.milliseconds
 
 private data class PowerMenuUiItem(
     val iconRes: Int,
@@ -97,7 +99,7 @@ fun PowerMenuScreen(
         )
 
         RootAccessState.GRANTED -> Triple(
-            MaterialTheme.colorScheme.onPrimaryContainer,
+            MaterialTheme.colorScheme.primary,
             MaterialTheme.colorScheme.primaryContainer,
             ExpressiveShapeType.PILL
         )
@@ -153,128 +155,141 @@ fun PowerMenuScreen(
     val bigRadius = 24.dp
     val smallRadius = 4.dp
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val availableWidth = maxWidth - 32.dp
-        val minCardSize = 150.dp
-        val columnsCount = max(2, (availableWidth / minCardSize).toInt())
+    TooltipWrapper(modifier = modifier.fillMaxSize()) { tooltipState ->
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columnsCount),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 16.dp,
-                bottom = 16.dp + bottomSpacing
-            ),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp, top = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(vertical = 5.dp)
-                    ) {
-                        Box(modifier = Modifier.graphicsLayer(rotationZ = currentRotation)) {
-                            ExpressiveShapeBackground(
-                                iconSize = 120.dp,
-                                color = containerColor,
-                                forcedShape = shapeType,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.checkRootAccess()
-                                }
-                            )
-                        }
-
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_power_new_24dp),
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            colorFilter = ColorFilter.tint(statusColor)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = stringResource(id = uiState.statusTextResId),
-                        color = statusColor,
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            itemsIndexed(items) { index, item ->
-                val row = index / columnsCount
-                val col = index % columnsCount
-                val totalRows = (items.size + columnsCount - 1) / columnsCount
-
-                val isFirstRow = row == 0
-                val isLastRow = row == totalRows - 1
-                val isLeftColumn = col == 0
-                val isRightColumn = col == columnsCount - 1
-
-                val shape = RoundedCornerShape(
-                    topStart = if (isFirstRow && isLeftColumn) bigRadius else smallRadius,
-                    topEnd = if (isFirstRow && isRightColumn) bigRadius else smallRadius,
-                    bottomStart = if (isLastRow && isLeftColumn) bigRadius else smallRadius,
-                    bottomEnd = if (isLastRow && isRightColumn) bigRadius else smallRadius
-                )
-
-                AdaptiveSquareCard(
-                    title = stringResource(item.titleRes),
-                    icon = item.iconRes,
-                    enabled = item.enabled,
-                    shape = shape,
-                    onClick = { viewModel.onPowerActionClick(item.action) }
-                )
+        LaunchedEffect(uiState.showDialogFor) {
+            if (uiState.showDialogFor != null) {
+                tooltipState.show()
+            } else {
+                tooltipState.hide()
             }
         }
 
-        if (uiState.showDialogFor != null) {
-            val action = uiState.showDialogFor!!
-            AlertDialog(
-                onDismissRequest = { viewModel.dismissDialog() },
-                icon = {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        ExpressiveShapeBackground(
-                            iconSize = 64.dp,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            forcedShape = ExpressiveShapeType.SQUARE
-                        )
-                        Icon(
-                            painter = painterResource(R.drawable.ic_warning_24dp),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                },
-                title = { Text(stringResource(R.string.attention)) },
-                text = { Text(stringResource(id = action.messageResId)) },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.executeCommand(action)
-                            viewModel.dismissDialog()
-                        }
-                    ) { Text(stringResource(R.string.yes)) }
-                },
-                dismissButton = {
-                    OutlinedButton(onClick = { viewModel.dismissDialog() }) { Text(stringResource(R.string.no)) }
+        LaunchedEffect(tooltipState.isVisible) {
+            if (!tooltipState.isVisible && uiState.showDialogFor != null) {
+                kotlinx.coroutines.delay(50.milliseconds)
+                if (!tooltipState.isVisible) {
+                    viewModel.dismissDialog()
                 }
-            )
+            }
+        }
+
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val availableWidth = maxWidth - 32.dp
+            val minCardSize = 150.dp
+            val columnsCount = max(2, (availableWidth / minCardSize).toInt())
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnsCount),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = 16.dp + bottomSpacing
+                ),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp, top = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(vertical = 5.dp)
+                        ) {
+                            Box(modifier = Modifier.graphicsLayer(rotationZ = currentRotation)) {
+                                ExpressiveShapeBackground(
+                                    iconSize = 120.dp,
+                                    color = containerColor,
+                                    forcedShape = shapeType,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.checkRootAccess()
+                                    }
+                                )
+                            }
+
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_power_new_24dp),
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                colorFilter = ColorFilter.tint(statusColor)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Card(
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = containerColor
+                            )
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                text = stringResource(id = uiState.statusTextResId),
+                                color = statusColor,
+                                style = MaterialTheme.typography.headlineSmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                itemsIndexed(items) { index, item ->
+                    val row = index / columnsCount
+                    val col = index % columnsCount
+                    val totalRows = (items.size + columnsCount - 1) / columnsCount
+
+                    val isFirstRow = row == 0
+                    val isLastRow = row == totalRows - 1
+                    val isLeftColumn = col == 0
+                    val isRightColumn = col == columnsCount - 1
+
+                    val shape = RoundedCornerShape(
+                        topStart = if (isFirstRow && isLeftColumn) bigRadius else smallRadius,
+                        topEnd = if (isFirstRow && isRightColumn) bigRadius else smallRadius,
+                        bottomStart = if (isLastRow && isLeftColumn) bigRadius else smallRadius,
+                        bottomEnd = if (isLastRow && isRightColumn) bigRadius else smallRadius
+                    )
+
+                    val isSelectedCard = uiState.showDialogFor == item.action
+
+                    AdaptiveSquareCard(
+                        modifier = Modifier.tooltip(
+                            state = tooltipState,
+                            title = stringResource(R.string.attention),
+                            subtitle = stringResource(id = item.action.messageResId),
+                            primaryAction = TooltipAction(stringResource(R.string.yes)) {
+                                viewModel.executeCommand(item.action)
+                                viewModel.dismissDialog()
+                            },
+                            secondaryAction = TooltipAction(stringResource(R.string.no)) {
+                                viewModel.dismissDialog()
+                            },
+                            isAnchor = isSelectedCard
+                        ),
+                        title = stringResource(item.titleRes),
+                        icon = item.iconRes,
+                        status = item.enabled,
+                        shape = shape,
+                        onClick = {
+                            if (uiState.showDialogFor == item.action) {
+                                viewModel.dismissDialog()
+                            } else {
+                                viewModel.onPowerActionClick(item.action)
+                            }
+                        }
+                    )
+                }
+            }
         }
     }
 }

@@ -48,22 +48,22 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.CordItem
+import com.ost.application.CordPosition
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeBackground
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
 import com.ost.application.util.ToolsManager
@@ -129,17 +129,15 @@ fun DeviceInfoScreen(
             val y = sensorData[1]
             val z = sensorData[2]
 
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.accelerometer),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 32.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = 20.dp, vertical = 16.dp
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Card(
                     modifier = Modifier
                         .size(160.dp)
@@ -147,14 +145,14 @@ fun DeviceInfoScreen(
                             rotationX = y * 6f
                             rotationY = x * 6f
                         },
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {}
                 Spacer(Modifier.height(48.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    CordItem("X", x)
-                    CordItem("Y", y)
-                    CordItem("Z", z)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Absolute.Center) {
+                    CordItem("X", x, CordPosition.START)
+                    CordItem("Y", y, CordPosition.MIDDLE)
+                    CordItem("Z", z, CordPosition.END)
                 }
                 Spacer(Modifier.height(32.dp))
             }
@@ -200,7 +198,7 @@ fun DeviceInfoScreen(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp + bottomSpacing),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(0.dp)
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         item {
             Column(
@@ -237,12 +235,15 @@ fun DeviceInfoScreen(
                 if (uiState.isLoadingName) {
                     CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
-                    Text(
-                        text = uiState.deviceName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Card(shape = RoundedCornerShape(8.dp)) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            text = uiState.deviceName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }

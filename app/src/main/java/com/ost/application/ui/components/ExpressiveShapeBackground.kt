@@ -1,4 +1,4 @@
-package com.ost.application.ui.component
+package com.ost.application.ui.components
 
 import android.graphics.Matrix
 import android.graphics.Path

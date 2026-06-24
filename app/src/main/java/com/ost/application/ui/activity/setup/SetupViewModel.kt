@@ -6,13 +6,17 @@ import android.content.SharedPreferences
 import android.preference.PreferenceManager
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.ost.application.R
 import com.ost.application.ui.screen.settings.PrefKeys
 import com.ost.application.ui.screen.settings.SettingsUiState
+import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.xmlpull.v1.XmlPullParser
 import java.util.Locale
 
@@ -24,9 +28,27 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    private val _isRootGranted = MutableStateFlow(false)
+    val isRootGranted: StateFlow<Boolean> = _isRootGranted.asStateFlow()
+
     init {
         loadSettings()
         loadSupportedLocales()
+        checkInitialRootStatus()
+    }
+
+    private fun checkInitialRootStatus() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val isRoot = Shell.isAppGrantedRoot() == true
+            _isRootGranted.update { isRoot }
+        }
+    }
+
+    fun requestRootAccess() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val isRoot = Shell.getShell().isRoot
+            _isRootGranted.update { isRoot }
+        }
     }
 
     private fun loadSettings() {

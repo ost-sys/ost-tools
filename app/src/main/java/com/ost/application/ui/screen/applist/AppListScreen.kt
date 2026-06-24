@@ -351,7 +351,6 @@ fun AppListItem(
                         }
                     }
                 }
-                SwipeToDismissBoxValue.Settled -> {}
             }
             return@rememberSwipeToDismissBoxState false
         },

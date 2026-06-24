@@ -1,4 +1,4 @@
-package com.ost.application.util
+package com.ost.application.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.height

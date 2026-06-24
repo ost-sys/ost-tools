@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,11 +40,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 private data class BatteryInfoRow(
     val titleRes: Int,
@@ -75,7 +78,7 @@ fun BatteryInfoScreen(
     LaunchedEffect(uiState.displayMode) {
         if (uiState.displayMode == BatteryDisplayMode.CHARGING) {
             while (true) {
-                delay(1000)
+                delay(1000.milliseconds)
                 var newShape = ExpressiveShapeType.entries.random()
                 while (newShape == chargingShape) {
                     newShape = ExpressiveShapeType.entries.random()
@@ -142,12 +145,15 @@ fun BatteryInfoScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = uiState.levelText,
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Card(shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        text = uiState.levelText,
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 

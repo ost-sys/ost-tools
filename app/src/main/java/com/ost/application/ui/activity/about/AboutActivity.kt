@@ -58,7 +58,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -67,14 +66,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -109,16 +106,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ost.application.BuildConfig
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeBackground
 import com.ost.application.ui.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.SectionTitle
+import com.ost.application.ui.components.SectionTitle
 import com.ost.application.util.toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class AboutActivity : ComponentActivity() {
     private val viewModel: AboutViewModel by viewModels()
@@ -568,7 +566,7 @@ fun UnifiedSocialLinks(onLinkClick: (String) -> Unit) {
                 defaultCorners = cornerValues[index],
                 onClick = {
                     scope.launch {
-                        delay(1L)
+                        delay(1L.milliseconds)
                         onLinkClick(linkData.url)
                     }
                 }
@@ -906,13 +904,13 @@ fun rememberActionLaunchers(viewModel: AboutViewModel): AboutActionLaunchers {
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
+    ) { _: Boolean ->
         viewModel.refreshPermissions()
     }
 
     val activityResultLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { result: ActivityResult -> }
+    ) { _: ActivityResult -> }
 
     val installPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()

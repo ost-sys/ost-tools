@@ -30,7 +30,7 @@ object LiveUpdateNotificationManager {
         val channel = NotificationChannel(
             Constants.NOTIFICATION_CHANNEL_ID_LIVE_UPDATES,
             "Live Transfer Updates",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = "Channel for live file transfer progress updates."
         }

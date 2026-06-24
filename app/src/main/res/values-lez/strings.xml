@@ -10,7 +10,7 @@
     <string name="latest_version_installed">Эхиримжи версия эцигнава</string>
     <string name="downloading_update">Обновление къачузва…</string>
     <string name="update">Обновление</string>
-    <string name="cancel">Отмена (Батил авун)</string>
+    <string name="cancel">Батил авун</string>
     <string name="download_canceled">Къачун батил авуна</string>
     <string name="update_file_not_found">Обновленидин файл жагъанач</string>
     <string name="install_unknown_apps_permission">Тийижир приложениеяр эцигунин ихтияр обновление патал лазим я</string>

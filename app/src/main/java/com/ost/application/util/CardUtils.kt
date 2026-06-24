@@ -33,8 +33,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
 
 enum class CardPosition {
     TOP,
@@ -83,24 +83,24 @@ fun CustomCardItem(
             Box(
                 contentAlignment = Alignment.Center
             ) {
-                if (icon != null) {
+                if (icon != null && iconPainter == null) {
                     ExpressiveShapeBackground(
                         iconSize = 48.dp,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        forcedShape = ExpressiveShapeType.CLOVER_8
+                        color = MaterialTheme.colorScheme.primary,
+                        forcedShape = if (status) ExpressiveShapeType.CLOVER_8 else ExpressiveShapeType.SQUARE
                     )
                     Icon(
                         painter = painterResource(icon),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(Modifier.size(16.dp))
-                } else if (iconPainter != null) {
+                } else if (iconPainter != null && icon == null) {
                     ExpressiveShapeBackground(
                         iconSize = 48.dp,
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        forcedShape = ExpressiveShapeType.CLOVER_8
+                        forcedShape = if (status) ExpressiveShapeType.CLOVER_8 else ExpressiveShapeType.SQUARE
                     )
                     Image(
                         painter = iconPainter,
@@ -142,7 +142,7 @@ fun AdaptiveSquareCard(
     icon: Int? = null,
     iconPainter: Painter? = null,
     summary: String? = null,
-    enabled: Boolean = true,
+    status: Boolean = true,
     shape: Shape = MaterialTheme.shapes.large,
     onClick: (() -> Unit)? = null
 ) {
@@ -150,7 +150,7 @@ fun AdaptiveSquareCard(
         modifier = modifier
             .aspectRatio(1f, matchHeightConstraintsFirst = false),
         shape = shape,
-        enabled = enabled,
+        enabled = status,
         onClick = onClick ?: {},
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -173,21 +173,21 @@ fun AdaptiveSquareCard(
                     if (icon != null) {
                         ExpressiveShapeBackground(
                             iconSize = 48.dp,
-                            color = if (enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-                            forcedShape = ExpressiveShapeType.CLOVER_8
+                            color = if (status) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer,
+                            forcedShape = if (status) ExpressiveShapeType.CLOVER_8 else ExpressiveShapeType.SQUARE
                         )
                         Icon(
                             painter = painterResource(icon),
                             contentDescription = null,
-                            tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            tint = if (status) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.size(16.dp))
                     } else if (iconPainter != null) {
                         ExpressiveShapeBackground(
                             iconSize = 48.dp,
-                            color = if (enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-                            forcedShape = ExpressiveShapeType.CLOVER_8
+                            color = if (status) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer,
+                            forcedShape = if (status) ExpressiveShapeType.CLOVER_8 else ExpressiveShapeType.SQUARE
                         )
                         Image(
                             painter = iconPainter,
@@ -215,7 +215,7 @@ fun AdaptiveSquareCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                color = if (status) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                 overflow = TextOverflow.Ellipsis
             )
         }

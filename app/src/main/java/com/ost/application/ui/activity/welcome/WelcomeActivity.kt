@@ -69,9 +69,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ost.application.R
 import com.ost.application.ui.activity.setup.SetupActivity
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
-import com.ost.application.ui.component.LanguagePickerDialog
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
+import com.ost.application.ui.components.LanguagePickerDialog
 import com.ost.application.ui.theme.OSTToolsTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -80,6 +80,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 class WelcomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -446,7 +447,7 @@ fun MorphingStartButton(
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
-            delay(600)
+            delay(600.milliseconds)
             isSuccess = false
         }
     }

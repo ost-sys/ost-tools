@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -44,12 +46,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
-import com.ost.application.ui.component.TimePickerDialog
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
+import com.ost.application.ui.components.SectionTitle
+import com.ost.application.ui.components.TimePickerDialog
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.SectionTitle
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -109,13 +111,16 @@ fun TimeZoneConverterPage(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = uiState.resultText ?: stringResource(R.string.result),
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary,
-                    minLines = 2
-                )
+                Card(shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        text = uiState.resultText ?: stringResource(R.string.result),
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.primary,
+                        minLines = 1
+                    )
+                }
             }
 
             SectionTitle(stringResource(R.string.first_time_zone))

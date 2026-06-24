@@ -366,4 +366,7 @@
     <string name="get_token">Get token</string>
     <string name="load_repositories">Load repositories</string>
     <string name="no_repositories_found">No repositories found</string>
+    <string name="root_access">ROOT Access</string>
+    <string name="ra_perm_info">Unlock advanced features requiring superuser privileges</string>
+    <string name="please_grant_all_essential_permissions_to_proceed_with_the_setup">Please grant all essential permissions to proceed with the setup.</string>
 </resources>

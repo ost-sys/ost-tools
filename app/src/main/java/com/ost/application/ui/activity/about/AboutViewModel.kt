@@ -239,7 +239,7 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                 errorMsg = getString(R.string.no_internet_connection_detected)
             } else {
                 try {
-                    val apiUrl = URL("https://api.github.com/repos/ost-sys/ost-program-android/releases")
+                    val apiUrl = URL("https://api.github.com/repos/ost-sys/ost-tools/releases")
                     val connection = apiUrl.openConnection() as HttpURLConnection
                     connection.requestMethod = "GET"
                     connection.setRequestProperty("Accept", "application/vnd.github.v3+json")

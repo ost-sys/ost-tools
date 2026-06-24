@@ -206,7 +206,28 @@
     <string name="open_activity_notification_button">Open</string>
     <string name="notif_progress_details">%1$s / %2$s (%3$d%%)</string>
     <string name="write_settings_permission_required">Write settings permission required</string>
+    <string name="uninstall_success">Uninstall success</string>
+    <string name="user_app">User app</string>
+    <string name="app_info">App info</string>
+    <string name="system_app">System app</string>
+    <!-- Новые строки для FileExplorerActivity -->
 
-    <!-- New Strings for Undo Feature -->
+    <!-- Простые -->
+    <string name="storage_permissions_denied">Storage permissions denied. Some files may be unavailable.</string>
+    <string name="cannot_share_folders">Folders cannot be shared.</string>
+    <string name="clipboard_is_empty">Clipboard is empty.</string>
+    <string name="pasting">Pasting…</string>
+    <string name="error_file_not_found">Error: File not found.</string>
+    <string name="error_preparing_file_for_sharing">Error preparing file for sharing.</string>
 
+    <!-- Форматные (с аргументами) -->
+    <string name="copied_file">Copied: %s</string>
+    <string name="cut_file">Cut: %s</string>
+    <string name="deleting_file">Deleting: %s…</string>
+    <string name="paste_success">Pasted %d item(s).</string>
+    <string name="paste_failed">Failed to paste %d item(s).</string>
+    <string name="paste_partial">Pasted %1$d item(s), failed for %2$d.</string>
+
+    <string name="done">Done</string>
+    <string name="ost">Operating System Tester</string>
 </resources>

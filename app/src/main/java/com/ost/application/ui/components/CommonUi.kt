@@ -1,4 +1,4 @@
-package com.ost.application.ui.component
+package com.ost.application.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState

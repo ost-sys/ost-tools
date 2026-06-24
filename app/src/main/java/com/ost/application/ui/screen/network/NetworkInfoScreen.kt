@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,11 +38,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.WarningTip
+import com.ost.application.ui.components.WavyDivider
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.WarningTip
-import com.ost.application.util.WavyDivider
 
 private data class NetworkInfoRow(
     val titleRes: Int,
@@ -127,12 +129,15 @@ fun NetworkInfoScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = uiState.carrierName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Card(shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        text = uiState.carrierName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 

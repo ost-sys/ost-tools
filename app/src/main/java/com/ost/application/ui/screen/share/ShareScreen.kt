@@ -91,12 +91,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
 import com.ost.application.ui.screen.share.NotificationHelper.formatFileSize
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.SectionTitle
+import com.ost.application.ui.components.SectionTitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch

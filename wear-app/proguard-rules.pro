@@ -20,4 +20,6 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontwarn androidx.compose.**
+-keep class com.ost.application.util.GitHubRelease { *; }
+-keepclassmembers class com.ost.application.util.GitHubRelease { *; }
 #-keep class androidx.compose.** { *; }

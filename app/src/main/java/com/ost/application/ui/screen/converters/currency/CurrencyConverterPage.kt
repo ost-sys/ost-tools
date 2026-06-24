@@ -89,12 +89,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
-import com.ost.application.ui.component.MorphingConvertButton
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
+import com.ost.application.ui.components.MorphingConvertButton
 import com.ost.application.util.CardPosition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
@@ -167,7 +168,6 @@ fun CurrencyConverterPage(
                     }
                     EditCurrencyCard(
                         modifier = Modifier,
-                        position = cardPosition,
                         item = item,
                         availableCodes = availableCodesForEdit,
                         onSave = { newCode -> viewModel.onSaveEditCurrency(item.code, newCode) },
@@ -368,7 +368,7 @@ fun StatusHeader(status: NetworkStatus, onRefresh: () -> Unit) {
                 haptic.performHapticFeedback(HapticFeedbackType.Confirm)
                 scope.launch {
                     tooltipState.show()
-                    delay(3000)
+                    delay(3000.milliseconds)
                     tooltipState.dismiss()
                 }
             }
@@ -377,7 +377,7 @@ fun StatusHeader(status: NetworkStatus, onRefresh: () -> Unit) {
                 haptic.performHapticFeedback(HapticFeedbackType.Reject)
                 scope.launch {
                     tooltipState.show()
-                    delay(3000)
+                    delay(3000.milliseconds)
                     tooltipState.dismiss()
                 }
             }
@@ -479,7 +479,6 @@ fun AddCurrencyCard(
 @Composable
 fun EditCurrencyCard(
     modifier: Modifier = Modifier,
-    position: CardPosition,
     item: TargetCurrencyInfo,
     availableCodes: List<String>,
     onSave: (String) -> Unit,

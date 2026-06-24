@@ -1,13 +1,15 @@
-<img src="banner.png" width="100%"/>
+<img src="banner.png" width="100%" loading="lazy"/>
 
-# <center> The project is based on the Jetpack Compose Material Design 3</center>
-### Functions:
+# <p align="center">OST Tools</p>
+
+### Features:
+- Material 3 Expressive
 - Some information about the phone
 - Reboot to different modes (Recovery, Fastboot, Download Mode)
 - Currency converters and time calculators
 - Restoring broken/burnt pixels and checking the display for their presence
-- "Stargazers" - those who put a star on one of my projects
-- List of applications, freezing and deleting them
+- Stargazers - those who put a star on one of your projects
+- List of applications
 
 ## Android
 <p align="center">
@@ -49,18 +51,18 @@
 <img loading="lazy" src="screenshots/Screenshot_20250412_134419_application.png" height="180"/>
 </p>
 
-## Usage
+### Usage (for Stargazers)
 - Get your token here - https://github.com/settings/tokens
 - Put your token in app
 
 ### How to install app on WearOS and grand permissions:
-- Pair your watch with PC using Wireless ADB ([Guildeline (XDA)](https://xdaforums.com/t/guide-how-to-connect-adb-over-wifi.3368602/))
+- Pair your watch with PC using Wireless ADB ([Guildeline on XDA](https://xdaforums.com/t/guide-how-to-connect-adb-over-wifi.3368602/))
 - Install app
-```bash
+```shell
 adb install wear-app-release.apk
 ```
 - Grand permissions
-```bash
+```shell
 adb shell
 appops set com.ost.application MANAGE_EXTERNAL_STORAGE allow
 appops set com.ost.application WRITE_EXTERNAL_STORAGE allow
@@ -73,7 +75,6 @@ appops set com.ost.application REQUEST_INSTALL_PACKAGES allow
 - [Luminous418](https://github.com/Luminous418) for the translation into Spanish
 
 ## Credits
-- [zhh4eny](https://t.me/zh4eny) - Created a MD file.
 - [Weever](https://github.com/Weever1337) - For a new API for currency converter
 - [Google](https://developer.android.com/jetpack) for their Jetpack and Material Components libraries.
 

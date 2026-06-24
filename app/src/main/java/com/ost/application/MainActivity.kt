@@ -74,7 +74,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -129,6 +128,7 @@ import com.ost.application.ui.screen.deviceinfo.DeviceInfoScreen
 import com.ost.application.ui.screen.display.DisplayInfoScreen
 import com.ost.application.ui.screen.network.NetworkInfoScreen
 import com.ost.application.ui.screen.powermenu.PowerMenuScreen
+import com.ost.application.ui.screen.ram.RAMScreen
 import com.ost.application.ui.screen.settings.SettingsAction
 import com.ost.application.ui.screen.settings.SettingsScreen
 import com.ost.application.ui.screen.settings.SettingsUiState
@@ -136,13 +136,17 @@ import com.ost.application.ui.screen.settings.SettingsViewModel
 import com.ost.application.ui.screen.share.ShareScreen
 import com.ost.application.ui.screen.stargazers.StargazersScreen
 import com.ost.application.ui.screen.stargazers.StargazersViewModel
+import com.ost.application.ui.screen.storage.StorageScreen
 import com.ost.application.ui.state.FabController
 import com.ost.application.ui.state.FabSize
 import com.ost.application.ui.state.LocalFabController
 import com.ost.application.ui.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
+import com.ost.application.util.TooltipWrapper
+import com.ost.application.util.isRooted
 import com.ost.application.util.toast
+import com.ost.application.util.tooltip
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -155,21 +159,32 @@ val LocalBottomSpacing = staticCompositionLocalOf { 0.dp }
 data class MenuItemData(
     val id: String,
     @StringRes val titleResId: Int,
-    @DrawableRes val iconResId: Int
+    @DrawableRes val iconResId: Int,
 )
 
-private fun createMenuItems(): List<MenuItemData?> {
+enum class CordPosition {
+    START,
+    MIDDLE,
+    END,
+}
+
+private fun createMenuItems(isRooted: Boolean): List<MenuItemData?> {
     return listOf(
         MenuItemData("tools", R.string.tools, R.drawable.ic_build_24dp),
-        MenuItemData("power_menu", R.string.power_menu, R.drawable.ic_power_new_24dp),
+        if (isRooted) {
+            MenuItemData("power_menu", R.string.power_menu, R.drawable.ic_power_new_24dp)
+        } else {
+            null
+        },
         MenuItemData("share_files", R.string.share, R.drawable.ic_share_24dp),
         MenuItemData("stargazers", R.string.stargazers, R.drawable.ic_star_24dp),
         MenuItemData("app_list", R.string.apps_list, R.drawable.ic_apps_24dp),
-        null,
         MenuItemData("about_device", R.string.about_device, R.drawable.ic_device_24dp),
         MenuItemData("battery", R.string.battery, R.drawable.ic_battery_full_24dp),
         MenuItemData("display", R.string.display, R.drawable.ic_display_24dp),
         MenuItemData("network", R.string.network, R.drawable.ic_wifi_24dp),
+        MenuItemData("storage", R.string.rom, R.drawable.ic_storage_24dp),
+        MenuItemData("ram", R.string.ram, R.drawable.ic_memory_alt_24dp)
     )
 }
 
@@ -217,19 +232,20 @@ class SettingsViewModelFactory(private val application: Application) : ViewModel
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
-@SuppressLint("AutoboxingStateCreation")
+@SuppressLint("AutoboxingStateCreation", "LocalContextGetResourceValueCall")
 fun MainAppStructure(isExpandedScreen: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val fabController = remember { FabController() }
 
-    val allMenuItems = remember { createMenuItems() }
+    val isDeviceRooted = remember { isRooted() }
+
+    val allMenuItems = remember(isDeviceRooted) { createMenuItems(isDeviceRooted) }
     val allValidMenuItems = remember(allMenuItems) { allMenuItems.filterNotNull() }
     val bottomNavDirectItems = remember { allValidMenuItems.take(3) }
-    val moreMenuItems = remember { allMenuItems.drop(bottomNavDirectItems.size) }
+    val moreMenuItems = remember(allValidMenuItems) { allValidMenuItems.drop(bottomNavDirectItems.size) }
     var selectedScreenId by rememberSaveable { mutableStateOf(bottomNavDirectItems.first().id) }
-
     val scaffoldState = rememberBottomSheetScaffoldState()
 
     val settingsViewModel: SettingsViewModel =
@@ -284,414 +300,456 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
         LocalFabController provides fabController
     ) {
         SharedTransitionLayout {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                if (isExpandedScreen) {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        PermanentNavigationDrawer(
-                            drawerContent = {
-                                PermanentDrawerSheet(
-                                    modifier = Modifier.width(300.dp),
-                                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).size(64.dp),
-                                        Arrangement.SpaceBetween,
-                                        Alignment.CenterVertically
+            TooltipWrapper { tooltipState ->
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    if (isExpandedScreen) {
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            PermanentNavigationDrawer(
+                                drawerContent = {
+                                    PermanentDrawerSheet(
+                                        modifier = Modifier.width(300.dp),
+                                        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainer
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                modifier = Modifier.size(32.dp),
-                                                painter = painterResource(R.drawable.ic_launcher_foreground_app),
-                                                contentDescription = "Logo"
-                                            )
-                                            Text(
-                                                stringResource(R.string.app_name),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 24.sp,
-                                                fontFamily = FontFamily(Font(R.font.google_sans_bold))
-                                            )
-                                        }
-                                        AnimatedVisibility(visible = !showSettingsSheet, enter = fadeIn(), exit = fadeOut()) {
-                                            val animatedVisibilityScope = this
-                                            FilledTonalIconButton(
-                                                onClick = { showSettingsSheet = true },
-                                                modifier = Modifier.sharedBounds(
-                                                    sharedContentState = rememberSharedContentState(key = "settings_morph"),
-                                                    animatedVisibilityScope = animatedVisibilityScope,
-                                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
-                                                )
-                                            ) {
-                                                Icon(painterResource(R.drawable.ic_settings_24dp), contentDescription = stringResource(R.string.settings))
-                                            }
-                                        }
-                                    }
-
-                                    Spacer(Modifier.height(16.dp))
-
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .verticalScroll(rememberScrollState())
-                                    ) {
-                                        allValidMenuItems.forEach { item ->
-                                            NavigationDrawerItem(
-                                                selected = selectedScreenId == item.id,
-                                                onClick = { selectedScreenId = item.id },
-                                                icon = { Icon(painterResource(item.iconResId), contentDescription = stringResource(item.titleResId)) },
-                                                label = { Text(stringResource(item.titleResId)) },
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                                colors = NavigationDrawerItemDefaults.colors(
-                                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                    selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                                )
-                                            )
-                                        }
-
-                                        Spacer(Modifier.height(16.dp).windowInsetsPadding(WindowInsets.navigationBars))
-                                    }
-                                }
-                            }
-                        ) {
-                            Scaffold(
-                                modifier = Modifier.fillMaxSize(),
-                                topBar = {
-                                    TopAppBar(
-                                        title = {
-                                            Text(
-                                                displayTitle,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        },
-                                        scrollBehavior = scrollBehavior
-                                    )
-                                },
-                                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-                            ) { paddingValues ->
-                                AnimatedContent(
-                                    targetState = selectedScreenId, label = "ScreenTransition",
-                                    modifier = Modifier
-                                        .padding(paddingValues)
-                                        .fillMaxSize(),
-                                    transitionSpec = {
-                                        (fadeIn(tween(300)) + scaleIn(
-                                            initialScale = 0.95f,
-                                            animationSpec = tween(300)
-                                        )).togetherWith(
-                                            fadeOut(tween(300)) + scaleOut(
-                                                targetScale = 1.05f,
-                                                animationSpec = tween(300)
-                                            )
-                                        )
-                                    }
-                                ) { targetId ->
-                                    LaunchedEffect(targetId) { fabController.hideFab() }
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.TopCenter
-                                    ) {
-                                        ContentArea(
-                                            selectedItemId = targetId,
-                                            stargazersViewModel = stargazersViewModel,
+                                        Row(
                                             modifier = Modifier
-                                                .fillMaxSize()
-                                                .widthIn(max = 840.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    BottomSheetScaffold(
-                        scaffoldState = scaffoldState,
-                        sheetPeekHeight = bottomSpacing,
-                        sheetContainerColor = Color.Transparent,
-                        sheetContentColor = MaterialTheme.colorScheme.onSurface,
-                        sheetTonalElevation = 0.dp,
-                        sheetShadowElevation = 0.dp,
-                        sheetDragHandle = null,
-                        sheetContent = {
-                            val isSheetExpanded =
-                                scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded || scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 16.dp)
-                                        .windowInsetsPadding(WindowInsets.navigationBars)
-                                ) {
-                                    AppBottomNavigation(
-                                        directItems = bottomNavDirectItems,
-                                        selectedItemId = if (bottomNavDirectItems.any { it.id == selectedScreenId }) selectedScreenId else MORE_ITEM_ID,
-                                        onItemClick = { itemId ->
-                                            if (itemId == MORE_ITEM_ID) {
-                                                scope.launch { if (scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded) scaffoldState.bottomSheetState.partialExpand() else scaffoldState.bottomSheetState.expand() }
-                                            } else {
-                                                scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                                                selectedScreenId = itemId
-                                            }
-                                        },
-                                        modifier = Modifier.align(Alignment.Center)
-                                    )
-                                    this@Column.AnimatedVisibility(
-                                        visible = fabController.isVisible && !isSheetExpanded,
-                                        enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut(),
-                                        modifier = Modifier
-                                            .align(Alignment.CenterEnd)
-                                            .padding(end = 16.dp)
-                                    ) {
-                                        if (fabController.size == FabSize.Small) {
-                                            SmallFloatingActionButton(
-                                                onClick = fabController.onClick,
-                                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                            ) {
-                                                if (fabController.iconRes != null) Icon(
-                                                    painter = painterResource(
-                                                        id = fabController.iconRes!!
-                                                    ),
-                                                    contentDescription = fabController.contentDescription
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp)
+                                                .size(64.dp),
+                                            Arrangement.SpaceBetween,
+                                            Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    modifier = Modifier.size(32.dp),
+                                                    painter = painterResource(R.drawable.ic_launcher_foreground_app),
+                                                    contentDescription = "Logo"
+                                                )
+                                                Text(
+                                                    stringResource(R.string.app_name),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 24.sp,
+                                                    fontFamily = FontFamily(Font(R.font.google_sans_bold))
                                                 )
                                             }
-                                        } else {
-                                            FloatingActionButton(
-                                                onClick = fabController.onClick,
-                                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                            ) {
-                                                if (fabController.iconRes != null) Icon(
-                                                    painter = painterResource(
-                                                        id = fabController.iconRes!!
-                                                    ),
-                                                    contentDescription = fabController.contentDescription
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 200.dp),
-                                    shape = RoundedCornerShape(40.dp, 40.dp, 0.dp, 0.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainer,
-                                    tonalElevation = 2.dp
-                                ) {
-                                    Column(Modifier.padding(0.dp, 16.dp, 0.dp, 0.dp)) {
-                                        MoreBottomSheetContent(
-                                            menuItems = moreMenuItems,
-                                            currentSelectedScreenId = selectedScreenId,
-                                            onItemClick = { itemId ->
-                                                scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                                                selectedScreenId = itemId
-                                            })
-                                        Spacer(modifier = Modifier.height(24.dp))
-                                    }
-                                }
-                            }
-                        }
-                    ) { _ ->
-                        val isSheetExpanded =
-                            scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded || scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
-                        val scrimAlpha by animateFloatAsState(
-                            targetValue = if (isSheetExpanded) 0.32f else 0f,
-                            label = "scrim",
-                            animationSpec = tween(300)
-                        )
-
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Scaffold(
-                                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                                contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
-                                topBar = {
-                                    LargeFlexibleTopAppBar(
-                                        title = {
-                                            Text(
-                                                displayTitle,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        },
-                                        expandedHeight = 152.dp,
-                                        actions = {
-                                            AnimatedVisibility(
-                                                visible = !showSettingsSheet,
-                                                enter = fadeIn(),
-                                                exit = fadeOut()
-                                            ) {
+                                            AnimatedVisibility(visible = !showSettingsSheet, enter = fadeIn(), exit = fadeOut()) {
                                                 val animatedVisibilityScope = this
                                                 FilledTonalIconButton(
                                                     onClick = { showSettingsSheet = true },
                                                     modifier = Modifier.sharedBounds(
-                                                        sharedContentState = rememberSharedContentState(
-                                                            key = "settings_morph"
-                                                        ),
+                                                        sharedContentState = rememberSharedContentState(key = "settings_morph"),
                                                         animatedVisibilityScope = animatedVisibilityScope,
                                                         resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                                                     )
                                                 ) {
+                                                    Icon(painterResource(R.drawable.ic_settings_24dp), contentDescription = stringResource(R.string.settings))
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(Modifier.height(16.dp))
+
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .verticalScroll(rememberScrollState())
+                                        ) {
+                                            allValidMenuItems.forEach { item ->
+                                                NavigationDrawerItem(
+                                                    selected = selectedScreenId == item.id,
+                                                    onClick = { selectedScreenId = item.id },
+                                                    icon = { Icon(painterResource(item.iconResId), contentDescription = stringResource(item.titleResId)) },
+                                                    label = { Text(stringResource(item.titleResId)) },
+                                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                                )
+                                            }
+
+                                            Spacer(Modifier
+                                                .height(16.dp)
+                                                .windowInsetsPadding(WindowInsets.navigationBars))
+                                        }
+                                    }
+                                }
+                            ) {
+                                Scaffold(
+                                    modifier = Modifier.fillMaxSize(),
+                                    topBar = {
+                                        TopAppBar(
+                                            title = {
+                                                Text(
+                                                    displayTitle,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            },
+                                            actions = {
+                                                IconButton(
+                                                    modifier = Modifier.tooltip(
+                                                        state = tooltipState,
+                                                        title = "Coming soon...",
+                                                        initialVisibility = false
+                                                    ),
+                                                    onClick = {
+//                                                        val miniGamesIntent = Intent(context,
+//                                                            MiniGamesMainActivity::class.java)
+//                                                        context.startActivity(miniGamesIntent)
+                                                        tooltipState.show()
+                                                    }
+                                                ) {
                                                     Icon(
-                                                        painterResource(R.drawable.ic_settings_24dp),
-                                                        contentDescription = stringResource(R.string.settings)
+                                                        painter = painterResource(R.drawable.ic_stadia_controller_24dp),
+                                                        contentDescription = "Mini Games"
+                                                    )
+                                                }
+                                            },
+                                            scrollBehavior = scrollBehavior
+                                        )
+                                    },
+                                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+                                ) { paddingValues ->
+                                    AnimatedContent(
+                                        targetState = selectedScreenId, label = "ScreenTransition",
+                                        modifier = Modifier
+                                            .padding(paddingValues)
+                                            .fillMaxSize(),
+                                        transitionSpec = {
+                                            (fadeIn(tween(300)) + scaleIn(
+                                                initialScale = 0.95f,
+                                                animationSpec = tween(300)
+                                            )).togetherWith(
+                                                fadeOut(tween(300)) + scaleOut(
+                                                    targetScale = 1.05f,
+                                                    animationSpec = tween(300)
+                                                )
+                                            )
+                                        }
+                                    ) { targetId ->
+                                        LaunchedEffect(targetId) { fabController.hideFab() }
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.TopCenter
+                                        ) {
+                                            ContentArea(
+                                                selectedItemId = targetId,
+                                                stargazersViewModel = stargazersViewModel,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .widthIn(max = 840.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        BottomSheetScaffold(
+                            scaffoldState = scaffoldState,
+                            sheetPeekHeight = bottomSpacing,
+                            sheetContainerColor = Color.Transparent,
+                            sheetContentColor = MaterialTheme.colorScheme.onSurface,
+                            sheetTonalElevation = 0.dp,
+                            sheetShadowElevation = 0.dp,
+                            sheetDragHandle = null,
+                            sheetContent = {
+                                val isSheetExpanded =
+                                    scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded || scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 16.dp)
+                                            .windowInsetsPadding(WindowInsets.navigationBars)
+                                    ) {
+                                        AppBottomNavigation(
+                                            directItems = bottomNavDirectItems,
+                                            selectedItemId = if (bottomNavDirectItems.any { it.id == selectedScreenId }) selectedScreenId else MORE_ITEM_ID,
+                                            onItemClick = { itemId ->
+                                                if (itemId == MORE_ITEM_ID) {
+                                                    scope.launch { if (scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded) scaffoldState.bottomSheetState.partialExpand() else scaffoldState.bottomSheetState.expand() }
+                                                } else {
+                                                    scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                                                    selectedScreenId = itemId
+                                                }
+                                            },
+                                            modifier = Modifier.align(Alignment.Center)
+                                        )
+                                        this@Column.AnimatedVisibility(
+                                            visible = fabController.isVisible && !isSheetExpanded,
+                                            enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut(),
+                                            modifier = Modifier
+                                                .align(Alignment.CenterEnd)
+                                                .padding(end = 16.dp)
+                                        ) {
+                                            if (fabController.size == FabSize.Small) {
+                                                SmallFloatingActionButton(
+                                                    onClick = fabController.onClick,
+                                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                                ) {
+                                                    if (fabController.iconRes != null) Icon(
+                                                        painter = painterResource(
+                                                            id = fabController.iconRes!!
+                                                        ),
+                                                        contentDescription = fabController.contentDescription
+                                                    )
+                                                }
+                                            } else {
+                                                FloatingActionButton(
+                                                    onClick = fabController.onClick,
+                                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                                ) {
+                                                    if (fabController.iconRes != null) Icon(
+                                                        painter = painterResource(
+                                                            id = fabController.iconRes!!
+                                                        ),
+                                                        contentDescription = fabController.contentDescription
                                                     )
                                                 }
                                             }
-                                        },
-                                        scrollBehavior = scrollBehavior
-                                    )
-                                },
-                                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-                            ) { scaffoldPadding ->
-                                AnimatedContent(
-                                    targetState = selectedScreenId, label = "ScreenTransition",
-                                    modifier = Modifier
-                                        .padding(scaffoldPadding)
-                                        .fillMaxSize(),
-                                    transitionSpec = {
-                                        (fadeIn(tween(300)) + scaleIn(
-                                            initialScale = 0.95f,
-                                            animationSpec = tween(300)
-                                        )).togetherWith(
-                                            fadeOut(tween(300)) + scaleOut(
-                                                targetScale = 1.05f,
+                                        }
+                                    }
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(min = 200.dp),
+                                        shape = RoundedCornerShape(40.dp, 40.dp, 0.dp, 0.dp),
+                                        color = MaterialTheme.colorScheme.surfaceContainer,
+                                        tonalElevation = 2.dp
+                                    ) {
+                                        Column(Modifier.padding(0.dp, 16.dp, 0.dp, 0.dp)) {
+                                            MoreBottomSheetContent(
+                                                menuItems = moreMenuItems,
+                                                currentSelectedScreenId = selectedScreenId,
+                                                onItemClick = { itemId ->
+                                                    scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                                                    selectedScreenId = itemId
+                                                })
+                                            Spacer(modifier = Modifier.height(24.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        ) { _ ->
+                            val isSheetExpanded =
+                                scaffoldState.bottomSheetState.targetValue == SheetValue.Expanded || scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
+                            val scrimAlpha by animateFloatAsState(
+                                targetValue = if (isSheetExpanded) 0.32f else 0f,
+                                label = "scrim",
+                                animationSpec = tween(300)
+                            )
+
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                Scaffold(
+                                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                                    contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+                                    topBar = {
+                                        LargeFlexibleTopAppBar(
+                                            title = {
+                                                Text(
+                                                    displayTitle,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            },
+                                            expandedHeight = 152.dp,
+                                            actions = {
+                                                IconButton(
+                                                    modifier = Modifier.tooltip(
+                                                        state = tooltipState,
+                                                        title = "Coming soon...",
+                                                        initialVisibility = false
+                                                    ),
+                                                    onClick = {
+//                                                        val miniGamesIntent = Intent(context,
+//                                                            MiniGamesMainActivity::class.java)
+//                                                        context.startActivity(miniGamesIntent)
+                                                        tooltipState.show()
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_stadia_controller_24dp),
+                                                        contentDescription = "Mini Games"
+                                                    )
+                                                }
+                                                AnimatedVisibility(
+                                                    visible = !showSettingsSheet,
+                                                    enter = fadeIn(),
+                                                    exit = fadeOut()
+                                                ) {
+                                                    val animatedVisibilityScope = this
+                                                    FilledTonalIconButton(
+                                                        onClick = { showSettingsSheet = true },
+                                                        modifier = Modifier.sharedBounds(
+                                                            sharedContentState = rememberSharedContentState(
+                                                                key = "settings_morph"
+                                                            ),
+                                                            animatedVisibilityScope = animatedVisibilityScope,
+                                                            resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                                        )
+                                                    ) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_settings_24dp),
+                                                            contentDescription = stringResource(R.string.settings)
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            scrollBehavior = scrollBehavior
+                                        )
+                                    },
+                                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+                                ) { scaffoldPadding ->
+                                    AnimatedContent(
+                                        targetState = selectedScreenId, label = "ScreenTransition",
+                                        modifier = Modifier
+                                            .padding(scaffoldPadding)
+                                            .fillMaxSize(),
+                                        transitionSpec = {
+                                            (fadeIn(tween(300)) + scaleIn(
+                                                initialScale = 0.95f,
                                                 animationSpec = tween(300)
+                                            )).togetherWith(
+                                                fadeOut(tween(300)) + scaleOut(
+                                                    targetScale = 1.05f,
+                                                    animationSpec = tween(300)
+                                                )
                                             )
+                                        }
+                                    ) { targetId ->
+                                        LaunchedEffect(targetId) { fabController.hideFab() }
+                                        ContentArea(
+                                            selectedItemId = targetId,
+                                            stargazersViewModel = stargazersViewModel,
+                                            modifier = Modifier.fillMaxSize()
                                         )
                                     }
-                                ) { targetId ->
-                                    LaunchedEffect(targetId) { fabController.hideFab() }
-                                    ContentArea(
-                                        selectedItemId = targetId,
-                                        stargazersViewModel = stargazersViewModel,
-                                        modifier = Modifier.fillMaxSize()
+                                }
+
+                                if (scrimAlpha > 0f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = scrimAlpha))
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                scope.launch {
+                                                    scaffoldState.bottomSheetState.partialExpand()
+                                                }
+                                            }
                                     )
                                 }
                             }
+                        }
+                    }
 
-                            if (scrimAlpha > 0f) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = scrimAlpha))
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) { scope.launch { scaffoldState.bottomSheetState.partialExpand() } })
+                    AnimatedVisibility(
+                        visible = showSettingsSheet,
+                        enter = fadeIn(tween(400)),
+                        exit = fadeOut(tween(400)),
+                        modifier = Modifier.zIndex(100f)
+                    ) {
+                        val animatedVisibilityScope = this
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { showSettingsSheet = false }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .then(
+                                        if (isExpandedScreen) Modifier
+                                            .width(420.dp)
+                                            .fillMaxHeight(0.85f)
+                                        else Modifier
+                                            .fillMaxSize()
+                                    )
+                                    .sharedBounds(
+                                        sharedContentState = rememberSharedContentState(key = "settings_morph"),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
+                                    )
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {}
+                                    ),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 6.dp,
+                                shadowElevation = 8.dp
+                            ) {
+                                SettingsSheetContent(
+                                    modifier = Modifier.padding(
+                                        top = WindowInsets.systemBars.asPaddingValues()
+                                            .calculateTopPadding(),
+                                        bottom = WindowInsets.systemBars.asPaddingValues()
+                                            .calculateTopPadding(),
+                                    ),
+                                    state = settingsState,
+                                    onTotalDurationChange = { floatValue ->
+                                        settingsViewModel.updateTotalDuration(
+                                            floatValue.roundToInt()
+                                        )
+                                    },
+                                    onNoiseDurationChange = { floatValue ->
+                                        settingsViewModel.updateNoiseDuration(
+                                            floatValue.roundToInt()
+                                        )
+                                    },
+                                    onBWNoiseDurationChange = { floatValue ->
+                                        settingsViewModel.updateBlackWhiteNoiseDuration(
+                                            floatValue.roundToInt()
+                                        )
+                                    },
+                                    onHorizontalDurationChange = { floatValue ->
+                                        settingsViewModel.updateHorizontalDuration(
+                                            floatValue.roundToInt()
+                                        )
+                                    },
+                                    onVerticalDurationChange = { floatValue ->
+                                        settingsViewModel.updateVerticalDuration(
+                                            floatValue.roundToInt()
+                                        )
+                                    },
+                                    onGithubTokenChange = { token ->
+                                        settingsViewModel.updateGithubToken(
+                                            token
+                                        )
+                                    },
+                                    onSaveGithubToken = {
+                                        settingsViewModel.saveGithubToken(); stargazersViewModel.login(
+                                        settingsState.githubToken
+                                    )
+                                    },
+                                    onClearGithubToken = { settingsViewModel.clearGithubToken(); stargazersViewModel.logout() },
+                                    onAboutClick = {
+                                        showSettingsSheet = false; settingsViewModel.onAboutAppClicked()
+                                    },
+                                    onCloseClick = { showSettingsSheet = false },
+                                    onLanguagePreferenceClick = { settingsViewModel.onLanguagePreferenceClick() },
+                                    onLanguageSelected = { locale ->
+                                        settingsViewModel.onLanguageSelectedInDialog(
+                                            locale
+                                        )
+                                    },
+                                    onLanguageConfirm = { settingsViewModel.onLanguageDialogConfirm() },
+                                    onLanguageDismiss = { settingsViewModel.onLanguageDialogDismiss() }
+                                )
                             }
                         }
                     }
                 }
 
-                AnimatedVisibility(
-                    visible = showSettingsSheet,
-                    enter = fadeIn(tween(400)),
-                    exit = fadeOut(tween(400)),
-                    modifier = Modifier.zIndex(100f)
-                ) {
-                    val animatedVisibilityScope = this
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { showSettingsSheet = false }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .then(
-                                    if (isExpandedScreen) Modifier
-                                        .width(420.dp)
-                                        .fillMaxHeight(0.85f)
-                                    else Modifier
-                                        .fillMaxSize()
-                                        .padding(
-                                            top = WindowInsets.systemBars.asPaddingValues()
-                                                .calculateTopPadding() + 8.dp,
-                                            bottom = 32.dp,
-                                            start = 16.dp,
-                                            end = 16.dp
-                                        )
-                                )
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = "settings_morph"),
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
-                                )
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {}
-                                ),
-                            shape = RoundedCornerShape(28.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainer,
-                            tonalElevation = 6.dp,
-                            shadowElevation = 8.dp
-                        ) {
-                            SettingsSheetContent(
-                                state = settingsState,
-                                onTotalDurationChange = { floatValue ->
-                                    settingsViewModel.updateTotalDuration(
-                                        floatValue.roundToInt()
-                                    )
-                                },
-                                onNoiseDurationChange = { floatValue ->
-                                    settingsViewModel.updateNoiseDuration(
-                                        floatValue.roundToInt()
-                                    )
-                                },
-                                onBWNoiseDurationChange = { floatValue ->
-                                    settingsViewModel.updateBlackWhiteNoiseDuration(
-                                        floatValue.roundToInt()
-                                    )
-                                },
-                                onHorizontalDurationChange = { floatValue ->
-                                    settingsViewModel.updateHorizontalDuration(
-                                        floatValue.roundToInt()
-                                    )
-                                },
-                                onVerticalDurationChange = { floatValue ->
-                                    settingsViewModel.updateVerticalDuration(
-                                        floatValue.roundToInt()
-                                    )
-                                },
-                                onGithubTokenChange = { token ->
-                                    settingsViewModel.updateGithubToken(
-                                        token
-                                    )
-                                },
-                                onSaveGithubToken = {
-                                    settingsViewModel.saveGithubToken(); stargazersViewModel.login(
-                                    settingsState.githubToken
-                                )
-                                },
-                                onClearGithubToken = { settingsViewModel.clearGithubToken(); stargazersViewModel.logout() },
-                                onAboutClick = {
-                                    showSettingsSheet = false; settingsViewModel.onAboutAppClicked()
-                                },
-                                onCloseClick = { showSettingsSheet = false },
-                                onLanguagePreferenceClick = { settingsViewModel.onLanguagePreferenceClick() },
-                                onLanguageSelected = { locale ->
-                                    settingsViewModel.onLanguageSelectedInDialog(
-                                        locale
-                                    )
-                                },
-                                onLanguageConfirm = { settingsViewModel.onLanguageDialogConfirm() },
-                                onLanguageDismiss = { settingsViewModel.onLanguageDialogDismiss() }
-                            )
-                        }
-                    }
-                }
             }
         }
     }
@@ -716,20 +774,16 @@ fun SettingsSheetContent(
     onLanguageDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column() {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(R.string.settings),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Row {
+    Column {
+        TopAppBar(
+            title = {
+                Text(
+                    text = stringResource(R.string.settings),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            actions = {
                 IconButton(onClick = onAboutClick) {
                     Icon(
                         painterResource(R.drawable.ic_info_24dp),
@@ -742,8 +796,11 @@ fun SettingsSheetContent(
                         contentDescription = "Close"
                     )
                 }
-            }
-        }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent
+            )
+        )
         SettingsScreen(
             state = state,
             onTotalDurationChange = onTotalDurationChange,
@@ -838,7 +895,7 @@ fun MoreBottomSheetContent(
     onItemClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.padding(vertical = 8.dp)) {
+    Column(modifier = modifier.padding(vertical = 4.dp)) {
         menuItems.forEachIndexed { index, item ->
             val position = when {
                 menuItems.size == 1 -> CardPosition.SINGLE
@@ -883,6 +940,8 @@ fun ContentArea(
         "battery" -> BatteryInfoScreen(modifier = modifier)
         "display" -> DisplayInfoScreen(modifier = modifier)
         "network" -> NetworkInfoScreen(modifier = modifier)
+        "storage" -> StorageScreen(modifier = modifier)
+        "ram" -> RAMScreen(modifier = modifier)
         else -> {
             Column(
                 modifier = modifier
@@ -898,26 +957,38 @@ fun ContentArea(
 }
 
 @Composable
-fun CordItem(label: String, value: Float) {
+fun CordItem(
+    label: String,
+    value: Float,
+    position: CordPosition
+) {
+    val largeCornerRadius = 24.dp
+    val smallCornerRadius = 4.dp
+
+    val shape = when (position) {
+        CordPosition.START -> RoundedCornerShape(topStart = largeCornerRadius, topEnd = smallCornerRadius, bottomStart = largeCornerRadius, bottomEnd = smallCornerRadius)
+        CordPosition.MIDDLE -> RoundedCornerShape(smallCornerRadius)
+        CordPosition.END -> RoundedCornerShape(topStart = smallCornerRadius, topEnd = largeCornerRadius, bottomStart = smallCornerRadius, bottomEnd = largeCornerRadius)
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = CircleShape,
-            modifier = Modifier.padding(bottom = 8.dp)
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = shape,
+            modifier = Modifier.padding(bottom = 8.dp, start = 2.dp, end = 2.dp)
         ) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
+                text = value.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
         Text(
-            text = value.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.secondary,
         )
     }
 }

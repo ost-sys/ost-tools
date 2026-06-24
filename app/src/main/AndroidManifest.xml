@@ -56,6 +56,7 @@
         tools:ignore="ProtectedPermissions" />
 
     <application
+        android:name=".OSTApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
@@ -112,6 +113,8 @@
             android:exported="false"
             android:resizeableActivity="true" />
         <activity android:name=".ui.screen.stargazers.ProfileActivity" />
+        <activity android:name=".minigames.activity.MiniGamesMainActivity" />
+        <activity android:name=".minigames.activity.games.MinesweeperGameActivity" />
 
         <service
             android:name=".ui.screen.share.ShareService"

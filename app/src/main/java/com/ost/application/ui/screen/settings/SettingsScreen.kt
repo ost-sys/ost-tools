@@ -32,10 +32,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.LanguagePickerDialog
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.LanguagePickerDialog
+import com.ost.application.ui.components.SectionTitle
 import com.ost.application.util.CardPosition
-import com.ost.application.util.SectionTitle
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -108,9 +108,7 @@ fun SettingsListContent(
     onLanguagePreferenceClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.padding(bottom = 8.dp)
-    ) {
+    LazyColumn {
         item {
             SectionTitle(
                 title = stringResource(R.string.category_general),

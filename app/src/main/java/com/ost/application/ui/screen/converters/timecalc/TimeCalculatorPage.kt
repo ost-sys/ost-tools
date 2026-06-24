@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,12 +43,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
-import com.ost.application.ui.component.TimePickerDialog
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
+import com.ost.application.ui.components.SectionTitle
+import com.ost.application.ui.components.TimePickerDialog
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.SectionTitle
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -127,13 +130,16 @@ fun TimeCalculatorPage(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = uiState.resultText ?: stringResource(R.string.result),
-                    style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.primary,
-                    minLines = 2
-                )
+                Card(shape = RoundedCornerShape(8.dp)) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        text = uiState.resultText ?: stringResource(R.string.result),
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.primary,
+                        minLines = 1
+                    )
+                }
             }
 
             SectionTitle(stringResource(R.string.minuend))
@@ -180,7 +186,7 @@ fun TimeCalculatorPage(
         DatePickerDialog(
             onDismissRequest = { showDatePicker1 = false },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     datePickerState1.selectedDateMillis?.let { millis ->
                         val cal = Calendar.getInstance().apply { timeInMillis = millis }
                         viewModel.updateFirstDate(
@@ -206,7 +212,7 @@ fun TimeCalculatorPage(
         TimePickerDialog(
             onDismissRequest = { showTimePicker1 = false },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     viewModel.updateFirstTime(timePickerState1.hour, timePickerState1.minute)
                     showTimePicker1 = false
                 }) { Text(stringResource(android.R.string.ok)) }
@@ -225,7 +231,7 @@ fun TimeCalculatorPage(
         DatePickerDialog(
             onDismissRequest = { showDatePicker2 = false },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     datePickerState2.selectedDateMillis?.let { millis ->
                         val cal = Calendar.getInstance().apply { timeInMillis = millis }
                         viewModel.updateSecondDate(
@@ -251,7 +257,7 @@ fun TimeCalculatorPage(
         TimePickerDialog(
             onDismissRequest = { showTimePicker2 = false },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     viewModel.updateSecondTime(timePickerState2.hour, timePickerState2.minute)
                     showTimePicker2 = false
                 }) { Text(stringResource(android.R.string.ok)) }

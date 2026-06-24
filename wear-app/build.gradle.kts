@@ -6,23 +6,35 @@ plugins {
 
 android {
     namespace = "com.ost.application"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.ost.application"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 300
-        versionName = "3.0.0-beta2"
+        versionName = "3.0.0-beta3"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../ost_key.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("debug")
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -38,7 +50,7 @@ android {
         includeInApk = true
         includeInBundle = true
     }
-    buildToolsVersion = "36.1.0"
+    buildToolsVersion = "37.0.0"
 
     packaging  {
         resources {
@@ -48,10 +60,12 @@ android {
 }
 
 dependencies {
+    implementation("io.legere:pdfiumandroid:2.0.1")
+
     val horologist = "0.8.3-alpha"
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.4.0")
     implementation(libs.coil.compose.v340)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)

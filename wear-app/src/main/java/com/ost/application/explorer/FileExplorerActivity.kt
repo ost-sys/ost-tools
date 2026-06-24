@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -86,8 +87,6 @@ import androidx.wear.compose.material3.AppCard
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
-import androidx.wear.compose.material3.CardColors
-import androidx.wear.compose.material3.CardDefaults
 import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
@@ -101,6 +100,7 @@ import androidx.wear.compose.material3.rememberRevealState
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.ost.application.R
 import com.ost.application.explorer.music.MusicActivity
+import com.ost.application.explorer.pdfreader.PdfReaderActivity
 import com.ost.application.share.Constants
 import com.ost.application.share.ShareActivity
 import com.ost.application.theme.OSTToolsTheme
@@ -123,7 +123,11 @@ import java.util.Locale
 import kotlin.math.log10
 import kotlin.math.pow
 
-data class FileDialogInfo(val message: String, val isError: Boolean = false)
+data class FileDialogInfo(
+    val message: String,
+    val isError: Boolean = false,
+    val actionIconResId: Int = R.drawable.ic_check_circle_24dp
+)
 
 enum class ClipboardOperation { COPY, CUT }
 data class ClipboardState(val files: Set<File>, val operation: ClipboardOperation)
@@ -152,74 +156,57 @@ class FileExplorerActivity : ComponentActivity() {
                 Log.i("Permission", "All required permissions granted.")
                 loadFiles(currentPath.value)
             } else {
-                Log.e("Permission", "Not all permissions granted. File listing might be incomplete.")
-                dialogInfo.value = FileDialogInfo("Storage permissions denied", isError = true)
+                Log.e("Permission", "Not all permissions granted.")
+                dialogInfo.value = FileDialogInfo(getString(R.string.storage_permissions_denied), isError = true)
                 loadFiles(currentPath.value)
             }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        setContent {
-            FileManagerApp()
-        }
-
+        setContent { FileManagerApp() }
         checkAndRequestPermissions()
     }
 
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED)
                 permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES)
-            }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED)
                 permissionsToRequest.add(Manifest.permission.READ_MEDIA_VIDEO)
-            }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED)
                 permissionsToRequest.add(Manifest.permission.READ_MEDIA_AUDIO)
-            }
-        } else
-            if (!Environment.isExternalStorageManager()) {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-                }
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                }
-            } else {
-                Log.d("Permission", "MANAGE_EXTERNAL_STORAGE granted.")
-            }
-
-        if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        } else if (!Environment.isExternalStorageManager()) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                permissionsToRequest.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         } else {
+            Log.d("Permission", "MANAGE_EXTERNAL_STORAGE granted.")
+        }
+        if (permissionsToRequest.isNotEmpty()) requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        else {
             Log.d("Permission", "Permissions already granted or not needed.")
             loadFiles(currentPath.value)
         }
     }
 
-    private fun showActionsForFile(file: File) {
-        _showActionsDialogForFile.value = file
-    }
-
-    private fun dismissActionsDialog() {
-        _showActionsDialogForFile.value = null
-    }
-
-    private fun clearClipboard() {
-        _clipboardState.value = null
-    }
+    private fun showActionsForFile(file: File) { _showActionsDialogForFile.value = file }
+    private fun dismissActionsDialog() { _showActionsDialogForFile.value = null }
+    private fun clearClipboard() { _clipboardState.value = null }
 
     private fun copyFile(file: File) {
         if (file.exists()) {
             _clipboardState.value = ClipboardState(files = setOf(file.absoluteFile), operation = ClipboardOperation.COPY)
-            showDialog("Copied: ${file.name}", false)
+            dialogInfo.value = FileDialogInfo(
+                message = getString(R.string.copied_file, file.name),
+                isError = false,
+                actionIconResId = R.drawable.ic_copy_24dp
+            )
             dismissActionsDialog()
         } else {
-            showDialog("Error: File not found", true)
+            dialogInfo.value = FileDialogInfo(getString(R.string.error_file_not_found), isError = true)
             dismissActionsDialog()
         }
     }
@@ -227,10 +214,14 @@ class FileExplorerActivity : ComponentActivity() {
     private fun cutFile(file: File) {
         if (file.exists()) {
             _clipboardState.value = ClipboardState(files = setOf(file.absoluteFile), operation = ClipboardOperation.CUT)
-            showDialog("Cut: ${file.name}", false)
+            dialogInfo.value = FileDialogInfo(
+                message = getString(R.string.cut_file, file.name),
+                isError = false,
+                actionIconResId = R.drawable.ic_cut_24dp
+            )
             dismissActionsDialog()
         } else {
-            showDialog("Error: File not found", true)
+            dialogInfo.value = FileDialogInfo(getString(R.string.error_file_not_found), isError = true)
             dismissActionsDialog()
         }
     }
@@ -238,60 +229,38 @@ class FileExplorerActivity : ComponentActivity() {
     private fun deleteFile(file: File) {
         dismissActionsDialog()
         lifecycleScope.launch {
-            showDialog("Deleting: ${file.name}...", false)
             val (deleted, message) = deleteFileOrDirInternal(file)
-            showDialog(message, isError = !deleted)
-            if (deleted) {
-                loadFiles(currentPath.value)
-            }
+            dialogInfo.value = FileDialogInfo(
+                message = message,
+                isError = !deleted,
+                actionIconResId = R.drawable.ic_delete_24dp
+            )
+            if (deleted) loadFiles(currentPath.value)
         }
     }
 
     private fun shareFile(context: Context, file: File) {
         dismissActionsDialog()
-
         if (file.isDirectory) {
-            showDialog("Cannot share folders.", true)
+            dialogInfo.value = FileDialogInfo(getString(R.string.cannot_share_folders), isError = true)
             return
         }
-
-        Log.d(Constants.TAG, "Sharing file: ${file.name}")
         if (!file.exists()) {
-            showDialog("Error: File not found", true)
+            dialogInfo.value = FileDialogInfo(getString(R.string.error_file_not_found), isError = true)
             return
         }
-
-        var fileUri: Uri? = null
-        var errorOccurred = false
         try {
-            fileUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-        } catch (e: IllegalArgumentException) {
-            Log.e(Constants.TAG, "Error getting URI for ${file.name}", e)
-            errorOccurred = true
-        } catch (e: Exception) {
-            Log.e(Constants.TAG, "Unexpected error getting URI for ${file.name}", e)
-            errorOccurred = true
-        }
-
-        if (fileUri != null) {
+            val fileUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
             val uris = ArrayList<Uri>().apply { add(fileUri) }
             val intent = Intent(context, ShareActivity::class.java).apply {
                 action = "com.ost.application.action.SEND_FILES"
                 putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            try {
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                Log.e(Constants.TAG, "Failed to start ShareActivity", e)
-                errorOccurred = true
-            }
-        } else {
-            errorOccurred = true
-        }
-
-        if (errorOccurred) {
-            showDialog("Error preparing file for sharing.", true)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Error sharing ${file.name}", e)
+            dialogInfo.value = FileDialogInfo(getString(R.string.error_preparing_file_for_sharing), isError = true)
         }
     }
 
@@ -303,57 +272,39 @@ class FileExplorerActivity : ComponentActivity() {
     private fun pasteFiles() {
         val state = _clipboardState.value
         if (state == null || state.files.isEmpty()) {
-            showDialog("Clipboard is empty.", true)
+            dialogInfo.value = FileDialogInfo(getString(R.string.clipboard_is_empty), isError = true)
             return
         }
-
         val destinationPath = currentPath.value
         val filesToProcess = state.files
         val operation = state.operation
 
-        Log.d(Constants.TAG, "[PasteAction] Pasting ${filesToProcess.size} items (${operation}) into $destinationPath")
-
         lifecycleScope.launch {
-            showDialog("Pasting...", false)
-
             var successCount = 0
             var errorCount = 0
 
             withContext(Dispatchers.IO) {
                 filesToProcess.forEach { sourceFile ->
                     if (!sourceFile.exists()) {
-                        Log.w(Constants.TAG, "[PasteAction] Source file doesn't exist: ${sourceFile.absolutePath}, skipping.")
                         errorCount++
                         return@forEach
                     }
+                    var targetFile = File(destinationPath, sourceFile.name)
 
-                    val targetName = sourceFile.name
-                    var targetFile = File(destinationPath, targetName)
-
-                    var counter = 0
-                    val baseName = targetFile.nameWithoutExtension
-                    val extension = targetFile.extension.let { if (it.isNotEmpty()) ".$it" else "" }
-
-                    while (targetFile.exists()) {
-                        if (sourceFile.absolutePath == targetFile.absolutePath && operation == ClipboardOperation.CUT) {
-                            Log.w(Constants.TAG, "[PasteAction] Attempting to CUT file onto itself: ${sourceFile.absolutePath}. Skipping.")
+                    if (targetFile.exists()) {
+                        if (operation == ClipboardOperation.CUT &&
+                            sourceFile.absolutePath == targetFile.absolutePath) {
                             errorCount++
                             return@forEach
                         }
-                        if (sourceFile.absolutePath == targetFile.absolutePath && operation == ClipboardOperation.COPY) {
+                        val baseName = targetFile.nameWithoutExtension
+                        val extension = targetFile.extension.let { if (it.isNotEmpty()) ".$it" else "" }
+                        var counter = 1
+                        while (targetFile.exists() && counter <= 1000) {
+                            targetFile = File(destinationPath, "$baseName ($counter)$extension")
                             counter++
-                            val newName = "$baseName ($counter)$extension"
-                            targetFile = File(destinationPath, newName)
-                            Log.d(Constants.TAG, "[PasteAction] Copying file onto itself, creating copy: ${targetFile.name}")
-                        } else {
-                            counter++
-                            val newName = "$baseName ($counter)$extension"
-                            targetFile = File(destinationPath, newName)
-                            Log.d(Constants.TAG, "[PasteAction] Name conflict, trying new name: ${targetFile.name}")
                         }
-
                         if (counter > 1000) {
-                            Log.e(Constants.TAG, "[PasteAction] Too many conflicts for ${sourceFile.name}, skipping.")
                             errorCount++
                             return@forEach
                         }
@@ -362,30 +313,16 @@ class FileExplorerActivity : ComponentActivity() {
                     try {
                         when (operation) {
                             ClipboardOperation.COPY -> {
-                                if (sourceFile.isDirectory) {
-                                    sourceFile.copyRecursively(targetFile, overwrite = false)
-                                } else {
-                                    sourceFile.copyTo(targetFile, overwrite = false)
-                                }
-                                Log.d(Constants.TAG, "[PasteAction] Copied ${sourceFile.name} to ${targetFile.name}")
+                                if (sourceFile.isDirectory) sourceFile.copyRecursively(targetFile, overwrite = false)
+                                else sourceFile.copyTo(targetFile, overwrite = false)
                             }
                             ClipboardOperation.CUT -> {
-                                if (sourceFile.renameTo(targetFile)) {
-                                    Log.d(Constants.TAG, "[PasteAction] Moved ${sourceFile.name} to ${targetFile.name}")
-                                } else {
-                                    Log.w(Constants.TAG, "[PasteAction] renameTo failed for ${sourceFile.name}, trying copy+delete.")
-                                    if (sourceFile.isDirectory) {
-                                        sourceFile.copyRecursively(targetFile, overwrite = false)
-                                    } else {
-                                        sourceFile.copyTo(targetFile, overwrite = false)
-                                    }
-                                    if(targetFile.exists()) {
-                                        if (deleteRecursively(sourceFile)) {
-                                            Log.d(Constants.TAG, "[PasteAction] Source deleted after copy for CUT operation: ${sourceFile.name}")
-                                        } else {
-                                            Log.e(Constants.TAG, "[PasteAction] Failed to delete source after copy for CUT operation: ${sourceFile.name}")
+                                if (!sourceFile.renameTo(targetFile)) {
+                                    if (sourceFile.isDirectory) sourceFile.copyRecursively(targetFile, overwrite = false)
+                                    else sourceFile.copyTo(targetFile, overwrite = false)
+                                    if (targetFile.exists()) {
+                                        if (!deleteRecursively(sourceFile))
                                             throw IOException("Failed to delete source after copy during CUT")
-                                        }
                                     } else {
                                         throw IOException("Copy failed during CUT operation")
                                     }
@@ -394,31 +331,28 @@ class FileExplorerActivity : ComponentActivity() {
                         }
                         successCount++
                     } catch (e: Exception) {
-                        Log.e(Constants.TAG, "[PasteAction] Error processing ${sourceFile.name} -> ${targetFile.name}", e)
+                        Log.e(Constants.TAG, "[PasteAction] Error: ${sourceFile.name} → ${targetFile.name}", e)
                         errorCount++
-                        if (targetFile.exists()) {
-                            deleteRecursively(targetFile)
-                        }
+                        if (targetFile.exists()) deleteRecursively(targetFile)
                     }
                 }
             }
 
-            if (operation == ClipboardOperation.CUT && errorCount == 0) {
-                clearClipboard()
-            }
+            if (operation == ClipboardOperation.CUT && errorCount == 0) clearClipboard()
 
+            val isError = errorCount > 0
             val message = when {
-                errorCount == 0 -> "${operation.name.lowercase().replaceFirstChar { it.uppercase() }} ${filesToProcess.size} item${if(filesToProcess.size > 1) "s" else ""}."
-                successCount == 0 -> "Failed to ${operation.name.lowercase()} $errorCount item${if(errorCount > 1) "s" else ""}."
-                else -> "${operation.name.lowercase().replaceFirstChar { it.uppercase() }} $successCount item${if(successCount > 1) "s" else ""}, failed for $errorCount."
+                errorCount == 0 -> getString(R.string.paste_success, successCount)
+                successCount == 0 -> getString(R.string.paste_failed, errorCount)
+                else -> getString(R.string.paste_partial, successCount, errorCount)
             }
-            showDialog(message, errorCount > 0)
+            dialogInfo.value = FileDialogInfo(
+                message = message,
+                isError = isError,
+                actionIconResId = R.drawable.ic_paste_24dp
+            )
             loadFiles(currentPath.value)
         }
-    }
-
-    private fun showDialog(message: String, isError: Boolean) {
-        dialogInfo.value = FileDialogInfo(message, isError)
     }
 
     @Composable
@@ -426,22 +360,17 @@ class FileExplorerActivity : ComponentActivity() {
         val listState = rememberScalingLazyListState()
         val files = fileList.collectAsState().value
         val currentDialogInfo by dialogInfo
-        clipboardState
-        LocalContext.current
         val currentActionsDialogFile by _showActionsDialogForFile
-        val actionsDialogListState = rememberScalingLazyListState()
 
         OSTToolsTheme {
-            AppScaffold(
-                timeText = { TimeText() }
-            ) {
+            AppScaffold(timeText = { TimeText() }) {
                 ScreenScaffold(
                     scrollState = listState,
                     contentPadding = PaddingValues(10.dp),
                     edgeButton = {
-                        EdgeButton(
-                            onClick = {  }
-                        ) {
+                        EdgeButton(onClick = {
+                            /* still not ready */
+                        }) {
                             Icon(painterResource(R.drawable.ic_settings_24dp), "Settings")
                         }
                     }
@@ -452,7 +381,9 @@ class FileExplorerActivity : ComponentActivity() {
                             path = currentPath.value,
                             files = files,
                             listState = listState,
-                            showDialog = ::showDialog,
+                            showDialog = { msg, isErr ->
+                                dialogInfo.value = FileDialogInfo(msg, isErr)
+                            },
                             onPathChange = { newPath ->
                                 currentPath.value = newPath
                                 loadFiles(newPath)
@@ -460,20 +391,24 @@ class FileExplorerActivity : ComponentActivity() {
                             onCreate = { name, isDirectory ->
                                 lifecycleScope.launch {
                                     val (created, message) = createNewFileOrDir(currentPath.value, name, isDirectory)
-                                    showDialog(message, isError = !created)
-                                    if (created) {
-                                        loadFiles(currentPath.value)
-                                    }
+                                    dialogInfo.value = FileDialogInfo(
+                                        message = message,
+                                        isError = !created,
+                                        actionIconResId = R.drawable.ic_add_24dp
+                                    )
+                                    if (created) loadFiles(currentPath.value)
                                 }
                             },
                             onShowActionsRequest = ::showActionsForFile,
                             onDeleteSwipe = { fileToDelete ->
                                 lifecycleScope.launch {
                                     val (deleted, message) = deleteFileOrDirInternal(fileToDelete)
-                                    showDialog(message, isError = !deleted)
-                                    if (deleted) {
-                                        loadFiles(currentPath.value)
-                                    }
+                                    dialogInfo.value = FileDialogInfo(
+                                        message = message,
+                                        isError = !deleted,
+                                        actionIconResId = R.drawable.ic_delete_24dp
+                                    )
+                                    if (deleted) loadFiles(currentPath.value)
                                 }
                             },
                             isActionDialogVisible = currentActionsDialogFile != null,
@@ -484,22 +419,17 @@ class FileExplorerActivity : ComponentActivity() {
                                     currentPath.value = parentFile.absolutePath
                                     loadFiles(parentFile.absolutePath)
                                     true
-                                } else {
-                                    false
-                                }
+                                } else false
                             }
                         )
 
                         AnimatedVisibility(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter),
+                            modifier = Modifier.align(Alignment.BottomCenter),
                             visible = showPasteButton,
                             enter = slideInVertically { it / 2 } + fadeIn(),
                             exit = slideOutVertically { it / 2 } + fadeOut()
                         ) {
-                            EdgeButton(
-                                onClick = { pasteFiles() },
-                            ) {
+                            EdgeButton(onClick = { pasteFiles() }) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_paste_24dp),
                                     contentDescription = "Paste",
@@ -513,7 +443,6 @@ class FileExplorerActivity : ComponentActivity() {
 
             currentActionsDialogFile?.let { fileToShowActionsFor ->
                 FileActionsDialog(
-                    listState = actionsDialogListState,
                     file = fileToShowActionsFor,
                     onDismissRequest = ::dismissActionsDialog,
                     onCopy = { copyFile(fileToShowActionsFor) },
@@ -525,18 +454,16 @@ class FileExplorerActivity : ComponentActivity() {
             }
 
             currentDialogInfo?.let { info ->
-                val iconRes = if (info.isError) R.drawable.ic_error_24dp else R.drawable.ic_check_circle_24dp
                 if (info.isError) {
                     FailDialog(
                         message = info.message,
-                        iconResId = iconRes,
+                        iconResId = R.drawable.ic_error_24dp,
                         onDismiss = { dialogInfo.value = null },
                         showDialog = true
                     )
                 } else {
                     SuccessDialog(
-                        message = info.message,
-                        iconResId = iconRes,
+                        actionIconResId = info.actionIconResId,
                         onDismiss = { dialogInfo.value = null },
                         showDialog = true
                     )
@@ -583,11 +510,8 @@ class FileExplorerActivity : ComponentActivity() {
         LaunchedEffect(path, isActionDialogVisible) {
             if (!isActionDialogVisible) {
                 delay(100)
-                try {
-                    focusRequester.requestFocus()
-                } catch (e: Exception) {
-                    Log.w("FileListFocus", "RequestFocus failed: $e")
-                }
+                try { focusRequester.requestFocus() }
+                catch (e: Exception) { Log.w("FileListFocus", "RequestFocus failed: $e") }
             }
         }
 
@@ -597,13 +521,9 @@ class FileExplorerActivity : ComponentActivity() {
                     .focusRequester(focusRequester)
                     .onRotaryScrollEvent {
                         if (!isActionDialogVisible) {
-                            coroutineScope.launch {
-                                listState.scrollBy(it.verticalScrollPixels)
-                            }
+                            coroutineScope.launch { listState.scrollBy(it.verticalScrollPixels) }
                             true
-                        } else {
-                            false
-                        }
+                        } else false
                     }
                     .focusable(),
                 contentPadding = PaddingValues(top = 28.dp, bottom = 40.dp, start = 8.dp, end = 8.dp),
@@ -619,11 +539,7 @@ class FileExplorerActivity : ComponentActivity() {
                         Button(
                             colors = ButtonDefaults.filledTonalButtonColors(),
                             enabled = currentDisplayPath != rootPath && !isActionDialogVisible,
-                            onClick = {
-                                if (!onNavigateBack()) {
-                                    (context as? FileExplorerActivity)?.finish()
-                                }
-                            }
+                            onClick = { if (!onNavigateBack()) (context as? FileExplorerActivity)?.finish() }
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_arrow_back_24dp),
@@ -660,37 +576,28 @@ class FileExplorerActivity : ComponentActivity() {
                 } else {
                     items(files.size, key = { index -> files[index].absolutePath }) { index ->
                         val file = files[index]
-
                         val position = when {
                             files.size == 1 -> CardPosition.SINGLE
                             index == 0 -> CardPosition.TOP
                             index == files.lastIndex -> CardPosition.BOTTOM
                             else -> CardPosition.MIDDLE
                         }
-
                         val (itemType, itemIcon) = remember(file.isDirectory, file.extension) {
                             getItemTypeAndIcon(file)
                         }
-
                         val summaryState = remember { mutableStateOf<String?>("...") }
                         LaunchedEffect(file.absolutePath, file.lastModified(), file.length()) {
                             summaryState.value = withContext(Dispatchers.IO) {
                                 try {
-                                    if (file.isDirectory) {
-                                        formatFolderSize(file)
-                                    } else {
-                                        formatFileSize(file.length())
-                                    }
+                                    if (file.isDirectory) formatFolderSize(file)
+                                    else formatFileSize(file.length())
                                 } catch (e: Exception) {
-                                    Log.e("FileSizeCalc", "Error calculating size for ${file.name}", e)
+                                    Log.e("FileSizeCalc", "Error for ${file.name}", e)
                                     if (file.isDirectory) "N/A" else formatFileSize(file.length())
                                 }
                             }
                         }
-
-                        val lastModifiedText = remember(file.lastModified()) {
-                            formatLastModified(file.lastModified())
-                        }
+                        val lastModifiedText = remember(file.lastModified()) { formatLastModified(file.lastModified()) }
 
                         CardItem(
                             title = file.name,
@@ -701,11 +608,8 @@ class FileExplorerActivity : ComponentActivity() {
                             time = lastModifiedText,
                             onOpenFile = {
                                 if (file.isDirectory) {
-                                    if (file.canRead()) {
-                                        onPathChange(file.absolutePath)
-                                    } else {
-                                        showDialog(getString(R.string.cannot_read_folder), true)
-                                    }
+                                    if (file.canRead()) onPathChange(file.absolutePath)
+                                    else showDialog(getString(R.string.cannot_read_folder), true)
                                 } else {
                                     openFile(context, file) { msg, isErr -> showDialog(msg, isErr) }
                                 }
@@ -722,9 +626,8 @@ class FileExplorerActivity : ComponentActivity() {
             NewFileDialog(
                 onDismissRequest = { showNewFileDialog.value = false },
                 onCreate = { name, isDirectory ->
-                    if (name.isBlank()) {
-                        showDialog(context.getString(R.string.name_cannot_be_empty), true)
-                    } else {
+                    if (name.isBlank()) showDialog(context.getString(R.string.name_cannot_be_empty), true)
+                    else {
                         onCreate(name, isDirectory)
                         showNewFileDialog.value = false
                     }
@@ -734,53 +637,28 @@ class FileExplorerActivity : ComponentActivity() {
     }
 
     private fun getItemTypeAndIcon(file: File): Pair<String, Int> {
+        val ext = file.extension.lowercase(Locale.ROOT)
         return when {
             file.isDirectory -> getString(R.string.folder) to R.drawable.ic_folder_24dp
-            file.name.endsWith(".png", true) ||
-                    file.name.endsWith(".jpg", true) ||
-                    file.name.endsWith(".jpeg", true) ||
-                    file.name.endsWith(".gif", true) ||
-                    file.name.endsWith(".bmp", true) ||
-                    file.name.endsWith(".webp", true) ||
-                    file.name.endsWith(".heic", true)
-                -> getString(R.string.image) to R.drawable.ic_image_24dp
-            file.name.endsWith(".mp4", true) ||
-                    file.name.endsWith(".avi", true) ||
-                    file.name.endsWith(".mkv", true) ||
-                    file.name.endsWith(".webm", true) ||
-                    file.name.endsWith(".mov", true)
-                -> getString(R.string.video) to R.drawable.ic_video_24dp
-            file.name.endsWith(".mp3", true) ||
-                    file.name.endsWith(".m4a", true) ||
-                    file.name.endsWith(".wav", true) ||
-                    file.name.endsWith(".ogg", true) ||
-                    file.name.endsWith(".aac", true) ||
-                    file.name.endsWith(".flac", true)
-                -> getString(R.string.music) to R.drawable.ic_music_24dp
-            file.name.endsWith(".apk", true) -> "APK" to R.drawable.ic_apk_24dp
-            file.name.endsWith(".txt", true) ||
-                    file.name.endsWith(".json", true) ||
-                    file.name.endsWith(".xml", true) ||
-                    file.name.endsWith(".log", true) ||
-                    file.name.endsWith(".csv", true) ||
-                    file.name.endsWith(".prop", true)
-                -> getString(R.string.document) to R.drawable.ic_document_file_24dp
-            file.name.endsWith(".zip", true) ||
-                    file.name.endsWith(".rar", true) ||
-                    file.name.endsWith(".7z", true) ||
-                    file.name.endsWith(".tar", true) ||
-                    file.name.endsWith(".gz", true)
-                -> getString(R.string.archive) to R.drawable.ic_folder_zip_24dp
+            ext in setOf("png", "jpg", "jpeg", "gif", "bmp", "webp", "heic") ->
+                getString(R.string.image) to R.drawable.ic_image_24dp
+            ext in setOf("mp4", "avi", "mkv", "webm", "mov") ->
+                getString(R.string.video) to R.drawable.ic_video_24dp
+            ext in setOf("mp3", "m4a", "wav", "ogg", "aac", "flac") ->
+                getString(R.string.music) to R.drawable.ic_music_24dp
+            ext == "apk" -> "APK" to R.drawable.ic_apk_24dp
+            ext in setOf("txt", "json", "xml", "log", "csv", "prop") ->
+                getString(R.string.document) to R.drawable.ic_document_file_24dp
+            ext in setOf("zip", "rar", "7z", "tar", "gz") ->
+                getString(R.string.archive) to R.drawable.ic_folder_zip_24dp
+            ext == "pdf" -> "PDF" to R.drawable.ic_picture_as_pdf_24dp
             else -> getString(R.string.file) to R.drawable.ic_draft_24dp
         }
     }
 
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
-    fun NewFileDialog(
-        onDismissRequest: () -> Unit,
-        onCreate: (String, Boolean) -> Unit
-    ) {
+    fun NewFileDialog(onDismissRequest: () -> Unit, onCreate: (String, Boolean) -> Unit) {
         var name by remember { mutableStateOf("") }
         var isDirectory by remember { mutableStateOf(false) }
         val focusRequester = remember { FocusRequester() }
@@ -809,10 +687,7 @@ class FileExplorerActivity : ComponentActivity() {
                         autoCorrect = false
                     ),
                     keyboardActions = KeyboardActions(
-                        onDone = {
-                            onCreate(name, isDirectory)
-                            keyboardController?.hide()
-                        }
+                        onDone = { onCreate(name, isDirectory); keyboardController?.hide() }
                     ),
                     singleLine = true,
                     modifier = Modifier
@@ -820,13 +695,11 @@ class FileExplorerActivity : ComponentActivity() {
                         .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
-
                 LaunchedEffect(Unit) {
                     delay(200)
                     focusRequester.requestFocus()
                     keyboardController?.show()
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
                 SwitchButton(
                     modifier = Modifier.fillMaxWidth(0.9f),
@@ -836,21 +709,12 @@ class FileExplorerActivity : ComponentActivity() {
                     icon = { Icon(painterResource(R.drawable.ic_folder_24dp), "folder") }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Button(
-                        onClick = onDismissRequest,
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                    ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Button(onClick = onDismissRequest, colors = ButtonDefaults.filledTonalButtonColors()) {
                         Icon(painter = painterResource(R.drawable.ic_cancel_24dp), contentDescription = "Cancel")
                     }
                     Spacer(modifier = Modifier.size(6.dp))
-                    Button(
-                        onClick = { onCreate(name, isDirectory) },
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
+                    Button(onClick = { onCreate(name, isDirectory) }, shape = RoundedCornerShape(16.dp)) {
                         Icon(painter = painterResource(R.drawable.ic_add_24dp), contentDescription = "Create")
                     }
                 }
@@ -861,69 +725,42 @@ class FileExplorerActivity : ComponentActivity() {
     private suspend fun createNewFileOrDir(path: String, name: String, isDirectory: Boolean): Pair<Boolean, String> {
         return withContext(Dispatchers.IO) {
             val safeName = name.filter { it != '/' && it != '\\' }
-            if (safeName.isBlank()) {
-                return@withContext false to getString(R.string.name_cannot_be_empty)
-            }
+            if (safeName.isBlank()) return@withContext false to getString(R.string.name_cannot_be_empty)
             val file = File(path, safeName)
-            var success = false
-            var message = ""
             try {
                 if (file.exists()) {
-                    message = getString(R.string.already_exists, safeName)
+                    false to getString(R.string.already_exists, safeName)
                 } else {
-                    success = if (isDirectory) {
-                        file.mkdirs()
-                    } else {
-                        file.createNewFile()
-                    }
-                    message = if (success) {
-                        getString(
-                            R.string.folder_file_created,
-                            if (isDirectory) getString(R.string.folder) else getString(R.string.file),
-                            safeName
-                        )
-                    } else {
-                        getString(
-                            R.string.failed_to_create,
-                            if (isDirectory) getString(R.string.folder_s) else getString(
-                                R.string.file_s
-                            )
-                        )
-                    }
+                    val success = if (isDirectory) file.mkdirs() else file.createNewFile()
+                    val typeStr = if (isDirectory) getString(R.string.folder) else getString(R.string.file)
+                    val typeStrS = if (isDirectory) getString(R.string.folder_s) else getString(R.string.file_s)
+                    if (success) true to getString(R.string.folder_file_created, typeStr, safeName)
+                    else false to getString(R.string.failed_to_create, typeStrS)
                 }
             } catch (e: IOException) {
-                Log.e(Constants.TAG, "Error creating ${if (isDirectory) "folder" else "file"} '$safeName'", e)
-                message = getString(R.string.error_msg, e.localizedMessage ?: getString(R.string.cannot_create))
-                success = false
+                Log.e(Constants.TAG, "Error creating '$safeName'", e)
+                false to getString(R.string.error_msg, e.localizedMessage ?: getString(R.string.cannot_create))
             } catch (e: SecurityException) {
-                Log.e(Constants.TAG, "Security error creating ${if (isDirectory) "folder" else "file"} '$safeName'", e)
-                message = getString(R.string.permission_denied)
-                success = false
+                Log.e(Constants.TAG, "Security error creating '$safeName'", e)
+                false to getString(R.string.permission_denied)
             }
-            success to message
         }
     }
 
     fun loadFiles(path: String) {
         lifecycleScope.launch {
             val currentFile = File(path)
-            var canLoad = true
             if (!currentFile.exists() || !currentFile.canRead()) {
-                Log.e(Constants.TAG, "Cannot load files: Path '$path' does not exist or cannot be read.")
-                showDialog(getString(R.string.cannot_access, currentFile.name), isError = true)
-
-                if(path != rootPath) {
+                Log.e(Constants.TAG, "Cannot load: '$path'")
+                dialogInfo.value = FileDialogInfo(getString(R.string.cannot_access, currentFile.name), isError = true)
+                if (path != rootPath) {
                     val parent = currentFile.parentFile
-                    if (parent != null && parent.canRead()) {
-                        currentPath.value = parent.absolutePath
-                    } else {
-                        currentPath.value = rootPath
-                    }
+                    val fallback = if (parent != null && parent.canRead()) parent.absolutePath else rootPath
+                    currentPath.value = fallback
+                    loadFiles(fallback)
                 } else {
                     _fileList.value = emptyList()
-                    canLoad = false
                 }
-                if(canLoad) loadFiles(currentPath.value)
                 return@launch
             }
 
@@ -931,18 +768,17 @@ class FileExplorerActivity : ComponentActivity() {
                 try {
                     val files = currentFile.listFiles()
                     if (files == null) {
-                        Log.w(Constants.TAG, "listFiles() returned null for path: $path")
-                        withContext(Dispatchers.Main.immediate){
-                            showDialog("Error reading folder contents", isError = true)
+                        withContext(Dispatchers.Main.immediate) {
+                            dialogInfo.value = FileDialogInfo(getString(R.string.error_reading_folder, "null"), isError = true)
                         }
                         emptyList()
                     } else {
                         files.toList().sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase(Locale.getDefault()) }))
                     }
                 } catch (e: Exception) {
-                    Log.e(Constants.TAG, "Error listing files for path: $path", e)
+                    Log.e(Constants.TAG, "Error listing files for: $path", e)
                     withContext(Dispatchers.Main.immediate) {
-                        showDialog(getString(R.string.error_reading_folder, e.localizedMessage), isError = true)
+                        dialogInfo.value = FileDialogInfo(getString(R.string.error_reading_folder, e.localizedMessage), isError = true)
                     }
                     emptyList()
                 }
@@ -952,81 +788,62 @@ class FileExplorerActivity : ComponentActivity() {
 
     @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
     @Composable
-    fun DefaultPreview() {
-        FileManagerApp()
-    }
+    fun DefaultPreview() { FileManagerApp() }
 
     private suspend fun deleteFileOrDirInternal(file: File): Pair<Boolean, String> {
         return withContext(Dispatchers.IO) {
-            var deleted = false
-            var message : String
             try {
-                deleted = deleteRecursively(file)
-                message = if (deleted) {
-                    getString(R.string.deleted_n, file.name)
-                } else {
-                    getString(R.string.failed_to_delete_n, file.name)
-                }
+                val deleted = deleteRecursively(file)
+                val message = if (deleted) getString(R.string.deleted_n, file.name)
+                else getString(R.string.failed_to_delete_n, file.name)
+                deleted to message
             } catch (e: Exception) {
-                Log.e(Constants.TAG, "Error deleting file/folder: ${file.absolutePath}", e)
-                message =
-                    getString(R.string.error_deleting_e, e.localizedMessage ?: getString(R.string.unknown_error))
-                deleted = false
+                Log.e(Constants.TAG, "Error deleting: ${file.absolutePath}", e)
+                false to getString(R.string.error_deleting_e, e.localizedMessage ?: getString(R.string.unknown_error))
             }
-            deleted to message
         }
     }
 
     private fun deleteRecursively(fileOrDirectory: File): Boolean {
-        try {
+        return try {
             if (fileOrDirectory.isDirectory) {
                 val children = fileOrDirectory.listFiles()
-                if (children != null) {
-                    for (child in children) {
-                        if (!deleteRecursively(child)) {
-                            Log.w(Constants.TAG, "Failed to delete child: ${child.absolutePath}")
-                            return false
-                        }
-                    }
-                } else {
-                    Log.w(Constants.TAG, "listFiles returned null for directory: ${fileOrDirectory.absolutePath}. Might be an access issue.")
+                if (children == null) {
+                    Log.w(Constants.TAG, "listFiles returned null for: ${fileOrDirectory.absolutePath}")
                     return false
                 }
+                for (child in children) {
+                    if (!deleteRecursively(child)) return false
+                }
             }
-            return fileOrDirectory.delete()
+            fileOrDirectory.delete()
         } catch (e: SecurityException) {
             Log.e(Constants.TAG, "SecurityException deleting ${fileOrDirectory.absolutePath}", e)
-            return false
+            false
         } catch (e: Exception) {
             Log.e(Constants.TAG, "Exception deleting ${fileOrDirectory.absolutePath}", e)
-            return false
+            false
         }
     }
 
     private suspend fun formatFolderSize(folder: File): String {
-        return try {
-            val size = getFolderSize(folder)
-            formatFileSize(size)
-        } catch (e: Exception) {
-            Log.e(Constants.TAG, "Error calculating size for ${folder.name}", e)
-            "N/A"
-        }
+        return try { formatFileSize(getFolderSize(folder, depth = 0)) }
+        catch (e: Exception) { Log.e(Constants.TAG, "Error calculating size for ${folder.name}", e); "N/A" }
     }
 
-    private suspend fun getFolderSize(folder: File): Long = withContext(Dispatchers.IO) {
-        var totalSize: Long = 0
+    private suspend fun getFolderSize(folder: File, depth: Int): Long = withContext(Dispatchers.IO) {
+        if (depth > 20) {
+            Log.w(Constants.TAG, "getFolderSize: max depth at ${folder.absolutePath}")
+            return@withContext 0L
+        }
+        var totalSize = 0L
         try {
-            val files = folder.listFiles()
-            files?.forEach { file ->
-                totalSize += if (file.isDirectory) {
-                    getFolderSize(file)
-                } else {
-                    try { file.length() } catch (e: Exception) { 0L }
-                }
+            folder.listFiles()?.forEach { file ->
+                totalSize += if (file.isDirectory) getFolderSize(file, depth + 1)
+                else try { file.length() } catch (e: Exception) { 0L }
             }
-        } catch (e: Exception){
-            Log.e(Constants.TAG, "Error listing files in ${folder.name}", e )
-            totalSize = -1L
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Error listing files in ${folder.name}", e)
         }
         totalSize
     }
@@ -1037,15 +854,10 @@ class FileExplorerActivity : ComponentActivity() {
         if (size == 0L) return "0 B"
         val units = arrayOf(getString(R.string.b), getString(R.string.kb),
             getString(R.string.mb), getString(R.string.gb), getString(R.string.tb))
-        val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt().coerceAtMost(units.size - 1)
-        val safeDigitGroups = digitGroups.coerceAtLeast(0)
-        val sizeInUnit = size / 1024.0.pow(safeDigitGroups.toDouble())
-
-        return if (safeDigitGroups == 0) {
-            String.format("%d %s", size.toInt(), units[safeDigitGroups])
-        } else {
-            String.format("%.1f %s", sizeInUnit, units[safeDigitGroups])
-        }
+        val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt().coerceIn(0, units.size - 1)
+        val sizeInUnit = size / 1024.0.pow(digitGroups.toDouble())
+        return if (digitGroups == 0) String.format("%d %s", size.toInt(), units[digitGroups])
+        else String.format("%.1f %s", sizeInUnit, units[digitGroups])
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -1053,7 +865,6 @@ class FileExplorerActivity : ComponentActivity() {
         val date = Date(lastModified)
         val today = Calendar.getInstance()
         val fileDate = Calendar.getInstance().apply { time = date }
-
         return when {
             isSameDay(today, fileDate) -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
             isYesterday(today, fileDate) -> getString(R.string.yesterday)
@@ -1061,10 +872,9 @@ class FileExplorerActivity : ComponentActivity() {
         }
     }
 
-    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
-        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+    private fun isSameDay(cal1: Calendar, cal2: Calendar) =
+        cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                 cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
-    }
 
     private fun isYesterday(today: Calendar, date: Calendar): Boolean {
         val yesterday = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
@@ -1072,36 +882,21 @@ class FileExplorerActivity : ComponentActivity() {
     }
 
     fun openFile(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
-        val intent : Intent? = when {
-            file.name.endsWith(".apk", true) -> {
-                installApk(context, file) { msg, isErr -> showDialog(msg, isErr) }
-                null
-            }
-
-            file.name.endsWith(".txt", true) || file.name.endsWith(".json", true) || file.name.endsWith(".xml", true) || file.name.endsWith(".log", true) -> {
-                Intent(context, TextEditorActivity::class.java).apply {
-                    putExtra("filePath", file.absolutePath)
+        val ext = file.extension.lowercase(Locale.ROOT)
+        val intent: Intent? = when {
+            ext == "apk" -> { installApk(context, file) { msg, isErr -> showDialog(msg, isErr) }; null }
+            ext in setOf("txt", "json", "xml", "log") ->
+                Intent(context, TextEditorActivity::class.java).apply { putExtra("filePath", file.absolutePath) }
+            ext in setOf("png", "jpg", "jpeg", "gif", "bmp") ->
+                Intent(context, ImageActivity::class.java).apply { putExtra("imagePath", file.absolutePath) }
+            ext in setOf("mp4", "avi", "mkv", "webm") ->
+                Intent(context, VideoActivity::class.java).apply { putExtra("videoPath", file.absolutePath) }
+            ext in setOf("mp3", "m4a", "wav", "ogg", "aac") ->
+                Intent(context, MusicActivity::class.java).apply { putExtra("musicPath", file.absolutePath) }
+            ext == "pdf" ->
+                Intent(context, PdfReaderActivity::class.java).apply {
+                    putExtra(PdfReaderActivity.EXTRA_FILE_PATH, file.absolutePath)
                 }
-            }
-
-            file.name.endsWith(".png", true) || file.name.endsWith(".jpg", true) || file.name.endsWith(".jpeg", true) || file.name.endsWith(".gif", true) || file.name.endsWith(".bmp", true)-> {
-                Intent(context, ImageActivity::class.java).apply {
-                    putExtra("imagePath", file.absolutePath)
-                }
-            }
-
-            file.name.endsWith(".mp4", true) || file.name.endsWith(".avi", true) || file.name.endsWith(".mkv", true) || file.name.endsWith(".webm", true) -> {
-                Intent(context, VideoActivity::class.java).apply {
-                    putExtra("videoPath", file.absolutePath)
-                }
-            }
-
-            file.name.endsWith(".mp3", true) || file.name.endsWith(".m4a", true) || file.name.endsWith(".wav", true) || file.name.endsWith(".ogg", true) || file.name.endsWith(".aac", true)-> {
-                Intent(context, MusicActivity::class.java).apply {
-                    putExtra("musicPath", file.absolutePath)
-                }
-            }
-
             else -> {
                 try {
                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -1111,57 +906,44 @@ class FileExplorerActivity : ComponentActivity() {
                         flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                 } catch (e: IllegalArgumentException) {
-                    Log.e(Constants.TAG, "Error getting Uri for ${file.name}. Check FileProvider config.", e)
+                    Log.e(Constants.TAG, "Error getting Uri for ${file.name}", e)
                     showDialog(getString(R.string.error_accessing_file_e, e.localizedMessage), true)
                     null
-                }
-                catch (e: Exception) {
-                    Log.e(Constants.TAG, "Error creating generic intent for ${file.name}", e)
+                } catch (e: Exception) {
+                    Log.e(Constants.TAG, "Error creating intent for ${file.name}", e)
                     showDialog(getString(R.string.cannot_open_file_type), true)
                     null
                 }
             }
         }
         try {
-            intent?.let {
-                Log.d(Constants.TAG, "Attempting to start activity for: ${file.name} with intent: $it")
-                context.startActivity(it)
-            }
+            intent?.let { context.startActivity(it) }
         } catch (e: ActivityNotFoundException) {
-            Log.e(Constants.TAG, "ActivityNotFoundException for opening file: ${file.name}", e)
+            Log.e(Constants.TAG, "ActivityNotFoundException for: ${file.name}", e)
             showDialog(getString(R.string.no_app_installed_to_open_this_file_type), true)
-        }
-        catch (e: Exception) {
-            Log.e(Constants.TAG, "Generic error opening file: ${file.name}", e)
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Error opening file: ${file.name}", e)
             showDialog(getString(R.string.error_opening_file_e, e.localizedMessage), true)
         }
     }
 
     private val renameFileLauncher = registerForActivityResult(RenameContract()) { success ->
-        if (success) {
-            Log.d(Constants.TAG, "Rename successful, reloading list.")
-            loadFiles(currentPath.value)
-        } else {
-            Log.d(Constants.TAG, "Rename cancelled or failed.")
-        }
+        if (success) loadFiles(currentPath.value)
     }
 
     @SuppressLint("WearRecents")
     private fun installApk(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
         try {
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+            context.startActivity(Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-            }
-            Log.d(Constants.TAG, "Attempting to start installer for: ${file.name} with URI: $uri")
-            context.startActivity(installIntent)
+            })
         } catch (e: IllegalArgumentException) {
-            Log.e(Constants.TAG, "Error getting Uri for APK ${file.name}. Check FileProvider config.", e)
+            Log.e(Constants.TAG, "Error getting Uri for APK ${file.name}", e)
             showDialog(getString(R.string.error_accessing_apk_e, e.localizedMessage), true)
-        }
-        catch (e: Exception) {
-            Log.e(Constants.TAG, "Error trying to install APK ${file.name}", e)
+        } catch (e: Exception) {
+            Log.e(Constants.TAG, "Error installing APK ${file.name}", e)
             showDialog(getString(R.string.failed_to_start_package_installer), true)
         }
     }
@@ -1181,17 +963,14 @@ fun CardItem(
     onShowActionsRequest: () -> Unit
 ) {
     val revealState = rememberRevealState()
-
     val largeCornerRadius = 24.dp
     val smallCornerRadius = 4.dp
-
     val shape = when (position) {
         CardPosition.TOP -> RoundedCornerShape(topStart = largeCornerRadius, topEnd = largeCornerRadius, bottomStart = smallCornerRadius, bottomEnd = smallCornerRadius)
         CardPosition.MIDDLE -> RoundedCornerShape(smallCornerRadius)
         CardPosition.BOTTOM -> RoundedCornerShape(topStart = smallCornerRadius, topEnd = smallCornerRadius, bottomStart = largeCornerRadius, bottomEnd = largeCornerRadius)
         CardPosition.SINGLE -> RoundedCornerShape(largeCornerRadius)
     }
-
     SwipeToReveal(
         modifier = Modifier.fillMaxWidth(),
         revealState = revealState,
@@ -1205,12 +984,7 @@ fun CardItem(
         secondaryAction = {
             SecondaryActionButton(
                 onClick = onShowActionsRequest,
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_more_vert_24dp),
-                        contentDescription = "Actions"
-                    )
-                }
+                icon = { Icon(painter = painterResource(R.drawable.ic_more_vert_24dp), contentDescription = "Actions") }
             )
         },
         content = {
@@ -1239,7 +1013,6 @@ fun CardItem(
 
 @Composable
 fun FileActionsDialog(
-    listState: ScalingLazyListState,
     file: File,
     onDismissRequest: () -> Unit,
     onCopy: () -> Unit,
@@ -1251,16 +1024,11 @@ fun FileActionsDialog(
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
-    Dialog(
-        onDismissRequest = onDismissRequest,
-    ) {
+    Dialog(onDismissRequest = onDismissRequest) {
         LaunchedEffect(Unit) {
             delay(50)
-            try {
-                focusRequester.requestFocus()
-            } catch (e: Exception) {
-                Log.w("DialogFocus", "RequestFocus failed: $e")
-            }
+            try { focusRequester.requestFocus() }
+            catch (e: Exception) { Log.w("DialogFocus", "RequestFocus failed: $e") }
         }
         AppScaffold {
             val listState = rememberScalingLazyListState()
@@ -1268,13 +1036,8 @@ fun FileActionsDialog(
                 scrollState = listState,
                 contentPadding = PaddingValues(10.dp),
                 edgeButton = {
-                    EdgeButton(
-                        onClick = onDismissRequest
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_cancel_24dp),
-                            contentDescription = null
-                        )
+                    EdgeButton(onClick = onDismissRequest) {
+                        Icon(painter = painterResource(R.drawable.ic_cancel_24dp), contentDescription = null)
                     }
                 }
             ) {
@@ -1284,9 +1047,7 @@ fun FileActionsDialog(
                         .focusRequester(focusRequester)
                         .background(MaterialTheme.colorScheme.background)
                         .onRotaryScrollEvent {
-                            coroutineScope.launch {
-                                listState.scrollBy(it.verticalScrollPixels)
-                            }
+                            coroutineScope.launch { listState.scrollBy(it.verticalScrollPixels) }
                             true
                         }
                         .focusable(),
@@ -1311,7 +1072,6 @@ fun FileActionsDialog(
                         item { ActionChip(iconResId = R.drawable.ic_share_24dp, label = stringResource(R.string.share), position = CardPosition.MIDDLE, onClick = onShare) }
                     }
                     item { ActionChip(iconResId = R.drawable.ic_delete_24dp, label = stringResource(R.string.delete), onClick = onDelete, position = CardPosition.BOTTOM, isDestructive = true) }
-
                     item { Spacer(Modifier.height(8.dp)) }
                 }
             }
@@ -1329,17 +1089,14 @@ private fun ActionChip(
 ) {
     val largeCornerRadius = 24.dp
     val smallCornerRadius = 4.dp
-
     val shape = when (position) {
         CardPosition.TOP -> RoundedCornerShape(topStart = largeCornerRadius, topEnd = largeCornerRadius, bottomStart = smallCornerRadius, bottomEnd = smallCornerRadius)
         CardPosition.MIDDLE -> RoundedCornerShape(smallCornerRadius)
         CardPosition.BOTTOM -> RoundedCornerShape(topStart = smallCornerRadius, topEnd = smallCornerRadius, bottomStart = largeCornerRadius, bottomEnd = largeCornerRadius)
         CardPosition.SINGLE -> RoundedCornerShape(largeCornerRadius)
     }
-
     Chip(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         icon = { Icon(painterResource(id = iconResId), contentDescription = null) },
         label = { Text(label) },
         shape = shape,

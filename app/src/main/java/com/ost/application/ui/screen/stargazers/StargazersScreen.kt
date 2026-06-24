@@ -60,14 +60,14 @@ import androidx.core.net.toUri
 import coil.compose.rememberAsyncImagePainter
 import com.ost.application.R
 import com.ost.application.data.model.GitHubRepo
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
+import com.ost.application.ui.components.DefaultTip
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
+import com.ost.application.ui.components.WarningTip
 import com.ost.application.ui.state.FabSize
 import com.ost.application.ui.state.LocalFabController
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.DefaultTip
-import com.ost.application.util.WarningTip
 
 @Composable
 fun StargazersScreen(
@@ -158,13 +158,15 @@ fun LoginScreen(
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = stringResource(R.string.github_login),
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.primary
-        )
+        Card(shape = RoundedCornerShape(8.dp)) {
+            Text(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                text = stringResource(R.string.github_login),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -328,8 +330,8 @@ fun StargazersListContent(
                 description = "Star",
                 fabSize = FabSize.Small,
                 action = {
-                    val intent = Intent(Intent.ACTION_VIEW, selectedRepo!!.htmlUrl.toUri())
-                    context.startActivity(intent)
+//                    val intent = Intent(Intent.ACTION_VIEW, selectedRepo!!.htmlUrl.toUri())
+//                    context.startActivity(intent)
                 }
             )
         } else {

@@ -1,4 +1,4 @@
-package com.ost.application.ui.component
+package com.ost.application.ui.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer

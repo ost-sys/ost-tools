@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -41,7 +42,7 @@ class AnimationActivity : ComponentActivity() {
 @Composable
 fun AnimatedBackgroundScreen() {
     val primaryGradientColor = MaterialTheme.colorScheme.primary
-    val secondaryGradientColor = Color(0x00000000)
+    val secondaryGradientColor = MaterialTheme.colorScheme.secondary
     val tertiaryGradientColor = MaterialTheme.colorScheme.tertiary
 
     val systemUiController = rememberSystemUiController()
@@ -54,7 +55,7 @@ fun AnimatedBackgroundScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         RadialGradientBackground(
@@ -131,7 +132,10 @@ fun RadialGradientBackground(
     )
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true, device = "spec:width=1920dp,height=1080dp,dpi=160",
+    wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE, showSystemUi = true
+)
 @Composable
 fun PreviewAnimatedBackgroundScreen() {
     AnimatedBackgroundScreen()

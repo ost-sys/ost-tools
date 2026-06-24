@@ -47,6 +47,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
+import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.ArrowForwardIos
+import androidx.compose.material.icons.rounded.AutoMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -54,10 +58,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -97,14 +103,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ost.application.MainActivity
 import com.ost.application.R
-import com.ost.application.ui.component.ExpressiveShapeBackground
-import com.ost.application.ui.component.ExpressiveShapeType
+import com.ost.application.ui.components.ExpressiveShapeBackground
+import com.ost.application.ui.components.ExpressiveShapeType
 import com.ost.application.ui.screen.settings.SettingsUiState
 import com.ost.application.ui.theme.OSTToolsTheme
 import com.ost.application.util.AppPrefs
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import com.ost.application.util.SectionTitle
+import com.ost.application.ui.components.SectionTitle
+import com.ost.application.util.isRooted
 import kotlin.math.roundToInt
 
 class SetupViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
@@ -159,6 +166,8 @@ fun SetupNavHost(onFinishAndNavigate: () -> Unit) {
     var isEssentialGranted by remember { mutableStateOf(false) }
     var showPermissionDialog by remember { mutableStateOf(false) }
 
+    val isRootGranted by setupViewModel.isRootGranted.collectAsStateWithLifecycle()
+
     val targetProgress = when (currentRoute) {
         "permissions" -> 0.25f
         "timings" -> 0.50f
@@ -176,8 +185,25 @@ fun SetupNavHost(onFinishAndNavigate: () -> Unit) {
     if (showPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog = false },
+            icon = {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    ExpressiveShapeBackground(
+                        iconSize = 64.dp,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        forcedShape = ExpressiveShapeType.SQUARE
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.ic_front_hand_24dp),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            },
             title = { Text(stringResource(R.string.permissions)) },
-            text = { Text("Please grant all essential permissions to proceed with the setup.") },
+            text = { Text(stringResource(R.string.please_grant_all_essential_permissions_to_proceed_with_the_setup)) },
             confirmButton = {
                 Button(onClick = { showPermissionDialog = false }) {
                     Text(stringResource(android.R.string.ok))
@@ -248,7 +274,11 @@ fun SetupNavHost(onFinishAndNavigate: () -> Unit) {
                 popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
                 popExitTransition = { slideOutHorizontally { it } + fadeOut() }
             ) {
-                PermissionsSetupScreen(onEssentialGrantedChange = { isEssentialGranted = it })
+                PermissionsSetupScreen(
+                    onEssentialGrantedChange = { isEssentialGranted = it },
+                    isRootGranted = isRootGranted,
+                    onRequestRoot = { setupViewModel.requestRootAccess() }
+                )
             }
 
             composable(
@@ -293,7 +323,11 @@ fun SetupNavHost(onFinishAndNavigate: () -> Unit) {
 }
 
 @Composable
-fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
+fun PermissionsSetupScreen(
+    onEssentialGrantedChange: (Boolean) -> Unit,
+    isRootGranted: Boolean,
+    onRequestRoot: () -> Unit
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -305,6 +339,7 @@ fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
     var installGranted by remember { mutableStateOf(false) }
     var storageGranted by remember { mutableStateOf(false) }
     var writeSettingsGranted by remember { mutableStateOf(false) }
+    val isDeviceRooted = remember { isRooted() }
 
     fun checkPermissions() {
         notifGranted = if (Build.VERSION.SDK_INT >= 33) {
@@ -473,8 +508,29 @@ fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
         onEssentialGrantedChange(allEssentialGranted)
     }
 
-    val advancedList = remember(overlayGranted, installGranted, writeSettingsGranted) {
-        listOf(
+    val advancedList = remember(
+        overlayGranted,
+        installGranted,
+        writeSettingsGranted,
+        isRootGranted,
+        isDeviceRooted
+    ) {
+        val list = mutableListOf<PermissionItemData>()
+
+        if (isDeviceRooted) {
+            list.add(
+                PermissionItemData(
+                    id = "root",
+                    title = context.getString(R.string.root_access),
+                    summary = context.getString(R.string.ra_perm_info),
+                    icon = R.drawable.ic_security_24dp,
+                    isGranted = isRootGranted,
+                    onClick = { onRequestRoot() }
+                )
+            )
+        }
+
+        list.add(
             PermissionItemData(
                 id = "overlay",
                 title = context.getString(R.string.display_over_other_apps),
@@ -487,7 +543,10 @@ fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
                     }
                     systemSettingsLauncher.launch(intent)
                 }
-            ),
+            )
+        )
+
+        list.add(
             PermissionItemData(
                 id = "settings",
                 title = context.getString(R.string.modify_system_settings),
@@ -500,7 +559,10 @@ fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
                     }
                     systemSettingsLauncher.launch(intent)
                 }
-            ),
+            )
+        )
+
+        list.add(
             PermissionItemData(
                 id = "install",
                 title = context.getString(R.string.install_unknown_apps),
@@ -515,6 +577,8 @@ fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
                 }
             )
         )
+
+        list
     }
 
     LazyColumn(
@@ -522,13 +586,15 @@ fun PermissionsSetupScreen(onEssentialGrantedChange: (Boolean) -> Unit) {
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         item {
-            Column(modifier = Modifier.padding(16.dp)) {
-                ScreenHeader(
-                    title = stringResource(R.string.permissions),
-                    description = stringResource(R.string.grant_permissions_to_unlock_full_potential),
-                    shapeType = ExpressiveShapeType.SQUARE,
-                    icon = R.drawable.ic_security_24dp
-                )
+            Column {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    ScreenHeader(
+                        title = stringResource(R.string.permissions),
+                        description = stringResource(R.string.grant_permissions_to_unlock_full_potential),
+                        shapeType = ExpressiveShapeType.SQUARE,
+                        icon = R.drawable.ic_security_24dp
+                    )
+                }
             }
         }
 
@@ -838,7 +904,12 @@ fun SetupBottomBar(onNext: () -> Unit, onBack: () -> Unit, showBack: Boolean) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (showBack) {
-                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.back)) }
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.Rounded.ArrowBackIosNew,
+                        stringResource(R.string.back)
+                    )
+                }
             } else {
                 Spacer(Modifier.width(1.dp))
             }
@@ -854,7 +925,7 @@ fun SetupBottomBar(onNext: () -> Unit, onBack: () -> Unit, showBack: Boolean) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
+                    Icons.Rounded.ArrowForwardIos,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )

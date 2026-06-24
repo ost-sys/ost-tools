@@ -7,7 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,30 +18,37 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import androidx.wear.compose.material.CircularProgressIndicator
-import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.ButtonDefaults
+import androidx.wear.compose.material3.CircularProgressIndicator
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.IconButton
+import androidx.wear.compose.material3.IconButtonDefaults
+import androidx.wear.compose.material3.MaterialTheme
 import com.ost.application.R
 import com.ost.application.theme.OSTToolsTheme
 import kotlinx.coroutines.delay
@@ -50,170 +59,212 @@ class VideoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val videoPath = intent.getStringExtra("videoPath") ?: ""
+        val videoPath = intent.getStringExtra("videoPath") ?: run {
+            finish()
+            return
+        }
 
         setContent {
             OSTToolsTheme {
-                if (videoPath.isNotEmpty()) {
-                    val context = LocalContext.current
-                    val videoUri = "file://$videoPath".toUri()
+                VideoPlayerScreen(videoPath = videoPath)
+            }
+        }
+    }
+}
 
-                    val exoPlayer = remember(context) {
-                        ExoPlayer.Builder(context).build().apply {
-                            val mediaItem = MediaItem.fromUri(videoUri)
-                            setMediaItem(mediaItem)
-                            prepare()
-                            playWhenReady = true
+@OptIn(UnstableApi::class)
+@Composable
+fun VideoPlayerScreen(videoPath: String) {
+    val context = LocalContext.current
+    val videoUri = "file://$videoPath".toUri()
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(videoUri))
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    val playerView = remember {
+        PlayerView(context).apply {
+            player = exoPlayer
+            useController = false
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
+    }
+
+    val audioManager = remember {
+        context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+    }
+    val maxVolume = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
+
+    var currentVolume by remember {
+        mutableIntStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
+    }
+    var videoProgress by remember { mutableFloatStateOf(0f) }
+    var isPlaying by remember { mutableStateOf(true) }
+    var controlsVisible by remember { mutableStateOf(true) }
+    var isEnded by remember { mutableStateOf(false) }
+
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onIsPlayingChanged(playing: Boolean) {
+                isPlaying = playing
+            }
+            override fun onPlaybackStateChanged(state: Int) {
+                isEnded = state == Player.STATE_ENDED
+                if (isEnded) controlsVisible = true
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+            exoPlayer.release()
+        }
+    }
+
+    LaunchedEffect(controlsVisible, isPlaying) {
+        if (controlsVisible && isPlaying && !isEnded) {
+            delay(3000)
+            controlsVisible = false
+        }
+    }
+
+    LaunchedEffect(exoPlayer) {
+        while (true) {
+            delay(500)
+            val duration = exoPlayer.duration
+            if (duration > 0L) {
+                videoProgress = exoPlayer.currentPosition.toFloat() / duration.toFloat()
+            }
+        }
+    }
+
+    val controlsAlpha by animateFloatAsState(
+        targetValue = if (controlsVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 400),
+        label = "controls_alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                controlsVisible = !controlsVisible
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AndroidView(
+            factory = { playerView },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        CircularProgressIndicator(
+            progress = { videoProgress },
+            modifier = Modifier.fillMaxSize(),
+            strokeWidth = 4.dp,
+            colors = androidx.wear.compose.material3.ProgressIndicatorDefaults.colors(
+                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                trackColor = Color.Transparent
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(controlsAlpha)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                ) {
+                    SmallControlButton(
+                        iconRes = R.drawable.ic_volume_down_24dp,
+                        contentDescription = "Volume down",
+                        onClick = {
+                            currentVolume = (currentVolume - 1).coerceIn(0, maxVolume)
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+                            controlsVisible = true
                         }
-                    }
-
-                    val playerView = remember(context) {
-                        PlayerView(context).apply {
-                            player = exoPlayer
-                            useController = false
-                            this.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        }
-                    }
-
-                    val audioManager = context.getSystemService(AUDIO_SERVICE) as AudioManager
-                    val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                    var currentVolume by remember {
-                        mutableStateOf(
-                            audioManager.getStreamVolume(
-                                AudioManager.STREAM_MUSIC
-                            )
-                        )
-                    }
-                    var videoProgress by remember { mutableFloatStateOf(0f) }
-                    var isPlaying by remember { mutableStateOf(true) }
-                    var controlsVisible by remember { mutableStateOf(true) }
-
-                    LaunchedEffect(controlsVisible, isPlaying) {
-                        if (controlsVisible && isPlaying) {
-                            delay(3000)
-                            controlsVisible = false
-                        }
-                    }
-
-                    val alpha: Float by animateFloatAsState(
-                        targetValue = if (controlsVisible) 1f else 0f,
-                        animationSpec = tween(durationMillis = 500)
                     )
 
-                    LaunchedEffect(exoPlayer) {
-                        while (true) {
-                            delay(1000)
-                            if (exoPlayer.duration != 0L) {
-                                videoProgress =
-                                    exoPlayer.currentPosition.toFloat() / exoPlayer.duration.toFloat()
+                    IconButton(
+                        onClick = {
+                            when {
+                                isEnded -> {
+                                    exoPlayer.seekTo(0)
+                                    exoPlayer.play()
+                                    isEnded = false
+                                }
+                                exoPlayer.isPlaying -> exoPlayer.pause()
+                                else -> exoPlayer.play()
                             }
-                        }
-                    }
-
-                    DisposableEffect(key1 = exoPlayer) {
-                        onDispose {
-                            exoPlayer.release()
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable {
-                                controlsVisible = true
-                            },
-                        contentAlignment = Alignment.Center
+                            controlsVisible = true
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = Color.Black.copy(alpha = 0.55f)
+                        ),
+                        modifier = Modifier.size(48.dp)
                     ) {
-                        AndroidView(
-                            factory = { playerView },
-                            modifier = Modifier.fillMaxSize()
-                        )
-
-                        CircularProgressIndicator(
-                            progress = videoProgress,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .alpha(alpha),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Button(
-                                    modifier = Modifier.size(24.dp),
-                                    colors = ButtonDefaults.filledTonalButtonColors(),
-                                    onClick = {
-                                        currentVolume = (currentVolume - 1)
-                                            .coerceIn(0, maxVolume)
-                                        audioManager.setStreamVolume(
-                                            AudioManager.STREAM_MUSIC,
-                                            currentVolume,
-                                            0
-                                        )
-                                    }
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_volume_down_24dp),
-                                        contentDescription = "Volume Down",
-                                    )
-                                }
-
-                                Button(onClick = {
-                                    if (exoPlayer.isPlaying) {
-                                        exoPlayer.pause()
-                                        isPlaying = false
-                                        controlsVisible =
-                                            true
-                                    } else {
-                                        if (exoPlayer.playbackState == ExoPlayer.STATE_ENDED) {
-                                            exoPlayer.seekTo(0)
-                                        }
-                                        exoPlayer.play()
-                                        isPlaying = true
-                                        controlsVisible = true
-                                    }
-                                }) {
-                                    Icon(
-                                        painter = painterResource(
-                                            id = if (exoPlayer.isPlaying) R.drawable.ic_pause_24dp else R.drawable.ic_play_24dp
-                                        ),
-                                        contentDescription = if (exoPlayer.isPlaying) "Pause" else "Play",
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                }
-
-                                Button(
-                                    modifier = Modifier.size(24.dp),
-                                    colors = ButtonDefaults.filledTonalButtonColors(),
-                                    onClick = {
-                                        currentVolume = (currentVolume + 1)
-                                            .coerceIn(0, maxVolume)
-                                        audioManager.setStreamVolume(
-                                            AudioManager.STREAM_MUSIC,
-                                            currentVolume,
-                                            0
-                                        )
-                                    }
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_volume_up_24dp),
-                                        contentDescription = "Volume Up",
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
+                        val iconRes = when {
+                            isEnded -> R.drawable.ic_replay_24dp
+                            isPlaying -> R.drawable.ic_pause_24dp
+                            else -> R.drawable.ic_play_24dp
                         }
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
+
+                    SmallControlButton(
+                        iconRes = R.drawable.ic_volume_up_24dp,
+                        contentDescription = "Volume up",
+                        onClick = {
+                            currentVolume = (currentVolume + 1).coerceIn(0, maxVolume)
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+                            controlsVisible = true
+                        }
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SmallControlButton(
+    iconRes: Int,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
