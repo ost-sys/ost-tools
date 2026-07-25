@@ -237,6 +237,7 @@ fun MainAppStructure(isExpandedScreen: Boolean = false, initialShowSettingsSheet
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomSpacing = if (isExpandedScreen) navBarPadding else (64.dp + 16.dp + navBarPadding)
+
     CompositionLocalProvider(
         LocalBottomSpacing provides bottomSpacing,
         LocalFabController provides fabController
