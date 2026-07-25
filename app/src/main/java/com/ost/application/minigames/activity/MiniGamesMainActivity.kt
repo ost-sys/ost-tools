@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-
 package com.ost.application.minigames.activity
-
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -26,7 +24,6 @@ import com.ost.application.minigames.activity.games.MinesweeperGameActivity
 import com.ost.application.ui.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-
 class MiniGamesMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +35,6 @@ class MiniGamesMainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun MiniGamesMainScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
@@ -82,8 +78,6 @@ fun MiniGamesMainScreen(onNavigateBack: () -> Unit) {
                     title = "Tic-Tac-Toe",
                     icon = R.drawable.ic_bomb_24dp,
                     onClick = {
-//                        val intent = Intent(context, MinesweeperGameActivity::class.java)
-//                        context.startActivity(intent)
                     },
                     position = CardPosition.BOTTOM
                 )

@@ -13,4 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
-/.idea
+.idea
+.codegraphy
+build_and_run.sh
+.ost_build_config
+.agents
+.kotlin

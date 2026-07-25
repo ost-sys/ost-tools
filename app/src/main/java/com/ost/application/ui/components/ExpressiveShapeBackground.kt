@@ -1,5 +1,4 @@
 package com.ost.application.ui.components
-
 import android.graphics.Matrix
 import android.graphics.Path
 import android.graphics.RectF
@@ -7,11 +6,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
@@ -30,10 +30,8 @@ import androidx.graphics.shapes.RoundedPolygon
 import androidx.graphics.shapes.circle
 import androidx.graphics.shapes.toPath
 import kotlinx.coroutines.launch
-
 private const val SCALE_HUGE = 2.0f
 private const val SCALE_LARGE = 1.8f
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 enum class ExpressiveShapeType(val visualScale: Float) {
     CIRCLE(SCALE_LARGE),
@@ -46,7 +44,6 @@ enum class ExpressiveShapeType(val visualScale: Float) {
     CLOVER_4(SCALE_HUGE),
     CLOVER_8(SCALE_HUGE)
 }
-
 @Composable
 fun ExpressiveShapeBackground(
     modifier: Modifier = Modifier,
@@ -57,22 +54,18 @@ fun ExpressiveShapeBackground(
 ) {
     val scope = rememberCoroutineScope()
     val morphProgress = remember { Animatable(0f) }
-
     val shapeState = remember {
         ShapeState().apply {
             val startT = forcedShape ?: ExpressiveShapeType.entries.random()
             val endT = forcedShape ?: ExpressiveShapeType.entries.random()
-
             startPolygon = getM3Shape(startT)
             endPolygon = getM3Shape(endT)
             startScale = startT.visualScale
             endScale = endT.visualScale
             type = startT
-
             morph = Morph(startPolygon, endPolygon)
         }
     }
-
     LaunchedEffect(forcedShape) {
         if (forcedShape != null && forcedShape != shapeState.type) {
             shapeState.startPolygon = shapeState.endPolygon
@@ -81,7 +74,6 @@ fun ExpressiveShapeBackground(
             shapeState.endScale = forcedShape.visualScale
             shapeState.type = forcedShape
             shapeState.morph = Morph(shapeState.startPolygon, shapeState.endPolygon)
-
             morphProgress.snapTo(0f)
             morphProgress.animateTo(
                 targetValue = 1f,
@@ -92,40 +84,38 @@ fun ExpressiveShapeBackground(
             )
         }
     }
-
     val interactionSource = remember { MutableInteractionSource() }
     val path = remember { Path() }
     val transformMatrix = remember { Matrix() }
     val pathBounds = remember { RectF() }
-
     Box(
         modifier = modifier
             .size(iconSize)
-            .clickable(
-                enabled = forcedShape == null,
-                interactionSource = interactionSource,
-                indication = null
-            ) {
-                shapeState.current = shapeState.target
-                var newType = ExpressiveShapeType.entries.random()
-                while (newType == shapeState.type) {
-                    newType = ExpressiveShapeType.entries.random()
-                }
-
-                shapeState.startPolygon = shapeState.endPolygon
-                shapeState.startScale = shapeState.endScale
-                shapeState.endPolygon = getM3Shape(newType)
-                shapeState.endScale = newType.visualScale
-                shapeState.type = newType
-                shapeState.morph = Morph(shapeState.startPolygon, shapeState.endPolygon)
-
-                scope.launch {
-                    morphProgress.snapTo(0f)
-                    morphProgress.animateTo(
-                        targetValue = 1f,
-                        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+            .pointerInput(forcedShape) {
+                if (forcedShape == null) {
+                    detectTapGestures(
+                        onTap = {
+                            onClick()
+                            shapeState.current = shapeState.target
+                            var newType = ExpressiveShapeType.entries.random()
+                            while (newType == shapeState.type) {
+                                newType = ExpressiveShapeType.entries.random()
+                            }
+                            shapeState.startPolygon = shapeState.endPolygon
+                            shapeState.startScale = shapeState.endScale
+                            shapeState.endPolygon = getM3Shape(newType)
+                            shapeState.endScale = newType.visualScale
+                            shapeState.type = newType
+                            shapeState.morph = Morph(shapeState.startPolygon, shapeState.endPolygon)
+                            scope.launch {
+                                morphProgress.snapTo(0f)
+                                morphProgress.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+                                )
+                            }
+                        }
                     )
-                    onClick()
                 }
             },
         contentAlignment = Alignment.Center
@@ -133,46 +123,35 @@ fun ExpressiveShapeBackground(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val drawSize = this.size
             val radius = drawSize.minDimension / 2f
-
             if (radius > 0) {
                 path.reset()
                 transformMatrix.reset()
-
                 val currentProgress = morphProgress.value
                 val currentVisualScale = lerp(shapeState.startScale, shapeState.endScale, currentProgress)
-
                 shapeState.morph.toPath(progress = currentProgress, path = path)
-
                 path.computeBounds(pathBounds, true)
                 val centerX = pathBounds.centerX()
                 val centerY = pathBounds.centerY()
                 transformMatrix.postTranslate(-centerX, -centerY)
-
                 val finalScale = radius * currentVisualScale
                 transformMatrix.postScale(finalScale, finalScale)
-
                 transformMatrix.postTranslate(drawSize.width / 2f, drawSize.height / 2f)
-
                 path.transform(transformMatrix)
                 drawPath(path = path.asComposePath(), color = color)
             }
         }
     }
 }
-
 private class ShapeState {
     var type: ExpressiveShapeType = ExpressiveShapeType.CIRCLE
     var current: ExpressiveShapeType = ExpressiveShapeType.CIRCLE
     var target: ExpressiveShapeType = ExpressiveShapeType.CIRCLE
-
     var startPolygon: RoundedPolygon = RoundedPolygon.circle(4)
     var endPolygon: RoundedPolygon = RoundedPolygon.circle(4)
     var startScale: Float = 1f
     var endScale: Float = 1f
-
     var morph: Morph = Morph(startPolygon, endPolygon)
 }
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun getM3Shape(type: ExpressiveShapeType): RoundedPolygon {
     return when (type) {

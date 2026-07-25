@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
-
 package com.ost.application.ui.screen.applist
-
 import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -86,7 +84,6 @@ import com.ost.application.ui.state.LocalFabController
 import com.ost.application.util.CardPosition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-
 @ExperimentalMaterial3ExpressiveApi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,11 +99,9 @@ fun AppListScreen(
     val bottomSpacing = LocalBottomSpacing.current
     val snackbarHostState = remember { SnackbarHostState() }
     val fabController = LocalFabController.current
-
     val showSnackbar: suspend (String, SnackbarDuration) -> Unit = { message, duration ->
         snackbarHostState.showSnackbar(message = message, duration = duration)
     }
-
     LaunchedEffect(Unit) {
         fabController.setFab(
             icon = R.drawable.ic_refresh_24dp,
@@ -115,9 +110,7 @@ fun AppListScreen(
             action = { viewModel.refresh(true) }
         )
     }
-
     Box(modifier = modifier.fillMaxSize()) {
-
         if (state.isLoading) {
             CircularWavyProgressIndicator(modifier = Modifier.align(Alignment.Center))
         } else if (state.error != null) {
@@ -157,7 +150,6 @@ fun AppListScreen(
                         index == state.apps.lastIndex -> CardPosition.BOTTOM
                         else -> CardPosition.MIDDLE
                     }
-
                     AppListItem(
                         appInfo = appInfo,
                         isRootAvailable = state.isRootAvailable,
@@ -179,7 +171,6 @@ fun AppListScreen(
                 }
             }
         }
-
         TopSearchBar(
             searchQuery = state.searchQuery,
             onQueryChange = viewModel::updateSearchQuery,
@@ -189,7 +180,6 @@ fun AppListScreen(
                 .height(56.dp)
                 .zIndex(1f)
         )
-
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -208,7 +198,6 @@ fun AppListScreen(
                 )
             }
         }
-
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -218,7 +207,6 @@ fun AppListScreen(
         )
     }
 }
-
 @Composable
 fun TopSearchBar(
     searchQuery: String,
@@ -227,7 +215,6 @@ fun TopSearchBar(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(50),
@@ -265,9 +252,7 @@ fun TopSearchBar(
         )
     }
 }
-
 private data class BackgroundIconInfo(val painter: Painter? = null, val imageVector: ImageVector? = null, val tint: Color, val alignment: Alignment, val contentDescription: String?)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppListItem(
@@ -282,7 +267,6 @@ fun AppListItem(
     val packageManager = context.packageManager
     val view = LocalView.current
     val enableUninstallSwipe = isRootAvailable || !appInfo.isSystemApp
-
     val largeRadius = 24.dp
     val smallRadius = 4.dp
     val shape = when (position) {
@@ -291,25 +275,20 @@ fun AppListItem(
         CardPosition.BOTTOM -> RoundedCornerShape(topStart = smallRadius, topEnd = smallRadius, bottomStart = largeRadius, bottomEnd = largeRadius)
         CardPosition.SINGLE -> RoundedCornerShape(largeRadius)
     }
-
     val verticalPadding = when (position) {
         CardPosition.TOP, CardPosition.SINGLE -> PaddingValues(top = 4.dp, bottom = 1.dp)
         CardPosition.MIDDLE -> PaddingValues(vertical = 1.dp)
         CardPosition.BOTTOM -> PaddingValues(top = 1.dp, bottom = 4.dp)
     }
-
     var lastActionTime by remember { mutableLongStateOf(0L) }
-
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.Settled) return@rememberSwipeToDismissBoxState true
-
             val now = System.currentTimeMillis()
             if (now - lastActionTime < 1500L) {
                 return@rememberSwipeToDismissBoxState false
             }
             lastActionTime = now
-
             when (dismissValue) {
                 SwipeToDismissBoxValue.StartToEnd -> {
                     view.performHapticFeedback(HapticFeedbackConstants.TOGGLE_ON)
@@ -356,13 +335,11 @@ fun AppListItem(
         },
         positionalThreshold = { distance -> distance * 0.40f }
     )
-
     LaunchedEffect(dismissState.currentValue, appInfo.packageName) {
         if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd || dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
             dismissState.reset()
         }
     }
-
     SwipeToDismissBox(
         state = dismissState,
         modifier = Modifier
@@ -381,13 +358,11 @@ fun AppListItem(
                     SwipeToDismissBoxValue.Settled -> Color.Transparent
                 }, label = "background_color_anim"
             )
-
             val infoIconPainter: Painter = painterResource(id = R.drawable.ic_info_24dp)
             val deleteIconPainter: Painter = painterResource(id = R.drawable.ic_delete_forever_24dp)
             val warningIconPainter: Painter = painterResource(id = R.drawable.ic_warning_24dp)
             val uninstallIconPainter = if (isRootAvailable && appInfo.isSystemApp) warningIconPainter else deleteIconPainter
             val uninstallContentDesc = stringResource(if (isRootAvailable && appInfo.isSystemApp) R.string.delete_system_application else R.string.delete)
-
             val iconInfo = when (direction) {
                 SwipeToDismissBoxValue.StartToEnd -> BackgroundIconInfo(
                     painter = infoIconPainter, tint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -401,7 +376,6 @@ fun AppListItem(
                     tint = Color.Transparent, alignment = Alignment.CenterStart, contentDescription = null
                 )
             }
-
             val progress = dismissState.progress
             val iconScale by animateFloatAsState(
                 targetValue = if (direction != SwipeToDismissBoxValue.Settled) progress.coerceIn(0.5f, 1f) else 0f, label = "icon_scale_anim"
@@ -409,7 +383,6 @@ fun AppListItem(
             val iconAlpha by animateFloatAsState(
                 targetValue = if (direction != SwipeToDismissBoxValue.Settled) progress.coerceIn(0.5f, 1f) else 0f, label = "icon_alpha_anim"
             )
-
             Box(
                 Modifier.fillMaxSize().background(backgroundColor).padding(horizontal = 20.dp),
                 contentAlignment = iconInfo.alignment

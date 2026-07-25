@@ -1,10 +1,8 @@
 <resources>
     <string name="app_name" translatable="false">OST Tools</string>
     <string name="about_the_watch">About the watch</string>
-    <string name="cpu">CPU</string>
     <string name="battery">Battery</string>
     <string name="display">Display</string>
-    <string name="version">Version</string>
     <string name="error">Error</string>
     <string name="update_check_error">Update check error</string>
     <string name="you_are_updated">You are up-to-date!</string>
@@ -17,8 +15,10 @@
     <string name="over_voltage">Over voltage</string>
     <string name="unspecified_failure">Unspecified failure</string>
     <string name="cold">Cold</string>
+    <string name="fail">Fail</string>
     <string name="unknown">Unknown</string>
     <string name="mv">mV</string>
+    <string name="mah">mAh</string>
     <string name="health">Health</string>
     <string name="temperature">Temperature</string>
     <string name="voltage">Voltage</string>
@@ -28,13 +28,13 @@
     <string name="board">Board</string>
     <string name="build_number">Build number</string>
     <string name="build_fingerprint">Build fingerprint</string>
-    <string name="soc_manufacturer">SoC manufacturer</string>
-    <string name="cores">Cores</string>
     <string name="loading">Loading…</string>
+    <string name="charging">Charging</string>
     <string name="charging_ac">AC</string>
-    <string name="charging_usb">Charging (USB)</string>
-    <string name="charging_wireless">Charging (Wireless)</string>
+    <string name="charging_via_usb">Charging via USB</string>
+    <string name="wireless_charging">Wireless charging</string>
     <string name="battery_level">Battery level</string>
+    <string name="discharging">Discharging</string>
     <string name="hz">Hz</string>
     <string name="inches">inches</string>
     <string name="file_explorer">File explorer</string>
@@ -139,7 +139,6 @@
     <string name="error_download_subdir_is_file">Error: /Download/%1$s is a file!</string>
     <string name="error_permission_denied_download_subdir">Error: Permission denied for /Download/%1$s</string>
     <string name="error_accessing_download_subdir">Error accessing /Download/%1$s: %2$s</string>
-    <string name="error_parsing_release_notes">Error parsing release notes</string>
     <string name="no_releases_found">No releases found</string>
     <string name="network_error">Network error</string>
     <string name="update_available_check_phone">Update available. Check your phone for details.</string>
@@ -176,7 +175,6 @@
     <string name="no_devices_found_hint">No devices found. Ensure other devices are discoverable.</string>
     <string name="scan">Scan</string>
     <string name="view_all_received_files_count">View all %d files</string>
-    <string name="view_all_files_cd">View all received files</string>
     <string name="notification_channel_name">WearShare Transfers</string>
     <string name="notification_channel_description">Notifications for file transfers.</string>
     <string name="notif_sending_progress">Sending: %1$d%% (%2$s)</string>
@@ -206,28 +204,85 @@
     <string name="open_activity_notification_button">Open</string>
     <string name="notif_progress_details">%1$s / %2$s (%3$d%%)</string>
     <string name="write_settings_permission_required">Write settings permission required</string>
-    <string name="uninstall_success">Uninstall success</string>
     <string name="user_app">User app</string>
     <string name="app_info">App info</string>
     <string name="system_app">System app</string>
-    <!-- Новые строки для FileExplorerActivity -->
-
-    <!-- Простые -->
     <string name="storage_permissions_denied">Storage permissions denied. Some files may be unavailable.</string>
     <string name="cannot_share_folders">Folders cannot be shared.</string>
     <string name="clipboard_is_empty">Clipboard is empty.</string>
-    <string name="pasting">Pasting…</string>
     <string name="error_file_not_found">Error: File not found.</string>
     <string name="error_preparing_file_for_sharing">Error preparing file for sharing.</string>
-
-    <!-- Форматные (с аргументами) -->
     <string name="copied_file">Copied: %s</string>
     <string name="cut_file">Cut: %s</string>
-    <string name="deleting_file">Deleting: %s…</string>
     <string name="paste_success">Pasted %d item(s).</string>
     <string name="paste_failed">Failed to paste %d item(s).</string>
     <string name="paste_partial">Pasted %1$d item(s), failed for %2$d.</string>
-
     <string name="done">Done</string>
     <string name="ost">Operating System Tester</string>
+    <string name="transfer_rejected_by_receiver">Transfer rejected by receiver</string>
+    <string name="dpi">DPI</string>
+    <string name="portrait">Portrait</string>
+    <string name="landscape">Landscape</string>
+    <string name="support">Support</string>
+    <string name="unsupported">Unsupported</string>
+    <string name="codename">Codename</string>
+    <string name="sdk">SDK</string>
+    <string name="brightness_permission_r">To change the brightness, you need permission to change the settings. You can grant it in the application settings</string>
+    <string name="brightness_permission_m">Permission is required to control brightness</string>
+    <string name="exiting">Exiting...</string>
+    <string name="brightness_fail">Failed to change brightness</string>
+    <string name="permission_not_granted">Permission not granted</string>
+    <string name="hold_to_exit">Hold your finger on the screen to exit</string>
+    <string name="success">Success</string>
+    <string name="fix_dead_pixels">Fix dead pixels</string>
+    <string name="orientation">Orientation</string>
+    <string name="stylus_support">Stylus support</string>
+    <string name="cycle_count">Cycle count</string>
+    <string name="not_available">N/A</string>
+    <string name="status">Status</string>
+    <string name="capacity">Capacity</string>
+    <string name="github_integration">GitHub Integration</string>
+    <string name="notifications">Notifications</string>
+    <string name="notif_perm_info">To display file transfer progress and notifications</string>
+    <string name="nearby_devices">Nearby devices</string>
+    <string name="nd_perm_info">To search for nearby devices for file transfer</string>
+    <string name="media_audio"><![CDATA[Media & audio]]></string>
+    <string name="ma_perm_info"><![CDATA[For sharing media & audio]]></string>
+    <string name="storage_access">Storage access</string>
+    <string name="sdk30_sa_perm_info">Full access to save and read files</string>
+    <string name="permissions">Permissions</string>
+    <string name="advanced_permissions">Advanced permissions</string>
+    <string name="category_timings">Timings</string>
+    <string name="total_recovery_time">Total recovery time</string>
+    <string name="noise">Noise</string>
+    <string name="noise_display_time">Noise display time (minutes)</string>
+    <string name="horizontal_lines">Horizontal lines</string>
+    <string name="horizontal_lines_display_time">Horizontal lines display time (minutes)</string>
+    <string name="vertical_lines">Vertical lines</string>
+    <string name="vertical_lines_display_time">Vertical Lines Display Time (minutes)</string>
+    <string name="black_white_noise">Black-White noise</string>
+    <string name="regional_settings">Regional settings</string>
+    <string name="language">Language</string>
+    <string name="accessibility_service">Accessibility Service</string>
+    <string name="accessibility_service_info">Trigger power menu and lock screen without ROOT or hardware buttons</string>
+    <string name="accessibility_service_label">OST Tools Accessibility Service</string>
+    <string name="accessibility_service_description">Provides power menu and lock screen features via Accessibility API.</string>
+    <string name="power_menu">Power menu</string>
+    <string name="turn_off">Turn off</string>
+    <string name="lock_screen">Lock</string>
+    <string name="accessibility_required_title">Accessibility Service Required</string>
+    <string name="accessibility_required_msg">To use this feature, please enable OST Tools in system Accessibility settings.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="non_root_mode">Non-ROOT Mode</string>
+    <string name="please_grant_all_essential_permissions_to_proceed_with_the_setup">Please grant all essential permissions to proceed with the setup.</string>
+    <string name="ram_title">RAM</string>
+    <string name="storage_title">Storage</string>
+    <string name="used_ram">Used RAM</string>
+    <string name="avail_ram">Available RAM</string>
+    <string name="total_ram">Total RAM</string>
+    <string name="used_storage">Used Storage</string>
+    <string name="free_storage">Free Storage</string>
+    <string name="total_storage">Total Storage</string>
+
+    <string name="share_received_files">Received files</string>
 </resources>

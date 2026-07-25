@@ -1,5 +1,4 @@
 package com.ost.application.ui.components
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ost.application.R
-
 @Composable
 fun WarningTip(title: String, summary: String? = null) {
     Column(
@@ -73,7 +71,6 @@ fun WarningTip(title: String, summary: String? = null) {
         }
     }
 }
-
 @Composable
 fun DefaultTip(title: String, summary: String? = null) {
     Column(
@@ -102,13 +99,11 @@ fun DefaultTip(title: String, summary: String? = null) {
         }
     }
 }
-
 @Preview(showSystemUi = false)
 @Composable
 fun WarningTipPreview() {
     WarningTip("Privacy Check", "We do not send your data anywhere.")
 }
-
 @Preview
 @Composable
 fun DefaultTipPreview() {

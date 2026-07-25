@@ -1,8 +1,6 @@
 package com.ost.application.ui.activity.animation;
 public class EasingSineFunc {
-
     private static EasingSineFunc instance;
-
     public static EasingSineFunc getInstance() {
         if (instance == null) {
             instance = new EasingSineFunc();

@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalTextApi::class)
-
 package com.ost.application.ui.activity.welcome
-
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -68,6 +66,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ost.application.R
+import com.ost.application.core.locale.LocaleHelper
 import com.ost.application.ui.activity.setup.SetupActivity
 import com.ost.application.ui.components.ExpressiveShapeBackground
 import com.ost.application.ui.components.ExpressiveShapeType
@@ -81,7 +80,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
-
 class WelcomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +100,6 @@ class WelcomeActivity : AppCompatActivity() {
         }
     }
 }
-
 @Stable
 class Particle(
     initialX: Float,
@@ -120,7 +117,6 @@ class Particle(
     var rotation by mutableFloatStateOf(0f)
     var isDragging by mutableStateOf(false)
 }
-
 private fun getRandomDifferentShape(currentShape: ExpressiveShapeType): ExpressiveShapeType {
     var newShape = ExpressiveShapeType.entries.random()
     while (newShape == currentShape) {
@@ -128,7 +124,6 @@ private fun getRandomDifferentShape(currentShape: ExpressiveShapeType): Expressi
     }
     return newShape
 }
-
 @Composable
 fun WelcomeScreen(
     onGetStartedClick: () -> Unit,
@@ -139,7 +134,6 @@ fun WelcomeScreen(
     val supportedLocales = remember { parseSupportedLocales(context) }
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
-
     val availableColors = listOf(
         MaterialTheme.colorScheme.primaryContainer,
         MaterialTheme.colorScheme.secondaryContainer,
@@ -148,9 +142,7 @@ fun WelcomeScreen(
         MaterialTheme.colorScheme.surfaceVariant,
         MaterialTheme.colorScheme.inversePrimary
     )
-
     val particles = remember { mutableStateListOf<Particle>() }
-
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -158,12 +150,10 @@ fun WelcomeScreen(
             .pointerInput(Unit) {
                 val velocityTracker = VelocityTracker()
                 var draggedParticle: Particle? = null
-
                 detectDragGestures(
                     onDragStart = { offset ->
                         val firstP = particles.firstOrNull() ?: return@detectDragGestures
                         val radiusPx = with(density) { firstP.sizeDp.toPx() / 2f }
-
                         draggedParticle = particles.find { p ->
                             val centerX = p.x + radiusPx
                             val centerY = p.y + radiusPx
@@ -171,7 +161,6 @@ fun WelcomeScreen(
                             val dy = offset.y - centerY
                             (dx * dx + dy * dy) < (radiusPx * radiusPx)
                         }
-
                         draggedParticle?.let { p ->
                             p.isDragging = true
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -206,23 +195,19 @@ fun WelcomeScreen(
     ) {
         val screenWidthPx = constraints.maxWidth.toFloat()
         val screenHeightPx = constraints.maxHeight.toFloat()
-
         val targetSizePx = screenWidthPx / 3f
         val targetSizeDp = with(density) { targetSizePx.toDp() }
         val radius = targetSizePx / 2f
-
         LaunchedEffect(screenWidthPx, screenHeightPx) {
             if (particles.isEmpty() && screenWidthPx > 0 && screenHeightPx > 0) {
                 repeat(5) {
                     val startX = Random.nextFloat() * (screenWidthPx - targetSizePx)
                     val startY = Random.nextFloat() * (screenHeightPx - targetSizePx)
-
                     val speedBase = 3f
                     var vx = (Random.nextFloat() * 2 - 1) * speedBase
                     if (kotlin.math.abs(vx) < 0.5f) vx = if (vx < 0) -1f else 1f
                     var vy = (Random.nextFloat() * 2 - 1) * speedBase
                     if (kotlin.math.abs(vy) < 0.5f) vy = if (vy < 0) -1f else 1f
-
                     particles.add(
                         Particle(
                             initialX = startX,
@@ -238,60 +223,49 @@ fun WelcomeScreen(
                 }
             }
         }
-
         LaunchedEffect(Unit) {
             while (isActive) {
                 withFrameNanos { _ ->
-
                     particles.forEach { p ->
                         if (!p.isDragging) {
                             var nextX = p.x + p.vx
                             var nextY = p.y + p.vy
-
                             p.rotation += p.vRotation
-
                             if (nextX <= 0f) { nextX = 0f; p.vx *= -1 }
                             if (nextX + targetSizePx >= screenWidthPx) { nextX =
                                 screenWidthPx - targetSizePx; p.vx *= -1 }
                             if (nextY <= 0f) { nextY = 0f; p.vy *= -1 }
                             if (nextY + targetSizePx >= screenHeightPx) { nextY =
                                 screenHeightPx - targetSizePx; p.vy *= -1 }
-
                             p.x = nextX
                             p.y = nextY
                         }
                     }
-
                     for (i in particles.indices) {
                         for (j in i + 1 until particles.size) {
                             val p1 = particles[i]
                             val p2 = particles[j]
-
                             val dx = (p2.x + radius) - (p1.x + radius)
                             val dy = (p2.y + radius) - (p1.y + radius)
                             val distSq = dx * dx + dy * dy
                             val minDistSq = targetSizePx * targetSizePx
-
                             if (distSq < minDistSq && distSq > 0.001f) {
                                 val dist = sqrt(distSq)
                                 val overlap = targetSizePx - dist
                                 val nx = dx / dist
                                 val ny = dy / dist
-
                                 if (p1.isDragging && !p2.isDragging) {
                                     p2.x += nx * overlap
                                     p2.y += ny * overlap
                                     p2.vx += nx * 2f
                                     p2.vy += ny * 2f
                                     if (kotlin.math.abs(p2.vx) > 5f) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
                                 } else if (!p1.isDragging && p2.isDragging) {
                                     p1.x -= nx * overlap
                                     p1.y -= ny * overlap
                                     p1.vx -= nx * 2f
                                     p1.vy -= ny * 2f
                                     if (kotlin.math.abs(p1.vx) > 5f) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
                                 } else {
                                     val moveX = nx * overlap * 0.5f
                                     val moveY = ny * overlap * 0.5f
@@ -299,18 +273,15 @@ fun WelcomeScreen(
                                     p1.y -= moveY
                                     p2.x += moveX
                                     p2.y += moveY
-
                                     val rvx = p2.vx - p1.vx
                                     val rvy = p2.vy - p1.vy
                                     val vn = rvx * nx + rvy * ny
-
                                     if (vn < 0) {
                                         val impulse = -vn
                                         p1.vx -= impulse * nx
                                         p1.vy -= impulse * ny
                                         p2.vx += impulse * nx
                                         p2.vy += impulse * ny
-
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         p1.shape = getRandomDifferentShape(p1.shape)
                                         p2.shape = getRandomDifferentShape(p2.shape)
@@ -322,7 +293,6 @@ fun WelcomeScreen(
                 }
             }
         }
-
         particles.forEach { particle ->
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
@@ -340,7 +310,6 @@ fun WelcomeScreen(
                 )
             }
         }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -350,9 +319,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier
                 .padding(top = 32.dp)
                 .size(32.dp))
-
             Spacer(modifier = Modifier.weight(1f))
-
             val headerFontFamily = remember {
                 FontFamily(
                     Font(
@@ -373,10 +340,8 @@ fun WelcomeScreen(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
-
             val currentLocale = LocaleHelper.getCurrentLocale()
             val langName = currentLocale.displayLanguage.replaceFirstChar { it.titlecase() }
-
             FilledTonalButton(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
                 onClick = { showLanguageDialog.value = true }
@@ -385,16 +350,13 @@ fun WelcomeScreen(
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(text = langName)
             }
-
             Spacer(modifier = Modifier.height(48.dp))
-
             MorphingStartButton(
                 onClick = onGetStartedClick,
                 modifier = Modifier
                     .fillMaxWidth()
             )
         }
-
         if (showLanguageDialog.value) {
             LanguagePickerDialog(
                 supportedLocales = supportedLocales,
@@ -409,7 +371,6 @@ fun WelcomeScreen(
         }
     }
 }
-
 fun parseSupportedLocales(context: Context): List<Locale> {
     val locales = mutableListOf<Locale>()
     try {
@@ -432,7 +393,6 @@ fun parseSupportedLocales(context: Context): List<Locale> {
     return locales.sortedWith(compareByDescending<Locale> { it.language == current.language }
         .thenByDescending { it.language == "en" })
 }
-
 @ExperimentalTextApi
 @Composable
 fun MorphingStartButton(
@@ -442,9 +402,7 @@ fun MorphingStartButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
-
     var isSuccess by remember { mutableStateOf(false) }
-
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
             delay(600.milliseconds)
@@ -473,7 +431,6 @@ fun MorphingStartButton(
         animationSpec = tween(durationMillis = 200),
         label = "corner"
     )
-
     val flexFontFamily = remember(animatedWeight, animatedWidth) {
         FontFamily(
             Font(
@@ -485,7 +442,6 @@ fun MorphingStartButton(
             )
         )
     }
-
     Button(
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)

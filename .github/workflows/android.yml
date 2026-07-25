@@ -37,8 +37,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew :app:assembleRelease :app:bundleRelease
-          ./gradlew :wear-app:assembleRelease :wear-app:bundleRelease
+          ./gradlew :app:assembleRelease
+          ./gradlew :wear-app:assembleRelease
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -47,6 +47,4 @@ jobs:
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
           files: |
             app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
             wear-app/build/outputs/apk/release/*.apk
-            wear-app/build/outputs/bundle/release/*.aab

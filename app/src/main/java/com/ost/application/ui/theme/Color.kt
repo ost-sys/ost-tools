@@ -1,6 +1,5 @@
 package com.ost.application.ui.theme
 import androidx.compose.ui.graphics.Color
-
 val primaryLight = Color(0xFF006E2C)
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFF34A853)
@@ -36,7 +35,6 @@ val surfaceContainerLowLight = Color(0xFFF3F3F3)
 val surfaceContainerLight = Color(0xFFEEEEEE)
 val surfaceContainerHighLight = Color(0xFFE8E8E8)
 val surfaceContainerHighestLight = Color(0xFFE2E2E2)
-
 val primaryLightMediumContrast = Color(0xFF004017)
 val onPrimaryLightMediumContrast = Color(0xFFFFFFFF)
 val primaryContainerLightMediumContrast = Color(0xFF007E34)
@@ -72,7 +70,6 @@ val surfaceContainerLowLightMediumContrast = Color(0xFFF3F3F3)
 val surfaceContainerLightMediumContrast = Color(0xFFE8E8E8)
 val surfaceContainerHighLightMediumContrast = Color(0xFFDDDDDD)
 val surfaceContainerHighestLightMediumContrast = Color(0xFFD1D1D1)
-
 val primaryLightHighContrast = Color(0xFF003411)
 val onPrimaryLightHighContrast = Color(0xFFFFFFFF)
 val primaryContainerLightHighContrast = Color(0xFF005521)
@@ -108,7 +105,6 @@ val surfaceContainerLowLightHighContrast = Color(0xFFF1F1F1)
 val surfaceContainerLightHighContrast = Color(0xFFE2E2E2)
 val surfaceContainerHighLightHighContrast = Color(0xFFD4D4D4)
 val surfaceContainerHighestLightHighContrast = Color(0xFFC6C6C6)
-
 val primaryDark = Color(0xFF6DDD81)
 val onPrimaryDark = Color(0xFF003914)
 val primaryContainerDark = Color(0xFF34A853)
@@ -144,7 +140,6 @@ val surfaceContainerLowDark = Color(0xFF1B1B1B)
 val surfaceContainerDark = Color(0xFF1F1F1F)
 val surfaceContainerHighDark = Color(0xFF2A2A2A)
 val surfaceContainerHighestDark = Color(0xFF353535)
-
 val primaryDarkMediumContrast = Color(0xFF83F495)
 val onPrimaryDarkMediumContrast = Color(0xFF002D0E)
 val primaryContainerDarkMediumContrast = Color(0xFF34A853)
@@ -180,7 +175,6 @@ val surfaceContainerLowDarkMediumContrast = Color(0xFF1D1D1D)
 val surfaceContainerDarkMediumContrast = Color(0xFF282828)
 val surfaceContainerHighDarkMediumContrast = Color(0xFF323232)
 val surfaceContainerHighestDarkMediumContrast = Color(0xFF3E3E3E)
-
 val primaryDarkHighContrast = Color(0xFFC2FFC4)
 val onPrimaryDarkHighContrast = Color(0xFF000000)
 val primaryContainerDarkHighContrast = Color(0xFF69D97E)

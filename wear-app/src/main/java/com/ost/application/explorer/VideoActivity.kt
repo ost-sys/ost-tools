@@ -1,5 +1,4 @@
 package com.ost.application.explorer
-
 import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -52,18 +51,14 @@ import androidx.wear.compose.material3.MaterialTheme
 import com.ost.application.R
 import com.ost.application.theme.OSTToolsTheme
 import kotlinx.coroutines.delay
-
 class VideoActivity : ComponentActivity() {
-
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val videoPath = intent.getStringExtra("videoPath") ?: run {
             finish()
             return
         }
-
         setContent {
             OSTToolsTheme {
                 VideoPlayerScreen(videoPath = videoPath)
@@ -71,13 +66,11 @@ class VideoActivity : ComponentActivity() {
         }
     }
 }
-
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(videoPath: String) {
     val context = LocalContext.current
     val videoUri = "file://$videoPath".toUri()
-
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(videoUri))
@@ -85,7 +78,6 @@ fun VideoPlayerScreen(videoPath: String) {
             playWhenReady = true
         }
     }
-
     val playerView = remember {
         PlayerView(context).apply {
             player = exoPlayer
@@ -93,12 +85,10 @@ fun VideoPlayerScreen(videoPath: String) {
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         }
     }
-
     val audioManager = remember {
         context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
     }
     val maxVolume = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
-
     var currentVolume by remember {
         mutableIntStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
     }
@@ -106,7 +96,6 @@ fun VideoPlayerScreen(videoPath: String) {
     var isPlaying by remember { mutableStateOf(true) }
     var controlsVisible by remember { mutableStateOf(true) }
     var isEnded by remember { mutableStateOf(false) }
-
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
@@ -123,14 +112,12 @@ fun VideoPlayerScreen(videoPath: String) {
             exoPlayer.release()
         }
     }
-
     LaunchedEffect(controlsVisible, isPlaying) {
         if (controlsVisible && isPlaying && !isEnded) {
             delay(3000)
             controlsVisible = false
         }
     }
-
     LaunchedEffect(exoPlayer) {
         while (true) {
             delay(500)
@@ -140,13 +127,11 @@ fun VideoPlayerScreen(videoPath: String) {
             }
         }
     }
-
     val controlsAlpha by animateFloatAsState(
         targetValue = if (controlsVisible) 1f else 0f,
         animationSpec = tween(durationMillis = 400),
         label = "controls_alpha"
     )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -162,7 +147,6 @@ fun VideoPlayerScreen(videoPath: String) {
             factory = { playerView },
             modifier = Modifier.fillMaxSize()
         )
-
         CircularProgressIndicator(
             progress = { videoProgress },
             modifier = Modifier.fillMaxSize(),
@@ -172,7 +156,6 @@ fun VideoPlayerScreen(videoPath: String) {
                 trackColor = Color.Transparent
             )
         )
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -199,7 +182,6 @@ fun VideoPlayerScreen(videoPath: String) {
                             controlsVisible = true
                         }
                     )
-
                     IconButton(
                         onClick = {
                             when {
@@ -230,7 +212,6 @@ fun VideoPlayerScreen(videoPath: String) {
                             modifier = Modifier.size(28.dp)
                         )
                     }
-
                     SmallControlButton(
                         iconRes = R.drawable.ic_volume_up_24dp,
                         contentDescription = "Volume up",
@@ -245,7 +226,6 @@ fun VideoPlayerScreen(videoPath: String) {
         }
     }
 }
-
 @Composable
 private fun SmallControlButton(
     iconRes: Int,

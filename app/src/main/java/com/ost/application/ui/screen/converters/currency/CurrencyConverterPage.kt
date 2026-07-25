@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.ost.application.ui.screen.converters.currency
-
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
@@ -96,7 +94,6 @@ import com.ost.application.util.CardPosition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
-
 @OptIn(ExperimentalTextApi::class)
 @Composable
 fun CurrencyConverterPage(
@@ -105,7 +102,6 @@ fun CurrencyConverterPage(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val bottomSpacing = LocalBottomSpacing.current
-
     if (uiState.showBaseCurrencyWarning) {
         AlertDialog(
             onDismissRequest = viewModel::dismissWarning,
@@ -114,7 +110,6 @@ fun CurrencyConverterPage(
             confirmButton = { TextButton(onClick = viewModel::dismissWarning) { Text("OK") } }
         )
     }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -128,7 +123,6 @@ fun CurrencyConverterPage(
             onRefresh = viewModel::refreshData
         )
         Spacer(modifier = Modifier.height(8.dp))
-
         BigInputCard(
             amount = uiState.amountInput,
             onAmountChange = viewModel::setAmount,
@@ -136,15 +130,12 @@ fun CurrencyConverterPage(
             onBaseCurrencyChange = viewModel::setBaseCurrency,
             currencyCodes = uiState.allCurrencyCodes
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
         MorphingConvertButton(
             onClick = viewModel::convertCurrency,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
-
         uiState.targetCurrencies.forEachIndexed { index, item ->
             val cardPosition = when {
                 uiState.targetCurrencies.size == 1 -> CardPosition.SINGLE
@@ -152,9 +143,7 @@ fun CurrencyConverterPage(
                 index == uiState.targetCurrencies.size - 1 -> CardPosition.BOTTOM
                 else -> CardPosition.MIDDLE
             }
-
             val isEditing = uiState.editingCurrencyCode == item.code
-
             AnimatedContent(
                 targetState = isEditing,
                 transitionSpec = {
@@ -188,9 +177,7 @@ fun CurrencyConverterPage(
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
         AnimatedContent(
             targetState = uiState.isAddingCurrency,
             transitionSpec = {
@@ -231,7 +218,6 @@ fun CurrencyConverterPage(
         }
     }
 }
-
 @Composable
 fun BigInputCard(
     amount: String,
@@ -256,7 +242,6 @@ fun BigInputCard(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
-
             BasicTextField(
                 value = amount,
                 onValueChange = onAmountChange,
@@ -273,9 +258,7 @@ fun BigInputCard(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
             CurrencyChipSelector(
                 selectedCurrency = baseCurrency,
                 currencyCodes = currencyCodes,
@@ -284,7 +267,6 @@ fun BigInputCard(
         }
     }
 }
-
 @Composable
 fun CurrencyChipSelector(
     selectedCurrency: String,
@@ -292,7 +274,6 @@ fun CurrencyChipSelector(
     onCurrencySelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-
     Box {
         Surface(
             onClick = { expanded = true },
@@ -316,7 +297,6 @@ fun CurrencyChipSelector(
                 )
             }
         }
-
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
@@ -334,22 +314,18 @@ fun CurrencyChipSelector(
         }
     }
 }
-
 @Composable
 fun StatusHeader(status: NetworkStatus, onRefresh: () -> Unit) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val tooltipState = rememberTooltipState(isPersistent = true)
-
     val rotation = remember { Animatable(0f) }
-
     val (starColor, iconColor, statusText) = when (status) {
         NetworkStatus.LOADING -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, stringResource(R.string.loading))
         NetworkStatus.CONNECTED -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, stringResource(R.string.connected))
         NetworkStatus.OFFLINE -> Triple(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer, stringResource(R.string.offline_data))
         NetworkStatus.ERROR -> Triple(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer, stringResource(R.string.not_connected))
     }
-
     LaunchedEffect(status) {
         when (status) {
             NetworkStatus.LOADING -> {
@@ -383,7 +359,6 @@ fun StatusHeader(status: NetworkStatus, onRefresh: () -> Unit) {
             }
         }
     }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -423,7 +398,6 @@ fun StatusHeader(status: NetworkStatus, onRefresh: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun AddCurrencyCard(
     modifier: Modifier = Modifier,
@@ -432,7 +406,6 @@ fun AddCurrencyCard(
     onCancel: () -> Unit
 ) {
     var selectedCode by remember { mutableStateOf(availableCodes.firstOrNull() ?: "") }
-
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -475,7 +448,6 @@ fun AddCurrencyCard(
         }
     }
 }
-
 @Composable
 fun EditCurrencyCard(
     modifier: Modifier = Modifier,
@@ -487,7 +459,6 @@ fun EditCurrencyCard(
 ) {
     var selectedCode by remember { mutableStateOf(item.code) }
     val shape = RoundedCornerShape(24.dp)
-
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -516,9 +487,7 @@ fun EditCurrencyCard(
                     Icon(Icons.Default.Delete, contentDescription = "Delete")
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CurrencyChipSelector(
                     selectedCurrency = selectedCode,
@@ -527,9 +496,7 @@ fun EditCurrencyCard(
                 )
                 Spacer(Modifier.weight(1f))
             }
-
             Spacer(modifier = Modifier.height(24.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -545,7 +512,6 @@ fun EditCurrencyCard(
         }
     }
 }
-
 @Composable
 fun CustomCardItem(
     modifier: Modifier,
@@ -559,14 +525,12 @@ fun CustomCardItem(
 ) {
     val largeCornerRadius = 24.dp
     val smallCornerRadius = 4.dp
-
     val shape = when (position) {
         CardPosition.TOP -> RoundedCornerShape(topStart = largeCornerRadius, topEnd = largeCornerRadius, bottomStart = smallCornerRadius, bottomEnd = smallCornerRadius)
         CardPosition.MIDDLE -> RoundedCornerShape(smallCornerRadius)
         CardPosition.BOTTOM -> RoundedCornerShape(topStart = smallCornerRadius, topEnd = smallCornerRadius, bottomStart = largeCornerRadius, bottomEnd = largeCornerRadius)
         CardPosition.SINGLE -> RoundedCornerShape(largeCornerRadius)
     }
-
     Card(
         onClick = onClick ?: {},
         modifier = modifier

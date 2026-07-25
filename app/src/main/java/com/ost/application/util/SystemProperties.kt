@@ -1,7 +1,5 @@
 package com.ost.application.util
-
 import android.annotation.SuppressLint
-
 @SuppressLint("PrivateApi")
 fun getSystemProperty(key: String): String? {
     return try {

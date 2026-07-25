@@ -1,5 +1,4 @@
 package com.ost.application.explorer.pdfreader
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -26,10 +25,8 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
-
 private val LargeCorner = 24.dp
 private val SmallCorner = 4.dp
-
 @Composable
 fun PdfOutlineScreen(
     outline: List<OutlineItem>,
@@ -39,7 +36,6 @@ fun PdfOutlineScreen(
     onDismiss: () -> Unit
 ) {
     androidx.activity.compose.BackHandler { onDismiss() }
-
     AppScaffold(
         timeText = { TimeText() }
     ) {
@@ -51,7 +47,6 @@ fun PdfOutlineScreen(
                 (active + 1).coerceAtMost(outline.size)
             }
         )
-
         ScreenScaffold(scrollState = listState) {
             Box(
                 modifier = Modifier
@@ -79,7 +74,6 @@ fun PdfOutlineScreen(
         }
     }
 }
-
 @Composable
 private fun OutlineListScreen(
     outline: List<OutlineItem>,
@@ -88,14 +82,12 @@ private fun OutlineListScreen(
     onItemClick: (OutlineItem) -> Unit
 ) {
     val activeIndex = outline.indexOfLast { it.pageIndex <= currentPage }.coerceAtLeast(0)
-
     ScalingLazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
         anchorType = ScalingLazyListAnchorType.ItemCenter
     ) {
         item { Spacer(Modifier.height(4.dp)) }
-
         itemsIndexed(outline) { index, item ->
             val isActive = index == activeIndex
             val isSubItem = item.depth > 0
@@ -103,20 +95,17 @@ private fun OutlineListScreen(
             val next = outline.getOrNull(index + 1)
             val samePrev = prev?.depth == item.depth
             val sameNext = next?.depth == item.depth
-
             val shape = when {
                 !samePrev && !sameNext -> RoundedCornerShape(LargeCorner)
                 !samePrev             -> RoundedCornerShape(LargeCorner, LargeCorner, SmallCorner, SmallCorner)
                 !sameNext             -> RoundedCornerShape(SmallCorner, SmallCorner, LargeCorner, LargeCorner)
                 else                  -> RoundedCornerShape(SmallCorner)
             }
-
             val textColor = when {
                 isActive  -> MaterialTheme.colorScheme.primary
                 isSubItem -> MaterialTheme.colorScheme.tertiary
                 else      -> MaterialTheme.colorScheme.onSurface
             }
-
             Chip(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onItemClick(item) },
@@ -135,7 +124,7 @@ private fun OutlineListScreen(
                 },
                 secondaryLabel = {
                     Text(
-                        text = "стр. ${item.pageIndex + 1}",
+                        text = "Page ${item.pageIndex + 1}",
                         fontSize = 10.sp,
                         color = textColor.copy(alpha = 0.7f)
                     )
@@ -153,11 +142,9 @@ private fun OutlineListScreen(
                 )
             )
         }
-
         item { Spacer(Modifier.height(4.dp)) }
     }
 }
-
 @Composable
 private fun PageListScreen(
     currentPage: Int,
@@ -171,27 +158,24 @@ private fun PageListScreen(
         anchorType = ScalingLazyListAnchorType.ItemCenter
     ) {
         item { Spacer(Modifier.height(4.dp)) }
-
         items(totalPages) { index ->
             val isActive = index == currentPage
             val posInGroup = index % 5
             val isFirst = posInGroup == 0
             val isLast = posInGroup == 4 || index == totalPages - 1
-
             val shape = when {
                 isFirst && isLast -> RoundedCornerShape(LargeCorner)
                 isFirst           -> RoundedCornerShape(LargeCorner, LargeCorner, SmallCorner, SmallCorner)
                 isLast            -> RoundedCornerShape(SmallCorner, SmallCorner, LargeCorner, LargeCorner)
                 else              -> RoundedCornerShape(SmallCorner)
             }
-
             Chip(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onPageClick(index) },
                 enabled = true,
                 label = {
                     Text(
-                        text = "Страница ${index + 1}",
+                        text = "Page ${index + 1}",
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                         color = if (isActive) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface
@@ -210,7 +194,6 @@ private fun PageListScreen(
                 )
             )
         }
-
         item { Spacer(Modifier.height(4.dp)) }
     }
 }

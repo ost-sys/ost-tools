@@ -1,5 +1,4 @@
 package com.ost.application.minigames.activity.games
-
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,7 +9,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.hypot
 import kotlin.random.Random
-
 data class Cell(
     val x: Int,
     val y: Int,
@@ -21,11 +19,9 @@ data class Cell(
     val adjacentMines: Int = 0,
     val isExploding: Boolean = false
 )
-
 enum class GameStatus {
     IDLE, PLAYING, LOST_ANIMATING, WON, LOST
 }
-
 enum class InteractionMode {
     TOUCH, FLAG, QUESTION
 }
@@ -33,27 +29,19 @@ class MinesweeperViewModel : ViewModel() {
     private val width = 10
     private val height = 10
     private val totalMines = 15
-
     var grid by mutableStateOf<List<List<Cell>>>(emptyList())
         private set
-
     var gameStatus by mutableStateOf(GameStatus.IDLE)
         private set
-
     var minesLeft by mutableStateOf(totalMines)
         private set
-
     var timeElapsed by mutableStateOf(0)
         private set
-
     var interactionMode by mutableStateOf(InteractionMode.TOUCH)
-
     private var timerJob: Job? = null
-
     init {
         resetGame()
     }
-
     fun resetGame() {
         stopTimer()
         gameStatus = GameStatus.IDLE
@@ -62,7 +50,6 @@ class MinesweeperViewModel : ViewModel() {
         interactionMode = InteractionMode.TOUCH
         grid = List(height) { y -> List(width) { x -> Cell(x, y) } }
     }
-
     private fun startTimer() {
         if (timerJob?.isActive == true) return
         timerJob = viewModelScope.launch {
@@ -72,15 +59,12 @@ class MinesweeperViewModel : ViewModel() {
             }
         }
     }
-
     private fun stopTimer() {
         timerJob?.cancel()
     }
-
     private fun generateGrid(firstClickX: Int, firstClickY: Int) {
         var newGrid = grid.map { row -> row.toList() }.toMutableList()
         var minesPlaced = 0
-
         while (minesPlaced < totalMines) {
             val rx = Random.nextInt(width)
             val ry = Random.nextInt(height)
@@ -91,28 +75,22 @@ class MinesweeperViewModel : ViewModel() {
                 minesPlaced++
             }
         }
-
         newGrid = newGrid.mapIndexed { y, row ->
             row.mapIndexed { x, cell ->
                 if (cell.isMine) cell else cell.copy(adjacentMines = countAdjacentMines(newGrid, x, y))
             }.toMutableList()
         }.toMutableList()
-
         grid = newGrid
     }
-
     fun onCellClicked(x: Int, y: Int) {
         if (gameStatus == GameStatus.WON || gameStatus == GameStatus.LOST || gameStatus == GameStatus.LOST_ANIMATING) return
-
         if (gameStatus == GameStatus.IDLE) {
             gameStatus = GameStatus.PLAYING
             generateGrid(firstClickX = x, firstClickY = y)
             startTimer()
         }
-
         val cell = grid[y][x]
         if (cell.isRevealed) return
-
         when (interactionMode) {
             InteractionMode.TOUCH -> {
                 if (cell.isFlagged || cell.hasQuestion) return
@@ -135,20 +113,16 @@ class MinesweeperViewModel : ViewModel() {
             }
         }
     }
-
     private fun triggerExplosionWave(startX: Int, startY: Int) {
         viewModelScope.launch {
             stopTimer()
             gameStatus = GameStatus.LOST_ANIMATING
-
             grid = updateCell(grid, startX, startY) { it.copy(isRevealed = true, isExploding = true) }
             delay(400)
-
             val otherMines = grid.flatten().filter { it.isMine && !it.isRevealed }
             val groupedByDistance = otherMines.groupBy { mine ->
                 hypot((mine.x - startX).toDouble(), (mine.y - startY).toDouble()).toInt()
             }.toSortedMap()
-
             for ((_, minesInWave) in groupedByDistance) {
                 var currentGrid = grid
                 for (mine in minesInWave) {
@@ -159,31 +133,24 @@ class MinesweeperViewModel : ViewModel() {
                 grid = currentGrid
                 delay(120)
             }
-
             delay(600)
             gameStatus = GameStatus.LOST
         }
     }
-
     private fun startFloodFillWave(startX: Int, startY: Int) {
         viewModelScope.launch {
             val visited = mutableSetOf<Pair<Int, Int>>()
             var currentLevel = listOf(Pair(startX, startY))
-
             while (currentLevel.isNotEmpty()) {
                 var currentGrid = grid
                 val nextLevel = mutableSetOf<Pair<Int, Int>>()
                 var hasUpdates = false
-
                 for ((x, y) in currentLevel) {
                     if (!visited.add(Pair(x, y))) continue
-
                     val cell = currentGrid[y][x]
                     if (cell.isRevealed || cell.isFlagged || cell.hasQuestion) continue
-
                     currentGrid = updateCell(currentGrid, x, y) { it.copy(isRevealed = true) }
                     hasUpdates = true
-
                     if (cell.adjacentMines == 0 && !cell.isMine) {
                         for (dx in -1..1) {
                             for (dy in -1..1) {
@@ -199,7 +166,6 @@ class MinesweeperViewModel : ViewModel() {
                         }
                     }
                 }
-
                 if (hasUpdates) {
                     grid = currentGrid
                     delay(40)
@@ -209,7 +175,6 @@ class MinesweeperViewModel : ViewModel() {
             checkWinCondition()
         }
     }
-
     private fun checkWinCondition() {
         val won = grid.flatten().all { it.isRevealed || it.isMine }
         if (won) {
@@ -217,7 +182,6 @@ class MinesweeperViewModel : ViewModel() {
             gameStatus = GameStatus.WON
         }
     }
-
     private fun countAdjacentMines(grid: List<List<Cell>>, x: Int, y: Int): Int {
         var count = 0
         for (dx in -1..1) {
@@ -231,7 +195,6 @@ class MinesweeperViewModel : ViewModel() {
         }
         return count
     }
-
     private fun updateCell(currentGrid: List<List<Cell>>, x: Int, y: Int, update: (Cell) -> Cell): List<List<Cell>> {
         val newGrid = currentGrid.toMutableList()
         val newRow = newGrid[y].toMutableList()

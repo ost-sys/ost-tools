@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.applist
-
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -8,14 +7,10 @@ import java.io.DataOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-
 object RootUtils {
-
     private const val SU_CHECK_TIMEOUT_MS = 2000L
     private const val UNINSTALL_TIMEOUT_MS = 15000L
-
     val isRootAvailable: Boolean by lazy { checkRootAccess() }
-
     private fun checkRootAccess(): Boolean {
         val paths = arrayOf(
             "/sbin/", "/system/bin/", "/system/xbin/",
@@ -31,7 +26,6 @@ object RootUtils {
         Log.w("RootUtils", "su binary not found in standard paths.")
         return false
     }
-
     private fun canExecuteRootCommand(): Boolean {
         var process: Process? = null
         return try {
@@ -44,7 +38,6 @@ object RootUtils {
                 Log.w("RootUtils", "Root check interrupted.", e)
                 null
             }
-
             Log.i("RootUtils", "su -c id exit value: $exitValue (null means timeout or interrupt)")
             exitValue == 0
         } catch (e: IOException) {
@@ -60,36 +53,29 @@ object RootUtils {
             process?.destroy()
         }
     }
-
     suspend fun uninstallAppRoot(packageName: String): Boolean = withContext(Dispatchers.IO) {
         if (!isRootAvailable) {
             Log.e("RootUtils", "Root not available, cannot uninstall $packageName")
             return@withContext false
         }
-
         Log.d("RootUtils", "Attempting to uninstall $packageName with root")
         var process: Process? = null
         var os: DataOutputStream? = null
         var success = false
-
         val result = withTimeoutOrNull(UNINSTALL_TIMEOUT_MS) {
             try {
                 process = Runtime.getRuntime().exec("su")
                 os = DataOutputStream(process.outputStream)
-
                 val command = "pm uninstall $packageName\n"
                 os.writeBytes(command)
                 os.flush()
                 Log.d("RootUtils", "Executed command: $command")
-
                 os.writeBytes("exit\n")
                 os.flush()
                 Log.d("RootUtils", "Executed command: exit")
-
                 val exitValue = process.waitFor()
                 success = exitValue == 0
                 Log.i("RootUtils", "Uninstall process for $packageName exited with value: $exitValue. Success: $success")
-
                 if (!success) {
                     logStreamOutput(process)
                 }
@@ -114,16 +100,13 @@ object RootUtils {
                 Log.d("RootUtils", "Uninstall attempt for $packageName finished in finally block.")
             }
         }
-
         if (result == null) {
             Log.e("RootUtils", "Uninstall operation for $packageName timed out after ${UNINSTALL_TIMEOUT_MS}ms.")
             process?.destroyForcibly()
             return@withContext false
         }
-
         return@withContext result
     }
-
     private fun logStreamOutput(process: Process?) {
         if (process == null) return
         try {

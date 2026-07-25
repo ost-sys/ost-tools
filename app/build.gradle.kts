@@ -3,9 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-parcelize")
-    id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.kapt")
-    kotlin("plugin.serialization") version "2.1.21"
 }
 
 android {
@@ -16,10 +13,10 @@ android {
 
     defaultConfig {
         applicationId = "com.ost.application"
-        minSdk = 28
+        minSdk = 26
         targetSdk = 37
         versionCode = 400
-        versionName = "4.0.0-beta3"
+        versionName = "4.0.0-beta4"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         }
@@ -71,50 +68,25 @@ android {
 }
 
 dependencies {
-    implementation("dev.chrisbanes.haze:haze:1.7.2")
-    implementation("dev.chrisbanes.haze:haze-materials:1.7.2")
+    val markdownRendererVersion = "0.43.0"
+
+    implementation("com.mikepenz:multiplatform-markdown-renderer:$markdownRendererVersion")
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:$markdownRendererVersion")
     implementation(libs.androidx.graphics.shapes)
-
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.accompanist.permissions)
-
     implementation(libs.accompanist.systemuicontroller)
-    implementation(libs.zoomable.image.coil)
-
-    implementation(libs.androidx.palette.ktx)
-
-    implementation(libs.kotlinx.collections.immutable)
-
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.constraintlayout.compose)
-    implementation(libs.android.device.names)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.core)
     implementation(libs.service)
     implementation(libs.nio)
-    implementation(libs.gson)
     implementation(libs.coil.compose)
     implementation(libs.coil.video)
     implementation(libs.coil.network.okhttp)
-    implementation(libs.lottie.compose)
     implementation(libs.volley)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation(libs.okhttp)
-    implementation("com.github.oshi:oshi-core:6.6.5") {
-        exclude("net.java.dev.jna", "jna")
-    }
-    implementation(libs.jna)
-    implementation(libs.moshi)
-    implementation(libs.moshi.kotlin)
     implementation(libs.gson)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.compose.animation.core)
-    ksp(libs.androidx.room.compiler)
-    implementation(libs.glide)
-    implementation(libs.composed.barcodes)
-    implementation(libs.capturable)
     implementation(libs.zxing.core)
 
     implementation(libs.androidx.animation)
@@ -122,14 +94,8 @@ dependencies {
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.foundation.android)
-    implementation(libs.androidx.media3.session)
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.exoplayer.dash)
-    implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.navigation.fragment)
-    implementation(libs.androidx.navigation.ui)
     implementation(libs.androidx.navigation.dynamic.features.fragment)
     implementation(libs.androidx.material3.window.size.class1)
     implementation(libs.androidx.material3.adaptive.navigation.suite)
@@ -144,6 +110,7 @@ dependencies {
     implementation(libs.biometric)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.activity.compose)
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.ui)
@@ -153,16 +120,12 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.core.splashscreen)
+    implementation(project(":core"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.navigation.testing)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    ksp(libs.compiler)
-}
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
 }

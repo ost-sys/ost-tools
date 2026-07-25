@@ -1,5 +1,4 @@
 package com.ost.application.ui.activity.animation
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,7 +25,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.ost.application.R
 import com.ost.application.ui.theme.OSTToolsTheme
-
 @ExperimentalMaterial3ExpressiveApi
 class AnimationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,20 +36,16 @@ class AnimationActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun AnimatedBackgroundScreen() {
     val primaryGradientColor = MaterialTheme.colorScheme.primary
     val secondaryGradientColor = MaterialTheme.colorScheme.secondary
     val tertiaryGradientColor = MaterialTheme.colorScheme.tertiary
-
     val systemUiController = rememberSystemUiController()
-
     LaunchedEffect(systemUiController) {
         systemUiController.isStatusBarVisible = false
         systemUiController.isNavigationBarVisible = false
     }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -69,7 +63,6 @@ fun AnimatedBackgroundScreen() {
         )
     }
 }
-
 @Composable
 fun RadialGradientBackground(
     modifier: Modifier = Modifier,
@@ -83,9 +76,7 @@ fun RadialGradientBackground(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
     val radialGradientView = remember { RadialGradientView(context) }
-
     DisposableEffect(radialGradientView, lifecycleOwner, primaryColor, secondaryColor, tertiaryColor, alignType, showArc, startAnimation, gradientPatternResId) {
         radialGradientView.init(alignType, gradientPatternResId)
         radialGradientView.setColors(
@@ -94,11 +85,9 @@ fun RadialGradientBackground(
             tertiaryColor.toArgb()
         )
         radialGradientView.setArcShow(showArc)
-
         if (startAnimation) {
             radialGradientView.startAnimation()
         }
-
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
                 radialGradientView.stopAnimation()
@@ -109,20 +98,17 @@ fun RadialGradientBackground(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             radialGradientView.releaseResources()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { radialGradientView },
         update = { view ->
             view.setColors(primaryColor.toArgb(), secondaryColor.toArgb(), tertiaryColor.toArgb())
             view.setArcShow(showArc)
-
             if (startAnimation) {
                 view.startAnimation()
             } else {
@@ -131,7 +117,6 @@ fun RadialGradientBackground(
         }
     )
 }
-
 @Preview(
     showBackground = true, device = "spec:width=1920dp,height=1080dp,dpi=160",
     wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE, showSystemUi = true

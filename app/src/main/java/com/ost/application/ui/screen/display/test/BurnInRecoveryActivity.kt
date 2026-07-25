@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.display.test
-
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -19,7 +18,6 @@ import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
 import android.util.Log
 import android.view.View
-import android.view.View.OnLongClickListener
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -30,29 +28,23 @@ import androidx.core.net.toUri
 import com.ost.application.MainActivity
 import com.ost.application.R
 import java.util.Random
-
+import androidx.core.graphics.createBitmap
 class BurnInRecoveryActivity : ComponentActivity() {
-    private val random = Random()
     private var isRunning = true
     private var handler: Handler? = null
     private var noiseView: NoiseView? = null
-
     private var currentMode = 0
     private var originalBrightness = -1
     private var originalBrightnessMode = -1
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         this.enableEdgeToEdge()
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
         noiseView = NoiseView(this)
         setContentView(noiseView)
-
         if (!Settings.System.canWrite(this)) {
             Toast.makeText(this, getString(R.string.brightness_permission_m), Toast.LENGTH_LONG)
                 .show()
@@ -67,7 +59,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
             saveCurrentBrightnessSettings()
             setMaxBrightness()
         }
-
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         if (sharedPreferences == null) {
             Log.e("BurnInRecovery", "SharedPreferences is null")
@@ -77,7 +68,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
             val horizontalLinesDuration = sharedPreferences.getInt("horizontal_lines_duration", 1)
             val verticalLinesDuration = sharedPreferences.getInt("vertical_lines_duration", 1)
             val blackWhiteNoiseDuration = sharedPreferences.getInt("black_white_noise_duration", 1)
-
             handler = Handler(Looper.getMainLooper())
             startModeCycle(
                 totalDuration,
@@ -87,23 +77,20 @@ class BurnInRecoveryActivity : ComponentActivity() {
                 blackWhiteNoiseDuration
             )
         }
-
-        noiseView!!.setOnLongClickListener(OnLongClickListener { v: View? ->
+        noiseView!!.setOnLongClickListener { _: View? ->
             isRunning = false
             Toast.makeText(this, getString(R.string.exiting), Toast.LENGTH_SHORT).show()
             finish()
             true
-        })
-
-        noiseView!!.setOnClickListener(View.OnClickListener { v: View? ->
+        }
+        noiseView!!.setOnClickListener { _: View? ->
             Toast.makeText(
                 this,
                 R.string.hold_to_exit,
                 Toast.LENGTH_SHORT
             ).show()
-        })
+        }
     }
-
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
@@ -112,12 +99,10 @@ class BurnInRecoveryActivity : ComponentActivity() {
         }
         restoreOriginalBrightnessSettings()
     }
-
     override fun onStop() {
         super.onStop()
         restoreOriginalBrightnessSettings()
     }
-
     private fun saveCurrentBrightnessSettings() {
         try {
             originalBrightness = Settings.System.getInt(
@@ -132,7 +117,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
             e.printStackTrace()
         }
     }
-
     private fun setMaxBrightness() {
         try {
             Settings.System.putInt(
@@ -149,7 +133,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
             Toast.makeText(this, getString(R.string.brightness_fail), Toast.LENGTH_SHORT).show()
         }
     }
-
     private fun restoreOriginalBrightnessSettings() {
         try {
             if (originalBrightness != -1) {
@@ -159,7 +142,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
                     originalBrightness
                 )
             }
-
             if (originalBrightnessMode != -1) {
                 Settings.System.putInt(
                     contentResolver,
@@ -171,7 +153,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
             e.printStackTrace()
         }
     }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_WRITE_SETTINGS) {
@@ -184,7 +165,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
             }
         }
     }
-
     private fun startModeCycle(
         totalDuration: Int,
         noiseDuration: Int,
@@ -198,14 +178,11 @@ class BurnInRecoveryActivity : ComponentActivity() {
             verticalLinesDuration * 60 * 1000,
             blackWhiteNoiseDuration * 60 * 1000
         )
-
         val modeSwitcher: Runnable = object : Runnable {
             var startTime: Long = System.currentTimeMillis()
             var modeIndex: Int = 0
-
             override fun run() {
                 if (!isRunning) return
-
                 val elapsedTime = System.currentTimeMillis() - startTime
                 if (elapsedTime >= totalDuration * 60 * 1000) {
                     isRunning = false
@@ -218,48 +195,35 @@ class BurnInRecoveryActivity : ComponentActivity() {
                     finish()
                     return
                 }
-
                 currentMode = modeIndex
                 noiseView!!.setMode(currentMode)
-
                 modeIndex = (modeIndex + 1) % modeDurations.size
-
                 Log.d(
                     "BurnInRecovery",
                     "Switching to mode " + modeIndex + ", Duration: " + modeDurations[modeIndex]
                 )
-
                 handler!!.postDelayed(this, modeDurations[modeIndex].toLong())
             }
         }
-
         handler!!.post(modeSwitcher)
     }
-
     private class NoiseView(context: Context?) : View(context) {
         private val paint = Paint()
         private val random = Random()
         private var bitmap: Bitmap? = null
-
         private var mode: Int = MODE_NOISE
-
         fun setMode(mode: Int) {
             this.mode = mode
             invalidate()
         }
-
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-
             val width = getWidth()
             val height = getHeight()
-
             if (bitmap == null || bitmap!!.width != width || bitmap!!.height != height) {
-                bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+                bitmap = createBitmap(width, height, Bitmap.Config.RGB_565)
             }
-
             @SuppressLint("DrawAllocation") val pixels = IntArray(width * height)
-
             when (mode) {
                 MODE_NOISE -> {
                     var i = 0
@@ -269,7 +233,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
                         i++
                     }
                 }
-
                 MODE_HORIZONTAL_LINES -> {
                     var y = 0
                     while (y < height) {
@@ -283,7 +246,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
                         y++
                     }
                 }
-
                 MODE_VERTICAL_LINES -> {
                     var x = 0
                     while (x < width) {
@@ -297,7 +259,6 @@ class BurnInRecoveryActivity : ComponentActivity() {
                         x++
                     }
                 }
-
                 MODE_BLACK_WHITE_NOISE -> {
                     var i = 0
                     while (i < pixels.size) {
@@ -307,14 +268,11 @@ class BurnInRecoveryActivity : ComponentActivity() {
                     }
                 }
             }
-
             bitmap!!.setPixels(pixels, 0, width, 0, 0, width, height)
             canvas.drawBitmap(bitmap!!, 0f, 0f, paint)
-
             invalidate()
         }
     }
-
     private fun showCompletionNotification() {
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -326,15 +284,12 @@ class BurnInRecoveryActivity : ComponentActivity() {
         if (manager != null) {
             manager.createNotificationChannel(channel)
         }
-
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val builder: NotificationCompat.Builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_check_circle_24dp)
             .setContentTitle(getString(R.string.app_name))
@@ -343,22 +298,18 @@ class BurnInRecoveryActivity : ComponentActivity() {
             .setSound(soundUri)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-
         val notificationManager = NotificationManagerCompat.from(this)
         if (notificationManager.areNotificationsEnabled()) {
             notificationManager.notify(NOTIFICATION_ID, builder.build())
         }
     }
-
     companion object {
         private const val CHANNEL_ID = "burn_in_recovery_channel"
         private const val NOTIFICATION_ID = 1
         private const val REQUEST_WRITE_SETTINGS = 100
-
         private const val MODE_NOISE = 0
         private const val MODE_HORIZONTAL_LINES = 1
         private const val MODE_VERTICAL_LINES = 2
         private const val MODE_BLACK_WHITE_NOISE = 3
     }
 }
-

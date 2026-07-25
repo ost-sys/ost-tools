@@ -1,5 +1,4 @@
 package com.ost.application.appmanager
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,12 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material3.MaterialTheme
-
 sealed class AppManagerDestination {
     object List : AppManagerDestination()
     data class Detail(val packageName: String) : AppManagerDestination()
 }
-
 class AppManagerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,17 +30,13 @@ class AppManagerActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun AppManagerNavHost() {
     var destination: AppManagerDestination by remember {
         mutableStateOf(AppManagerDestination.List)
     }
-
     val isDetail = destination is AppManagerDestination.Detail
-
     val swipeState = rememberSwipeToDismissBoxState()
-
     SwipeToDismissBox(
         state = swipeState,
         onDismissed = {

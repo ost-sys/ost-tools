@@ -1,274 +1,449 @@
 package com.ost.application.ui.screen.converters.timecalc
-
-import android.icu.util.Calendar
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupScope
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ost.application.LocalBottomSpacing
-import com.ost.application.R
-import com.ost.application.ui.components.ExpressiveShapeBackground
-import com.ost.application.ui.components.ExpressiveShapeType
-import com.ost.application.ui.components.SectionTitle
-import com.ost.application.ui.components.TimePickerDialog
-import com.ost.application.util.CardPosition
-import com.ost.application.util.CustomCardItem
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TimeCalculatorPage(
-    modifier: Modifier = Modifier,
-    viewModel: TimeCalculatorViewModel = viewModel()
+    viewModel: TimeCalculatorViewModel = viewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val bottomSpacing = LocalBottomSpacing.current
-    val haptic = LocalHapticFeedback.current
-
-    var showDatePicker1 by remember { mutableStateOf(false) }
-    var showTimePicker1 by remember { mutableStateOf(false) }
-    var showDatePicker2 by remember { mutableStateOf(false) }
-    var showTimePicker2 by remember { mutableStateOf(false) }
-
-    val datePickerState1 = rememberDatePickerState(
-        initialSelectedDateMillis = uiState.firstDateTimeMillis,
-        yearRange = 1900..Calendar.getInstance().get(Calendar.YEAR) + 100
-    )
-    val datePickerState2 = rememberDatePickerState(
-        initialSelectedDateMillis = uiState.secondDateTimeMillis,
-        yearRange = 1900..Calendar.getInstance().get(Calendar.YEAR) + 100
-    )
-
-    val calendar1 =
-        remember { Calendar.getInstance() }.apply { timeInMillis = uiState.firstDateTimeMillis }
-    val calendar2 =
-        remember { Calendar.getInstance() }.apply { timeInMillis = uiState.secondDateTimeMillis }
-
-    val timePickerState1 = rememberTimePickerState(
-        initialHour = calendar1.get(Calendar.HOUR_OF_DAY),
-        initialMinute = calendar1.get(Calendar.MINUTE),
-        is24Hour = true
-    )
-    val timePickerState2 = rememberTimePickerState(
-        initialHour = calendar2.get(Calendar.HOUR_OF_DAY),
-        initialMinute = calendar2.get(Calendar.MINUTE),
-        is24Hour = true
-    )
-
-    val dateFormatter = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
-    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, bottom = bottomSpacing + 88.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+    ) {
+        HistoryAndActiveTerm(
+            history = state.history,
+            current = state.current,
+            focusedUnit = state.focusedUnit,
+            errorMessage = state.errorMessage,
+            onUnitTap = viewModel::onUnitFocused,
+            modifier = Modifier.weight(1f),
+        )
+        HorizontalDivider()
+        Keypad(
+            onDigit = viewModel::onDigit,
+            onOperator = viewModel::onOperator,
+            onEquals = viewModel::onEquals,
+            onBackspace = viewModel::onBackspace,
+            onAllClear = viewModel::onAllClear,
+        )
+    }
+}
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HistoryAndActiveTerm(
+    history: List<ChainTerm>,
+    current: TimeDuration,
+    focusedUnit: DurationUnit,
+    errorMessage: String?,
+    onUnitTap: (DurationUnit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    val isScrolledAway = listState.firstVisibleItemIndex > 0 ||
+            listState.firstVisibleItemScrollOffset > with(density) { 8.dp.toPx() }
+    val collapseFraction by animateFloatAsState(targetValue = if (isScrolledAway) 1f else 0f, label = "activeTermCollapse")
+    val activeScale = 1f - 0.22f * collapseFraction
+    Box(modifier = modifier.fillMaxWidth()) {
+        LazyColumn(
+            state = listState,
+            reverseLayout = true,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 8.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(vertical = 5.dp)
-                ) {
-                    ExpressiveShapeBackground(
-                        iconSize = 120.dp,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        forcedShape = ExpressiveShapeType.ARCH,
-                        onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
-                    )
-
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_schedule_24dp),
-                        contentDescription = null,
-                        modifier = Modifier.size(60.dp),
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Card(shape = RoundedCornerShape(8.dp)) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        text = uiState.resultText ?: stringResource(R.string.result),
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.primary,
-                        minLines = 1
-                    )
+            stickyHeader(key = "active") {
+                ActiveTermRow(
+                    duration = current,
+                    focusedUnit = focusedUnit,
+                    onUnitTap = onUnitTap,
+                    scale = activeScale,
+                )
+            }
+            items(history.reversed(), key = { it.id }) { term ->
+                Column {
+                    term.trailingOperator?.let { op -> WavyOperatorDivider(operator = op) }
+                    HistoryTermRow(duration = term.duration)
                 }
             }
-
-            SectionTitle(stringResource(R.string.minuend))
-
-            CustomCardItem(
-                title = stringResource(R.string.date),
-                summary = dateFormatter.format(Date(uiState.firstDateTimeMillis)),
-                icon = R.drawable.ic_calendar_today_24dp,
-                position = CardPosition.TOP,
-                onClick = { showDatePicker1 = true }
-            )
-
-            CustomCardItem(
-                title = stringResource(R.string.time),
-                summary = timeFormatter.format(Date(uiState.firstDateTimeMillis)),
-                icon = R.drawable.ic_schedule_24dp,
-                position = CardPosition.BOTTOM,
-                onClick = { showTimePicker1 = true }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SectionTitle(stringResource(R.string.subtrahend))
-
-            CustomCardItem(
-                title = stringResource(R.string.date),
-                summary = dateFormatter.format(Date(uiState.secondDateTimeMillis)),
-                icon = R.drawable.ic_calendar_today_24dp,
-                position = CardPosition.TOP,
-                onClick = { showDatePicker2 = true }
-            )
-
-            CustomCardItem(
-                title = stringResource(R.string.time),
-                summary = timeFormatter.format(Date(uiState.secondDateTimeMillis)),
-                icon = R.drawable.ic_schedule_24dp,
-                position = CardPosition.BOTTOM,
-                onClick = { showTimePicker2 = true }
+        }
+        errorMessage?.let { message ->
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+    }
+}
+@Composable
+private fun ActiveTermRow(
+    duration: TimeDuration,
+    focusedUnit: DurationUnit,
+    onUnitTap: (DurationUnit) -> Unit,
+    scale: Float,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Box(modifier = Modifier.scale(scale)) {
+            DurationFieldsRow(
+                duration = duration,
+                focusedUnit = focusedUnit,
+                onUnitTap = onUnitTap,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             )
         }
     }
-
-    if (showDatePicker1) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker1 = false },
-            confirmButton = {
-                Button(onClick = {
-                    datePickerState1.selectedDateMillis?.let { millis ->
-                        val cal = Calendar.getInstance().apply { timeInMillis = millis }
-                        viewModel.updateFirstDate(
-                            cal.get(Calendar.YEAR),
-                            cal.get(Calendar.MONTH),
-                            cal.get(Calendar.DAY_OF_MONTH)
-                        )
-                    }
-                    showDatePicker1 = false
-                }) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker1 = false }) {
-                    Text(
-                        stringResource(android.R.string.cancel)
-                    )
-                }
-            }
-        ) { DatePicker(state = datePickerState1) }
+}
+@Composable
+private fun HistoryTermRow(duration: TimeDuration) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        DurationFieldsRow(
+            duration = duration,
+            focusedUnit = null,
+            onUnitTap = null,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        )
     }
-
-    if (showTimePicker1) {
-        TimePickerDialog(
-            onDismissRequest = { showTimePicker1 = false },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.updateFirstTime(timePickerState1.hour, timePickerState1.minute)
-                    showTimePicker1 = false
-                }) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker1 = false }) {
-                    Text(
-                        stringResource(android.R.string.cancel)
-                    )
-                }
+}
+@Composable
+private fun DurationFieldsRow(
+    duration: TimeDuration,
+    focusedUnit: DurationUnit?,
+    onUnitTap: ((DurationUnit) -> Unit)?,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        for (unit in DurationUnit.ORDERED) {
+            val isFocused = unit == focusedUnit
+            Column(
+                modifier = Modifier
+                    .let { base -> if (onUnitTap != null) base.clickable { onUnitTap(unit) } else base },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = duration.get(unit)?.toString() ?: "\u2013",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+                    color = contentColor,
+                )
+                Text(
+                    text = unit.shortLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor.copy(alpha = 0.7f),
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .height(2.dp)
+                        .width(if (isFocused) 20.dp else 0.dp)
+                        .background(contentColor, RoundedCornerShape(1.dp)),
+                )
             }
-        ) { TimePicker(state = timePickerState1, modifier = Modifier.padding(16.dp)) }
+        }
     }
-
-    if (showDatePicker2) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker2 = false },
-            confirmButton = {
-                Button(onClick = {
-                    datePickerState2.selectedDateMillis?.let { millis ->
-                        val cal = Calendar.getInstance().apply { timeInMillis = millis }
-                        viewModel.updateSecondDate(
-                            cal.get(Calendar.YEAR),
-                            cal.get(Calendar.MONTH),
-                            cal.get(Calendar.DAY_OF_MONTH)
-                        )
-                    }
-                    showDatePicker2 = false
-                }) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker2 = false }) {
-                    Text(
-                        stringResource(android.R.string.cancel)
-                    )
-                }
+}
+@Composable
+private fun WavyOperatorDivider(operator: Operator, modifier: Modifier = Modifier) {
+    val lineColor = MaterialTheme.colorScheme.outlineVariant
+    val badgeContainer = MaterialTheme.colorScheme.tertiaryContainer
+    val badgeContent = MaterialTheme.colorScheme.onTertiaryContainer
+    val rotation = OperatorBadgeShapes.rotationDegreesFor(operator)
+    val bgShape = OperatorBadgeShapes.shapeFor(operator)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val badgeGap = 40.dp.toPx()
+            val amplitude = 3.5.dp.toPx()
+            val wavelength = 22.dp.toPx()
+            val midY = size.height / 2f
+            val leftEnd = size.width / 2f - badgeGap / 2f
+            val rightStart = size.width / 2f + badgeGap / 2f
+            drawWavySegment(0f, leftEnd, midY, amplitude, wavelength, lineColor)
+            drawWavySegment(rightStart, size.width, midY, amplitude, wavelength, lineColor)
+        }
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .rotate(rotation)
+                .background(badgeContainer, bgShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = operator.symbol,
+                color = badgeContent,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.rotate(-rotation),
+            )
+        }
+    }
+}
+private fun DrawScope.drawWavySegment(
+    startX: Float,
+    endX: Float,
+    midY: Float,
+    amplitude: Float,
+    wavelength: Float,
+    color: Color,
+) {
+    if (endX <= startX) return
+    val path = Path().apply {
+        moveTo(startX, midY)
+        var x = startX
+        var up = true
+        while (x < endX) {
+            val nextX = (x + wavelength / 2f).coerceAtMost(endX)
+            val controlX = (x + nextX) / 2f
+            val controlY = midY + if (up) -amplitude else amplitude
+            quadraticBezierTo(controlX, controlY, nextX, midY)
+            x = nextX
+            up = !up
+        }
+    }
+    drawPath(path = path, color = color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+}
+private object KeypadRadii {
+    val resting = RoundedCornerShape(20.dp)
+    val pressed = RoundedCornerShape(12.dp)
+    val opResting = RoundedCornerShape(20.dp)
+    val opPressed = RoundedCornerShape(28.dp)
+}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun Keypad(
+    onDigit: (Int) -> Unit,
+    onOperator: (Operator) -> Unit,
+    onEquals: () -> Unit,
+    onBackspace: () -> Unit,
+    onAllClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ButtonGroup(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), overflowIndicator = { _ -> }) {
+            DigitButton(7, onDigit)
+            DigitButton(8, onDigit)
+            DigitButton(9, onDigit)
+            OperatorKey(Operator.DIVIDE, onOperator)
+        }
+        ButtonGroup(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), overflowIndicator = { _ -> }) {
+            DigitButton(4, onDigit)
+            DigitButton(5, onDigit)
+            DigitButton(6, onDigit)
+            OperatorKey(Operator.MULTIPLY, onOperator)
+        }
+        ButtonGroup(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), overflowIndicator = { _ -> }) {
+            DigitButton(1, onDigit)
+            DigitButton(2, onDigit)
+            DigitButton(3, onDigit)
+            OperatorKey(Operator.SUBTRACT, onOperator)
+        }
+        ButtonGroup(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), overflowIndicator = { _ -> }) {
+            ClearKey(onAllClear)
+            DigitButton(0, onDigit)
+            BackspaceKey(onBackspace)
+            OperatorKey(Operator.ADD, onOperator)
+        }
+        val eqShape = ButtonDefaults.shapes(shape = KeypadRadii.opResting, pressedShape = KeypadRadii.pressed)
+        val eqColors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        )
+        Button(
+            onClick = onEquals,
+            shapes = eqShape,
+            colors = eqColors,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+        ) {
+            Text("=", style = MaterialTheme.typography.headlineSmall)
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun ButtonGroupScope.DigitButton(digit: Int, onDigit: (Int) -> Unit) {
+    customItem(
+        buttonGroupContent = {
+            val interactionSource = remember { MutableInteractionSource() }
+            Button(
+                onClick = { onDigit(digit) },
+                shapes = ButtonDefaults.shapes(shape = KeypadRadii.resting, pressedShape = KeypadRadii.pressed),
+                interactionSource = interactionSource,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .animateWidth(interactionSource)
+                    .height(56.dp),
+            ) {
+                Text(digit.toString(), style = MaterialTheme.typography.headlineSmall)
             }
-        ) { DatePicker(state = datePickerState2) }
-    }
-
-    if (showTimePicker2) {
-        TimePickerDialog(
-            onDismissRequest = { showTimePicker2 = false },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.updateSecondTime(timePickerState2.hour, timePickerState2.minute)
-                    showTimePicker2 = false
-                }) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker2 = false }) {
-                    Text(
-                        stringResource(android.R.string.cancel)
-                    )
-                }
+        },
+        menuContent = { _ -> }
+    )
+}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun ButtonGroupScope.OperatorKey(operator: Operator, onOperator: (Operator) -> Unit) {
+    customItem(
+        buttonGroupContent = {
+            val interactionSource = remember { MutableInteractionSource() }
+            Button(
+                onClick = { onOperator(operator) },
+                shapes = ButtonDefaults.shapes(shape = KeypadRadii.opResting, pressedShape = KeypadRadii.opPressed),
+                interactionSource = interactionSource,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .animateWidth(interactionSource)
+                    .height(56.dp),
+            ) {
+                Text(operator.symbol, style = MaterialTheme.typography.headlineSmall)
             }
-        ) { TimePicker(state = timePickerState2, modifier = Modifier.padding(16.dp)) }
-    }
+        },
+        menuContent = { _ -> }
+    )
+}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun ButtonGroupScope.BackspaceKey(onBackspace: () -> Unit) {
+    customItem(
+        buttonGroupContent = {
+            val interactionSource = remember { MutableInteractionSource() }
+            Button(
+                onClick = onBackspace,
+                shapes = ButtonDefaults.shapes(shape = KeypadRadii.resting, pressedShape = KeypadRadii.pressed),
+                interactionSource = interactionSource,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .animateWidth(interactionSource)
+                    .height(56.dp),
+            ) {
+                Icon(Icons.Filled.Backspace, contentDescription = "Backspace")
+            }
+        },
+        menuContent = { _ -> }
+    )
+}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun ButtonGroupScope.ClearKey(onAllClear: () -> Unit) {
+    customItem(
+        buttonGroupContent = {
+            val interactionSource = remember { MutableInteractionSource() }
+            Button(
+                onClick = onAllClear,
+                shapes = ButtonDefaults.shapes(shape = KeypadRadii.resting, pressedShape = KeypadRadii.pressed),
+                interactionSource = interactionSource,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .animateWidth(interactionSource)
+                    .height(56.dp),
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = "Clear all")
+            }
+        },
+        menuContent = { _ -> }
+    )
 }

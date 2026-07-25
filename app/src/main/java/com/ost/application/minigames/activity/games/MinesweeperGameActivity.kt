@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
-
 package com.ost.application.minigames.activity.games
-
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -75,7 +73,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.R
 import com.ost.application.minigames.components.MorphPolygonShape
 import com.ost.application.ui.theme.OSTToolsTheme
-
 class MinesweeperGameActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,7 +89,6 @@ class MinesweeperGameActivity : ComponentActivity() {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MinesweeperScreen(
@@ -101,7 +97,6 @@ fun MinesweeperScreen(
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -144,7 +139,6 @@ fun MinesweeperScreen(
                             onCellClicked = { x, y -> viewModel.onCellClicked(x, y) }
                         )
                     }
-
                     Column(
                         modifier = Modifier
                             .widthIn(min = 200.dp, max = 280.dp)
@@ -157,9 +151,7 @@ fun MinesweeperScreen(
                             minesLeft = viewModel.minesLeft,
                             onRefresh = { viewModel.resetGame() }
                         )
-
                         Spacer(modifier = Modifier.height(48.dp))
-
                         Box(modifier = Modifier.wrapContentWidth()) {
                             BottomActionBar(
                                 currentMode = viewModel.interactionMode,
@@ -179,17 +171,14 @@ fun MinesweeperScreen(
                         onRefresh = { viewModel.resetGame() }
                     )
                     Spacer(modifier = Modifier.weight(1f))
-
                     BoardGrid(
                         grid = viewModel.grid,
                         onCellClicked = { x, y -> viewModel.onCellClicked(x, y) }
                     )
-
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
-
         if (viewModel.gameStatus == GameStatus.WON || viewModel.gameStatus == GameStatus.LOST) {
             GameOverDialog(
                 status = viewModel.gameStatus,
@@ -200,7 +189,6 @@ fun MinesweeperScreen(
         }
     }
 }
-
 @Composable
 fun LandscapeStats(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -226,9 +214,7 @@ fun LandscapeStats(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSecondaryFixedVariant
         )
-
         Spacer(modifier = Modifier.height(24.dp))
-
         FilledIconButton(
             onClick = onRefresh,
             modifier = Modifier.size(64.dp),
@@ -240,9 +226,7 @@ fun LandscapeStats(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
                 modifier = Modifier.size(28.dp)
             )
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
         Card(
             modifier = Modifier
                 .width(120.dp)
@@ -267,11 +251,9 @@ fun LandscapeStats(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
         )
     }
 }
-
 @Composable
 fun TopHeader(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
     val cardHeight = 64.dp
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
@@ -310,7 +292,6 @@ fun TopHeader(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSecondaryFixedVariant
             )
         }
-
         Box(
             modifier = Modifier
                 .height(cardHeight)
@@ -331,7 +312,6 @@ fun TopHeader(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
                 )
             }
         }
-
         Column(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -368,7 +348,6 @@ fun TopHeader(timeElapsed: Int, minesLeft: Int, onRefresh: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun BoardGrid(
     grid: List<List<Cell>>,
@@ -376,7 +355,6 @@ fun BoardGrid(
 ) {
     if (grid.isEmpty()) return
     val columns = grid[0].size
-
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -393,7 +371,6 @@ fun BoardGrid(
         }
     }
 }
-
 @Composable
 fun CellItem(
     cell: Cell,
@@ -408,7 +385,6 @@ fun CellItem(
     val circleShape = remember {
         RoundedPolygon(12, rounding = CornerRounding(1f))
     }
-
     val morph = remember(cell.isMine, cell.adjacentMines) {
         val targetShape = when {
             cell.isMine -> circleShape
@@ -417,13 +393,11 @@ fun CellItem(
         }
         Morph(squareShape, targetShape)
     }
-
     val morphProgress by animateFloatAsState(
         targetValue = if (cell.isRevealed) 1f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "shapeMorph"
     )
-
     val targetColor = when {
         cell.isRevealed && cell.isMine -> MaterialTheme.colorScheme.errorContainer
         cell.isRevealed -> MaterialTheme.colorScheme.secondaryContainer
@@ -434,7 +408,6 @@ fun CellItem(
         animationSpec = tween(durationMillis = 300),
         label = "cellColor"
     )
-
     val scale = remember { Animatable(1f) }
     LaunchedEffect(cell.isExploding) {
         if (cell.isExploding) {
@@ -442,7 +415,6 @@ fun CellItem(
             scale.animateTo(1f, tween(250))
         }
     }
-
     Box(
         modifier = Modifier
             .aspectRatio(1f)
@@ -488,7 +460,6 @@ fun CellItem(
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BottomActionBar(currentMode: InteractionMode, onModeSelected: (InteractionMode) -> Unit) {
@@ -503,14 +474,12 @@ fun BottomActionBar(currentMode: InteractionMode, onModeSelected: (InteractionMo
             InteractionMode.FLAG to R.drawable.ic_flag_24dp,
             InteractionMode.QUESTION to R.drawable.ic_question_mark_24dp
         )
-
         Row(
             modifier = Modifier.padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
         ) {
             modes.forEachIndexed { index, (mode, iconRes) ->
                 val isSelected = currentMode == mode
-
                 ToggleButton(
                     checked = isSelected,
                     onCheckedChange = { onModeSelected(mode) },
@@ -534,7 +503,6 @@ fun BottomActionBar(currentMode: InteractionMode, onModeSelected: (InteractionMo
         }
     }
 }
-
 @Composable
 fun GameOverDialog(
     status: GameStatus,
@@ -544,7 +512,6 @@ fun GameOverDialog(
 ) {
     val title = if (status == GameStatus.WON) "Victory!" else "Game Over"
     val color = if (status == GameStatus.WON) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-
     AlertDialog(
         onDismissRequest = { },
         title = {
@@ -565,7 +532,6 @@ fun GameOverDialog(
         }
     )
 }
-
 @Composable
 fun getNumberColor(count: Int): Color {
     return when (count) {

@@ -1,5 +1,4 @@
 package com.ost.application.explorer.pdfreader
-
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
@@ -21,13 +20,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-
 data class OutlineItem(
     val title: String,
     val pageIndex: Int,
     val depth: Int
 )
-
 data class PdfReaderUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
@@ -43,19 +40,14 @@ data class PdfReaderUiState(
     val outline: List<OutlineItem> = emptyList(),
     val showOutline: Boolean = false
 )
-
 class PdfReaderViewModel(application: Application) : AndroidViewModel(application) {
-
     private val prefs = application.getSharedPreferences("pdf_reader_prefs", 0)
     private val pdfiumCore = PdfiumCore(application)
-
     private val _uiState = MutableStateFlow(PdfReaderUiState())
     val uiState: StateFlow<PdfReaderUiState> = _uiState.asStateFlow()
-
     private var pdfRenderer: PdfRenderer? = null
     private var fileDescriptor: ParcelFileDescriptor? = null
     private var hideUiJob: Job? = null
-
     companion object {
         private const val TAG = "PdfReaderViewModel"
         const val MIN_ZOOM = 1.0f
@@ -66,7 +58,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         private const val RENDER_WIDTH = 1440
         private const val UI_HIDE_DELAY_MS = 3000L
     }
-
     fun loadDocument(filePath: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, filePath = filePath) }
@@ -82,15 +73,12 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                         file, ParcelFileDescriptor.MODE_READ_ONLY
                     )
                     pdfRenderer = PdfRenderer(fileDescriptor!!)
-
                     val totalPages = pdfRenderer!!.pageCount
                     val savedPage = prefs.getInt(PREF_PAGE_PREFIX + filePath, 0)
                         .coerceIn(0, (totalPages - 1).coerceAtLeast(0))
                     val savedZoom = prefs.getFloat(PREF_ZOOM_PREFIX + filePath, 2.0f)
                         .coerceIn(MIN_ZOOM, MAX_ZOOM)
-
                     val outline = parseOutline(file)
-
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -112,7 +100,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
         scheduleHideUi()
     }
-
     private fun parseOutline(file: File): List<OutlineItem> {
         val result = mutableListOf<OutlineItem>()
         var pdfDocument: PdfDocument? = null
@@ -129,7 +116,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
         return result
     }
-
     private fun flattenBookmarks(
         bookmarks: List<PdfDocument.Bookmark>,
         depth: Int,
@@ -145,7 +131,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-
     fun goToPage(page: Int) {
         val state = _uiState.value
         val target = page.coerceIn(0, state.totalPages - 1)
@@ -157,54 +142,44 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.update { it.copy(showPageIndicator = false) }
         }
     }
-
     fun setZoom(zoom: Float) {
         _uiState.update { it.copy(zoom = zoom.coerceIn(MIN_ZOOM, MAX_ZOOM)) }
     }
-
     fun resetZoom() {
         _uiState.update { it.copy(zoom = MIN_ZOOM) }
     }
-
     fun onRotaryZoom(scrollPixels: Float) {
         val current = _uiState.value.zoom
         val delta = -scrollPixels / 200f
         val newZoom = (current + delta).coerceIn(MIN_ZOOM, MAX_ZOOM)
         _uiState.update { it.copy(zoom = newZoom) }
     }
-
     fun showExitDialog() {
         _uiState.update { it.copy(showExitDialog = true) }
     }
-
     fun dismissExitDialog() {
         _uiState.update { it.copy(showExitDialog = false) }
         showUiAndScheduleHide()
     }
-
     fun showOutline() {
         hideUiJob?.cancel()
         _uiState.update { it.copy(showOutline = true) }
     }
-
     fun dismissOutline() {
         _uiState.update { it.copy(showOutline = false) }
         showUiAndScheduleHide()
     }
-
     fun navigateToOutlineItem(item: OutlineItem) {
         _uiState.update { it.copy(showOutline = false) }
         goToPage(item.pageIndex)
         showUiAndScheduleHide()
     }
-
     fun onScreenTap() {
         val currentlyVisible = _uiState.value.showUi
         hideUiJob?.cancel()
         _uiState.update { it.copy(showUi = !currentlyVisible) }
         if (!currentlyVisible) scheduleHideUi()
     }
-
     fun saveProgress() {
         val state = _uiState.value
         if (state.filePath.isNotEmpty() && state.totalPages > 0) {
@@ -214,13 +189,11 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                 .apply()
         }
     }
-
     private fun showUiAndScheduleHide() {
         hideUiJob?.cancel()
         _uiState.update { it.copy(showUi = true) }
         scheduleHideUi()
     }
-
     private fun scheduleHideUi() {
         hideUiJob?.cancel()
         hideUiJob = viewModelScope.launch {
@@ -228,7 +201,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.update { it.copy(showUi = false) }
         }
     }
-
     private fun renderPage(pageIndex: Int) {
         val renderer = pdfRenderer ?: return
         if (pageIndex < 0 || pageIndex >= renderer.pageCount) return
@@ -248,7 +220,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
             Log.e(TAG, "Error rendering page $pageIndex", e)
         }
     }
-
     private fun closeRenderer() {
         try {
             pdfRenderer?.close(); fileDescriptor?.close()
@@ -256,7 +227,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         }
         pdfRenderer = null; fileDescriptor = null
     }
-
     override fun onCleared() {
         hideUiJob?.cancel()
         saveProgress()
@@ -264,7 +234,6 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         super.onCleared()
     }
 }
-
 class PdfReaderViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(PdfReaderViewModel::class.java)) {

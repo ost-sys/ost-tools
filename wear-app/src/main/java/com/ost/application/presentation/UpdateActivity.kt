@@ -1,5 +1,4 @@
 package com.ost.application.presentation
-
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -52,17 +51,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import kotlin.time.Duration.Companion.milliseconds
-
 private const val PREFS_NAME = "update_prefs"
 private const val KEY_INCLUDE_BETA = "include_beta"
 private const val TAG = "UpdateActivity"
-
 sealed class UpdateDialogState {
     data class UpdateWithPhone(val version: String) : UpdateDialogState()
     data class UpdateNoPhone(val version: String) : UpdateDialogState()
     data class Failure(val message: String, val iconResId: Int) : UpdateDialogState()
 }
-
 class UpdateActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,18 +69,15 @@ class UpdateActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun UpdateScreen() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
-
     var includeBeta by remember { mutableStateOf(prefs.getBoolean(KEY_INCLUDE_BETA, false)) }
     var isChecking by remember { mutableStateOf(false) }
     var dialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberScalingLazyListState()
-
     AppScaffold(timeText = { TimeText() }) {
         ScreenScaffold(
             scrollState = listState,
@@ -142,7 +135,6 @@ fun UpdateScreen() {
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-
                 item {
                     Text(
                         text = "Current: ${BuildConfig.VERSION_NAME}",
@@ -152,9 +144,7 @@ fun UpdateScreen() {
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-
                 item { Spacer(Modifier.height(4.dp)) }
-
                 item {
                     SwitchButton(
                         checked = includeBeta,
@@ -177,7 +167,6 @@ fun UpdateScreen() {
             }
         }
     }
-
     dialogState?.let { state ->
         when (state) {
             is UpdateDialogState.UpdateWithPhone -> SuccessDialog(
@@ -200,7 +189,6 @@ fun UpdateScreen() {
         }
     }
 }
-
 suspend fun isPhoneConnectedUpdate(context: Context): Boolean {
     return try {
         val nodes = withTimeoutOrNull(3000L.milliseconds) {
@@ -216,7 +204,6 @@ suspend fun isPhoneConnectedUpdate(context: Context): Boolean {
         false
     }
 }
-
 suspend fun checkForUpdatesWithChannel(
     context: Context,
     includeBeta: Boolean
@@ -226,12 +213,10 @@ suspend fun checkForUpdatesWithChannel(
             Log.d(TAG, "Step 1: executing request")
             val response = RetrofitClient.instance.getReleases().execute()
             Log.d(TAG, "Step 2: response received, successful=${response.isSuccessful}")
-
             if (response.isSuccessful) {
                 Log.d(TAG, "Step 3: parsing body")
                 val allReleases = response.body()
                 Log.d(TAG, "Step 4: allReleases size=${allReleases?.size}, raw=$allReleases")
-
                 Log.d(TAG, "Step 5: filtering")
                 val releases = allReleases
                     ?.filter {
@@ -242,11 +227,9 @@ suspend fun checkForUpdatesWithChannel(
                     ?: return@withContext UpdateCheckResult.Error(
                         context.getString(R.string.no_releases_found)
                     )
-
                 Log.d(TAG, "Step 6: comparing versions")
                 val latestTag = releases[0].tag_name
                 val currentVersion = BuildConfig.VERSION_NAME
-
                 if (isNewerVersion(latestTag, currentVersion)) {
                     UpdateCheckResult.UpdateAvailable(latestTag)
                 } else {

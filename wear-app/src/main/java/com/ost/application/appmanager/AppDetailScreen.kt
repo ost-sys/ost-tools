@@ -1,5 +1,4 @@
 package com.ost.application.appmanager
-
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.provider.Settings
@@ -36,7 +35,6 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import coil.compose.rememberAsyncImagePainter
 import com.ost.application.R
-
 @SuppressLint("WearRecents")
 @Composable
 fun AppDetailScreen(
@@ -45,7 +43,6 @@ fun AppDetailScreen(
 ) {
     val context = LocalContext.current
     val pm = context.packageManager
-
     val appInfo = remember(packageName) {
         try { pm.getApplicationInfo(packageName, 0) } catch (e: Exception) { null }
     }
@@ -65,9 +62,7 @@ fun AppDetailScreen(
         try { appInfo?.sourceDir?.let { java.io.File(it).length() } ?: 0L }
         catch (e: Exception) { 0L }
     }
-
     Box(modifier = Modifier.fillMaxSize()) {
-
         if (appIcon != null) {
             Image(
                 painter = rememberAsyncImagePainter(model = appIcon),
@@ -83,7 +78,6 @@ fun AppDetailScreen(
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.65f))
         )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -100,7 +94,6 @@ fun AppDetailScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
-
             Text(
                 text = appName,
                 style = MaterialTheme.typography.titleMedium,
@@ -109,9 +102,7 @@ fun AppDetailScreen(
                 overflow = TextOverflow.Ellipsis,
                 color = Color.White
             )
-
             Spacer(modifier = Modifier.height(2.dp))
-
             Text(
                 text = packageName,
                 style = MaterialTheme.typography.labelSmall,
@@ -120,9 +111,7 @@ fun AppDetailScreen(
                 overflow = TextOverflow.Ellipsis,
                 color = Color.White.copy(alpha = 0.6f)
             )
-
             Spacer(modifier = Modifier.height(4.dp))
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = formatAppSize(apkSizeBytes),
@@ -148,9 +137,7 @@ fun AppDetailScreen(
                         Color.White.copy(alpha = 0.7f)
                 )
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onBack,
@@ -161,7 +148,6 @@ fun AppDetailScreen(
                         contentDescription = "Back"
                     )
                 }
-
                 Button(
                     onClick = {
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -180,7 +166,6 @@ fun AppDetailScreen(
         }
     }
 }
-
 private fun formatAppSize(bytes: Long): String {
     if (bytes <= 0) return "— MB"
     val mb = bytes / (1024.0 * 1024.0)

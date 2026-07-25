@@ -1,5 +1,4 @@
 package com.ost.application.share
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
@@ -60,6 +59,7 @@ import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListAnchorType
 import androidx.wear.compose.foundation.lazy.items
+import androidx.wear.compose.foundation.lazy.itemsIndexed
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
@@ -81,23 +81,25 @@ import androidx.wear.compose.material3.curvedText
 import androidx.wear.compose.material3.timeTextCurvedText
 import androidx.wear.compose.material3.timeTextSeparator
 import com.ost.application.R
+import com.ost.application.core.share.Constants
+import com.ost.application.core.share.DiscoveredDevice
 import com.ost.application.explorer.ImageActivity
 import com.ost.application.explorer.TextEditorActivity
 import com.ost.application.explorer.VideoActivity
 import com.ost.application.explorer.music.MusicActivity
+import com.ost.application.explorer.pdfreader.PdfReaderActivity
 import com.ost.application.share.NotificationHelper.formatFileSize
 import com.ost.application.theme.OSTToolsTheme
 import com.ost.application.util.CardListItem
 import com.ost.application.util.CardPosition
+import com.ost.application.util.FailDialog
+import com.ost.application.util.SuccessDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-
 class ShareActivity : ComponentActivity() {
-
     private val viewModel: WearShareViewModel by viewModels()
     private var urisToShare: ArrayList<Uri>? = null
-
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
@@ -106,7 +108,6 @@ class ShareActivity : ComponentActivity() {
                 Toast.makeText(this, R.string.warn_notification_permission, Toast.LENGTH_LONG).show()
             }
         }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NotificationHelper.createNotificationChannel(this)
@@ -126,13 +127,12 @@ class ShareActivity : ComponentActivity() {
                 },
                 openFile = { file ->
                     openFile(this, file) { msg, isErr ->
-                        Toast.makeText(this, msg, if(isErr) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+                        viewModel.showUiConfirmation(msg, isSuccess = !isErr)
                     }
                 }
             )
         }
     }
-
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == "com.ost.application.action.SEND_FILES") {
             urisToShare = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -146,27 +146,24 @@ class ShareActivity : ComponentActivity() {
                     viewModel.startDiscovery()
                 }
             } else {
-                Toast.makeText(this, "Error: No files to send", Toast.LENGTH_LONG).show()
+                viewModel.showUiConfirmation("Error: No files to send", isSuccess = false)
                 finish()
             }
         } else {
             urisToShare = null
         }
     }
-
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
-
     override fun onStop() {
         super.onStop()
     }
-
     private fun installApk(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
         try {
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -183,11 +180,9 @@ class ShareActivity : ComponentActivity() {
             showDialog(context.getString(R.string.failed_to_start_package_installer), true)
         }
     }
-
     fun openFile(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
         val vibrator = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
         vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-
         val intent : Intent? = when {
             file.name.endsWith(".apk", true) -> {
                 installApk(context, file) { msg, isErr -> showDialog(msg, isErr) }
@@ -205,9 +200,12 @@ class ShareActivity : ComponentActivity() {
             file.name.endsWith(".mp3", true) || file.name.endsWith(".m4a", true) || file.name.endsWith(".wav", true) || file.name.endsWith(".ogg", true) || file.name.endsWith(".aac", true)-> {
                 Intent(context, MusicActivity::class.java).apply { putExtra("musicPath", file.absolutePath) }
             }
+            file.name.endsWith(".pdf", true) -> {
+                Intent(context, PdfReaderActivity::class.java).apply { putExtra(PdfReaderActivity.EXTRA_FILE_PATH, file.absolutePath) }
+            }
             else -> {
                 try {
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                     val mimeType = context.contentResolver.getType(uri) ?: "*/*"
                     Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, mimeType)
@@ -231,7 +229,6 @@ class ShareActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun ShareApp(
     viewModel: WearShareViewModel,
@@ -251,7 +248,6 @@ fun ShareApp(
     val context = LocalContext.current
     val isTransferring = transferProgress != null
     val isToggleEnabled = !isDiscovering && !isTransferring && !isSendMode && incomingTransferRequest == null
-
     OSTToolsTheme {
         AppScaffold (
             timeText = {
@@ -289,54 +285,80 @@ fun ShareApp(
                 ignoreCase = true
             ))
             val showSendUI = isSendMode || isDiscovering || isSending
-
-            ScreenScaffold {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Crossfade(
-                        targetState = showSendUI,
-                        label = "ScreenTransition",
-                        modifier = Modifier.fillMaxSize()
-                    ) { currentShowSendUI ->
-                        if (currentShowSendUI) {
-                            SendUI(
-                                viewModel = viewModel,
-                                discoveredDevices = discoveredDevices,
-                                isDiscovering = isDiscovering,
-                                isSendingTransferActive = isSending,
-                                statusText = statusText,
-                                onDeviceSelected = onDeviceSelected,
-                                onScanClicked = { viewModel.startDiscovery() },
-                                onCancelClicked = {
-                                    if (isDiscovering) viewModel.stopDiscovery()
-                                    if (isSending) viewModel.cancelTransfer()
-                                    (context as? ShareActivity)?.finish()
-                                }
-                            )
-                        } else {
-                            ReceiveUI(
-                                viewModel = viewModel,
-                                isServiceActive = isServiceActive,
-                                isToggleEnabled = isToggleEnabled,
-                                statusText = statusText,
-                                lastReceivedFiles = lastReceivedFiles,
-                                openFile = openFile,
-                                context = context
+            
+            if (showSendUI) {
+                ScreenScaffold {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        SendUI(
+                            viewModel = viewModel,
+                            discoveredDevices = discoveredDevices,
+                            isDiscovering = isDiscovering,
+                            isSendingTransferActive = isSending,
+                            statusText = statusText,
+                            onDeviceSelected = onDeviceSelected,
+                            onScanClicked = { viewModel.startDiscovery() },
+                            onCancelClicked = {
+                                if (isDiscovering) viewModel.stopDiscovery()
+                                viewModel.cancelTransfer()
+                                (context as? ShareActivity)?.finish()
+                            }
+                        )
+                        if (isDiscovering || isTransferring) {
+                            val isIndeterminate = isDiscovering && !isTransferring || isTransferring && transferProgress == 0 && (isSending || isReceiving)
+                            FixedCircularProgress(
+                                isIndeterminate = isIndeterminate,
+                                progress = if (isIndeterminate) null else transferProgress,
+                                totalFiles = transferTotalFiles ?: 1
                             )
                         }
                     }
-
-                    if (isDiscovering || isTransferring) {
-                        val isIndeterminate = isDiscovering && !isTransferring || isTransferring && transferProgress == 0 && (isSending || isReceiving)
-
-                        FixedCircularProgress(
-                            isIndeterminate = isIndeterminate,
-                            progress = if (isIndeterminate) null else transferProgress,
-                            totalFiles = transferTotalFiles ?: 1 // Передаем количество файлов!
-                        )
+                }
+            } else {
+                val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 2 })
+                Box(modifier = Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.pager.HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                        if (page == 0) {
+                            ScreenScaffold {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    ReceiveUI(
+                                        viewModel = viewModel,
+                                        isServiceActive = isServiceActive,
+                                        isToggleEnabled = isToggleEnabled,
+                                        statusText = statusText,
+                                        isReceivingActive = isReceiving,
+                                        onCancelClicked = { viewModel.cancelTransfer() },
+                                        context = context
+                                    )
+                                    if (isDiscovering || isTransferring) {
+                                        val isIndeterminate = isDiscovering && !isTransferring || isTransferring && transferProgress == 0 && (isSending || isReceiving)
+                                        FixedCircularProgress(
+                                            isIndeterminate = isIndeterminate,
+                                            progress = if (isIndeterminate) null else transferProgress,
+                                            totalFiles = transferTotalFiles ?: 1
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            ScreenScaffold {
+                                ReceivedFilesUI(
+                                    viewModel = viewModel,
+                                    lastReceivedFiles = lastReceivedFiles,
+                                    openFile = openFile,
+                                    context = context
+                                )
+                            }
+                        }
                     }
+                    androidx.wear.compose.material.HorizontalPageIndicator(
+                        pageIndicatorState = object : androidx.wear.compose.material.PageIndicatorState {
+                            override val pageCount: Int get() = 2
+                            override val pageOffset: Float get() = pagerState.currentPageOffsetFraction
+                            override val selectedPage: Int get() = pagerState.currentPage
+                        }
+                    )
                 }
             }
-
             val request = incomingTransferRequest
             if (request != null) {
                 AlertDialog(
@@ -386,33 +408,25 @@ fun ShareApp(
                     }
                 )
             }
-
             uiConfirmationState?.let { state ->
-                Confirmation(
-                    onTimeout = { viewModel.clearUiConfirmationState() },
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = state.iconRes),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .wrapContentSize(align = Alignment.Center),
-                            tint = if (state.isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                        )
-                    },
-                    durationMillis = Constants.CONFIRMATION_TIMEOUT_MILLIS
-                ) {
-                    Text(
-                        text = state.message,
-                        textAlign = TextAlign.Center,
-                        fontSize = 14.sp
+                if (state.isSuccess) {
+                    SuccessDialog(
+                        showDialog = true,
+                        actionIconResId = state.iconRes,
+                        onDismiss = { viewModel.clearUiConfirmationState() }
+                    )
+                } else {
+                    FailDialog(
+                        showDialog = true,
+                        message = state.message,
+                        iconResId = state.iconRes,
+                        onDismiss = { viewModel.clearUiConfirmationState() }
                     )
                 }
             }
         }
     }
 }
-
 @OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun SendUI(
@@ -430,14 +444,12 @@ fun SendUI(
     val focusRequester = remember { FocusRequester() }
     val context = LocalContext.current
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-
     LaunchedEffect(discoveredDevices.isNotEmpty(), isDiscovering, isSendingTransferActive) {
         if (discoveredDevices.isNotEmpty() && !isDiscovering && !isSendingTransferActive) {
             delay(150)
             try { focusRequester.requestFocus() } catch (_: Exception) {}
         }
     }
-
     AppScaffold(
         timeText = { null }
     ) {
@@ -469,13 +481,12 @@ fun SendUI(
                     Text(text = statusText, textAlign = TextAlign.Center, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 8.dp))
                 }
                 item { Spacer(Modifier.height(4.dp)) }
-
                 if (discoveredDevices.isNotEmpty() && !isSendingTransferActive) {
                     items(items = discoveredDevices, key = { it.id }) { device ->
                         DeviceChip(device = device, onClick = {
                             vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
                             if (device.isResolved) onDeviceSelected(device)
-                            else if (!device.isResolving) viewModel.resolveDevice(device.serviceInfo)
+                            else if (!device.isResolving) device.serviceInfo?.let { viewModel.resolveDevice(it) }
                         })
                     }
                 } else if (!isDiscovering && !isSendingTransferActive) {
@@ -514,7 +525,6 @@ fun SendUI(
         }
     }
 }
-
 @Composable
 fun DeviceChip(device: DiscoveredDevice, onClick: () -> Unit) {
     val iconRes = when (device.deviceType) {
@@ -546,7 +556,6 @@ fun DeviceChip(device: DiscoveredDevice, onClick: () -> Unit) {
         colors = ChipDefaults.primaryChipColors(contentColor = if (device.isResolved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
     )
 }
-
 @SuppressLint("StringFormatMatches")
 @Composable
 fun ReceiveUI(
@@ -554,21 +563,17 @@ fun ReceiveUI(
     isServiceActive: Boolean,
     isToggleEnabled: Boolean,
     statusText: String,
-    lastReceivedFiles: List<File>,
-    openFile: (File) -> Unit,
+    isReceivingActive: Boolean,
+    onCancelClicked: () -> Unit,
     context: Context
 ) {
     val listState = rememberScalingLazyListState()
     val focusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-
     LaunchedEffect(Unit) {
         try { focusRequester.requestFocus() } catch (_: Exception) {}
     }
-
-    val maxRecentFilesToShow = 3
-
     ScalingLazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -584,7 +589,6 @@ fun ReceiveUI(
         anchorType = ScalingLazyListAnchorType.ItemCenter
     ) {
         item { Text(text = stringResource(R.string.file_share), textAlign = TextAlign.Center) }
-
         item {
             SwitchButton(
                 modifier = Modifier.fillMaxWidth(),
@@ -611,53 +615,106 @@ fun ReceiveUI(
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
-
-        if (lastReceivedFiles.isNotEmpty()) {
-            val filesToDisplay = lastReceivedFiles.takeLast(maxRecentFilesToShow).reversed()
-            val hasMoreFiles = lastReceivedFiles.size > maxRecentFilesToShow
-
-            val position = when {
-                lastReceivedFiles.size == 1 -> CardPosition.MIDDLE
-                lastReceivedFiles.isEmpty() -> CardPosition.TOP
-                lastReceivedFiles.size == lastReceivedFiles.lastIndex -> CardPosition.BOTTOM
-                else -> CardPosition.SINGLE
+        if (isReceivingActive) {
+            item {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.filledTonalButtonColors(),
+                    onClick = {
+                        vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                        onCancelClicked()
+                    }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painterResource(R.drawable.ic_cancel_24dp), contentDescription = stringResource(R.string.cancel))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
             }
+        }
+    }
+}
 
-            items(filesToDisplay) { file ->
-                CardListItem(
-                    onClick = { openFile(file) },
-                    title = file.name,
-                    icon = getFileIcon(file.extension),
-                    summary = null,
-                    position = position,
-                    status = true
+@Composable
+fun ReceivedFilesUI(
+    viewModel: WearShareViewModel,
+    lastReceivedFiles: List<File>,
+    openFile: (File) -> Unit,
+    context: Context
+) {
+    val listState = rememberScalingLazyListState()
+    val focusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    LaunchedEffect(Unit) {
+        try { focusRequester.requestFocus() } catch (_: Exception) {}
+    }
+    ScalingLazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .focusRequester(focusRequester)
+            .onRotaryScrollEvent {
+                coroutineScope.launch { listState.scrollBy(it.verticalScrollPixels) }
+                true
+            }
+            .focusable(),
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        anchorType = ScalingLazyListAnchorType.ItemCenter
+    ) {
+        item {
+            Text(
+                text = stringResource(R.string.share_received_files),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        if (lastReceivedFiles.isEmpty()) {
+            item {
+                Text(
+                    text = "No received files",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            if (hasMoreFiles) {
+        } else {
+            val today = java.util.Calendar.getInstance().apply { 
+                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                set(java.util.Calendar.MINUTE, 0)
+            }.timeInMillis
+            val groups = lastReceivedFiles.groupBy { file ->
+                if (file.lastModified() >= today) "Today"
+                else "Older"
+            }
+            groups.forEach { (dateStr, files) ->
                 item {
+                    Text(
+                        text = dateStr,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+                itemsIndexed(files, key = { _, file -> file.absolutePath }) { index, file ->
+                    val pos = when {
+                        files.size == 1 -> CardPosition.SINGLE
+                        index == 0 -> CardPosition.TOP
+                        index == files.size - 1 -> CardPosition.BOTTOM
+                        else -> CardPosition.MIDDLE
+                    }
                     CardListItem(
-                        onClick = {
-                            vibrator?.vibrate(
-                                VibrationEffect.createOneShot(
-                                    50,
-                                    VibrationEffect.DEFAULT_AMPLITUDE
-                                )
-                            )
-                            Toast.makeText(
-                                context,
-                                "TODO: Open full received files list",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        title = stringResource(
-                            R.string.view_all_received_files_count,
-                            lastReceivedFiles.size
-                        ),
-                        icon = R.drawable.ic_folder_24dp,
-                        summary = null,
-                        status = true,
-                        position = position
+                        onClick = { openFile(file) },
+                        title = file.name,
+                        icon = getFileIcon(file.extension),
+                        summary = android.text.format.Formatter.formatFileSize(LocalContext.current, file.length()),
+                        position = pos,
+                        status = true
                     )
                 }
             }
@@ -672,7 +729,6 @@ fun FixedCircularProgress(
     totalFiles: Int
 ) {
     val targetProgress = if (isIndeterminate) 0f else (progress ?: 0) / 100f
-
     val animatedProgress by animateFloatAsState(
         targetValue = targetProgress,
         animationSpec = spring(
@@ -681,14 +737,13 @@ fun FixedCircularProgress(
         ),
         label = "ProgressAnimation"
     )
-
     if (isIndeterminate) {
         CircularProgressIndicator(
             modifier = Modifier
                 .fillMaxSize()
                 .clearAndSetSemantics {},
-            startAngle = 230f,
-            endAngle = 230f,
+            startAngle = 296.8f,
+            endAngle = 243.2f,
             progress = targetProgress,
             indicatorColor = MaterialTheme.colorScheme.primary,
             strokeWidth = ProgressIndicatorDefaults.FullScreenStrokeWidth,
@@ -696,15 +751,14 @@ fun FixedCircularProgress(
         )
     } else {
         val safeSegmentCount = totalFiles.coerceAtLeast(1)
-
         androidx.wear.compose.material3.SegmentedCircularProgressIndicator(
             segmentCount = safeSegmentCount,
             progress = { animatedProgress },
             modifier = Modifier
                 .fillMaxSize()
                 .clearAndSetSemantics {},
-            startAngle = 230f,
-            endAngle = 230f,
+            startAngle = 296.8f,
+            endAngle = 243.2f,
             colors = androidx.wear.compose.material3.ProgressIndicatorDefaults.colors(
                 indicatorColor = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
@@ -713,7 +767,6 @@ fun FixedCircularProgress(
         )
     }
 }
-
 @Composable
 fun getFileIcon(extension: String): Int {
     return when (extension.lowercase()) {
@@ -722,12 +775,7 @@ fun getFileIcon(extension: String): Int {
         "mp4", "avi", "mkv", "webm" -> R.drawable.ic_video_24dp
         "mp3", "m4a", "wav", "ogg", "aac", "flac" -> R.drawable.ic_music_24dp
         "apk" -> R.drawable.ic_android_24dp
+        "pdf" -> R.drawable.ic_picture_as_pdf_24dp
         else -> R.drawable.ic_draft_24dp
     }
-}
-
-@Preview
-@Composable
-fun ProgressPreview() {
-
 }

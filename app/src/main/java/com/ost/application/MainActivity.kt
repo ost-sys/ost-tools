@@ -3,11 +3,10 @@
     ExperimentalMaterial3Api::class,
     FlowPreview::class, ExperimentalSharedTransitionApi::class
 )
-
 package com.ost.application
-
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -15,9 +14,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
-import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -26,12 +23,10 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -58,19 +53,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Games
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
@@ -102,7 +96,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -111,7 +104,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -121,77 +113,38 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ost.application.ui.screen.applist.AppListScreen
-import com.ost.application.ui.screen.batteryinfo.BatteryInfoScreen
-import com.ost.application.ui.screen.converters.ConvertersScreen
-import com.ost.application.ui.screen.deviceinfo.DeviceInfoScreen
-import com.ost.application.ui.screen.display.DisplayInfoScreen
-import com.ost.application.ui.screen.network.NetworkInfoScreen
-import com.ost.application.ui.screen.powermenu.PowerMenuScreen
-import com.ost.application.ui.screen.ram.RAMScreen
+import com.ost.application.ui.activity.main.AppBottomNavigation
+import com.ost.application.ui.activity.main.ContentArea
+import com.ost.application.ui.activity.converters.ConvertersActivity
+import com.ost.application.ui.activity.main.MORE_ITEM_ID
+import com.ost.application.ui.activity.main.MenuItemIcon
+import com.ost.application.ui.activity.main.MoreBottomSheetContent
+import com.ost.application.ui.activity.main.SettingsSheetContent
+import com.ost.application.ui.activity.main.createMenuItems
 import com.ost.application.ui.screen.settings.SettingsAction
-import com.ost.application.ui.screen.settings.SettingsScreen
-import com.ost.application.ui.screen.settings.SettingsUiState
 import com.ost.application.ui.screen.settings.SettingsViewModel
-import com.ost.application.ui.screen.share.ShareScreen
-import com.ost.application.ui.screen.stargazers.StargazersScreen
 import com.ost.application.ui.screen.stargazers.StargazersViewModel
-import com.ost.application.ui.screen.storage.StorageScreen
 import com.ost.application.ui.state.FabController
 import com.ost.application.ui.state.FabSize
 import com.ost.application.ui.state.LocalFabController
 import com.ost.application.ui.theme.OSTToolsTheme
-import com.ost.application.util.CardPosition
-import com.ost.application.util.CustomCardItem
+import com.ost.application.util.TooltipState
 import com.ost.application.util.TooltipWrapper
+import com.ost.application.util.AppPrefs
 import com.ost.application.util.isRooted
+import com.ost.application.util.rememberTooltipState
 import com.ost.application.util.toast
 import com.ost.application.util.tooltip
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.util.Locale
 import kotlin.math.roundToInt
-
 val LocalBottomSpacing = staticCompositionLocalOf { 0.dp }
-
-data class MenuItemData(
-    val id: String,
-    @StringRes val titleResId: Int,
-    @DrawableRes val iconResId: Int,
-)
-
-enum class CordPosition {
-    START,
-    MIDDLE,
-    END,
-}
-
-private fun createMenuItems(isRooted: Boolean): List<MenuItemData?> {
-    return listOf(
-        MenuItemData("tools", R.string.tools, R.drawable.ic_build_24dp),
-        if (isRooted) {
-            MenuItemData("power_menu", R.string.power_menu, R.drawable.ic_power_new_24dp)
-        } else {
-            null
-        },
-        MenuItemData("share_files", R.string.share, R.drawable.ic_share_24dp),
-        MenuItemData("stargazers", R.string.stargazers, R.drawable.ic_star_24dp),
-        MenuItemData("app_list", R.string.apps_list, R.drawable.ic_apps_24dp),
-        MenuItemData("about_device", R.string.about_device, R.drawable.ic_device_24dp),
-        MenuItemData("battery", R.string.battery, R.drawable.ic_battery_full_24dp),
-        MenuItemData("display", R.string.display, R.drawable.ic_display_24dp),
-        MenuItemData("network", R.string.network, R.drawable.ic_wifi_24dp),
-        MenuItemData("storage", R.string.rom, R.drawable.ic_storage_24dp),
-        MenuItemData("ram", R.string.ram, R.drawable.ic_memory_alt_24dp)
-    )
-}
-
-private const val MORE_ITEM_ID = "more_button_id"
-
 class MainActivity : AppCompatActivity() {
-
+    companion object {
+        const val EXTRA_OPEN_SETTINGS = "com.ost.application.extra.OPEN_SETTINGS"
+    }
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -207,18 +160,19 @@ class MainActivity : AppCompatActivity() {
             )
         )
         installSplashScreen()
-
+        val openSettingsRequested = intent?.getBooleanExtra(EXTRA_OPEN_SETTINGS, false) == true
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             val isExpandedScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
-
             OSTToolsTheme {
-                MainAppStructure(isExpandedScreen = isExpandedScreen)
+                MainAppStructure(
+                    isExpandedScreen = isExpandedScreen,
+                    initialShowSettingsSheet = openSettingsRequested
+                )
             }
         }
     }
 }
-
 class SettingsViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
@@ -228,37 +182,29 @@ class SettingsViewModelFactory(private val application: Application) : ViewModel
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @SuppressLint("AutoboxingStateCreation", "LocalContextGetResourceValueCall")
-fun MainAppStructure(isExpandedScreen: Boolean = false) {
+fun MainAppStructure(isExpandedScreen: Boolean = false, initialShowSettingsSheet: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val fabController = remember { FabController() }
-
     val isDeviceRooted = remember { isRooted() }
-
     val allMenuItems = remember(isDeviceRooted) { createMenuItems(isDeviceRooted) }
     val allValidMenuItems = remember(allMenuItems) { allMenuItems.filterNotNull() }
     val bottomNavDirectItems = remember { allValidMenuItems.take(3) }
     val moreMenuItems = remember(allValidMenuItems) { allValidMenuItems.drop(bottomNavDirectItems.size) }
     var selectedScreenId by rememberSaveable { mutableStateOf(bottomNavDirectItems.first().id) }
     val scaffoldState = rememberBottomSheetScaffoldState()
-
     val settingsViewModel: SettingsViewModel =
         viewModel(factory = SettingsViewModelFactory(context.applicationContext as Application))
     val settingsState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-
     val stargazersViewModel: StargazersViewModel = viewModel()
     val starSelectedRepo by stargazersViewModel.selectedRepo.collectAsStateWithLifecycle()
-
-    var showSettingsSheet by remember { mutableStateOf(false) }
-
+    var showSettingsSheet by remember { mutableStateOf(initialShowSettingsSheet) }
     BackHandler(enabled = showSettingsSheet) { showSettingsSheet = false }
-
     LaunchedEffect(key1 = settingsViewModel.action) {
         settingsViewModel.action.onEach { action ->
             when (action) {
@@ -278,12 +224,10 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                         context.toast("Could not open the requested screen.")
                     }
                 }
-
                 is SettingsAction.ShowToast -> context.toast(context.getString(action.messageResId))
             }
         }.launchIn(this)
     }
-
     val currentSelectedItemData = allValidMenuItems.find { it.id == selectedScreenId }
     val defaultTitle = currentSelectedItemData?.let { stringResource(it.titleResId) }
         ?: stringResource(id = R.string.app_name)
@@ -291,17 +235,18 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
         if (selectedScreenId == "stargazers" && starSelectedRepo != null) starSelectedRepo!!.name else defaultTitle
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomSpacing = if (isExpandedScreen) navBarPadding else (88.dp + 16.dp + navBarPadding)
-
+    val bottomSpacing = if (isExpandedScreen) navBarPadding else (64.dp + 16.dp + navBarPadding)
     CompositionLocalProvider(
         LocalBottomSpacing provides bottomSpacing,
         LocalFabController provides fabController
     ) {
         SharedTransitionLayout {
-            TooltipWrapper { tooltipState ->
-                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            val toolsTooltipState = rememberTooltipState()
+            val gamesTooltipState = rememberTooltipState()
+            TooltipWrapper(state = toolsTooltipState) {
+                TooltipWrapper(state = gamesTooltipState) { tooltipState ->
+                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     if (isExpandedScreen) {
                         Row(modifier = Modifier.fillMaxSize()) {
                             PermanentNavigationDrawer(
@@ -320,10 +265,11 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(
-                                                    modifier = Modifier.size(32.dp),
+                                                    modifier = Modifier.size(20.dp),
                                                     painter = painterResource(R.drawable.ic_launcher_foreground_app),
                                                     contentDescription = "Logo"
                                                 )
+                                                Spacer(modifier = Modifier.size(4.dp))
                                                 Text(
                                                     stringResource(R.string.app_name),
                                                     fontWeight = FontWeight.Bold,
@@ -341,13 +287,11 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                                         resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                                                     )
                                                 ) {
-                                                    Icon(painterResource(R.drawable.ic_settings_24dp), contentDescription = stringResource(R.string.settings))
+                                                    Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.settings))
                                                 }
                                             }
                                         }
-
                                         Spacer(Modifier.height(16.dp))
-
                                         Column(
                                             modifier = Modifier
                                                 .weight(1f)
@@ -355,14 +299,13 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                         ) {
                                             allValidMenuItems.forEach { item ->
                                                 NavigationDrawerItem(
+                                                    icon = { MenuItemIcon(icon = item.icon) },
+                                                    label = { Text(stringResource(item.titleResId)) },
                                                     selected = selectedScreenId == item.id,
                                                     onClick = { selectedScreenId = item.id },
-                                                    icon = { Icon(painterResource(item.iconResId), contentDescription = stringResource(item.titleResId)) },
-                                                    label = { Text(stringResource(item.titleResId)) },
-                                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                                    modifier = Modifier.padding(horizontal = 12.dp)
                                                 )
                                             }
-
                                             Spacer(Modifier
                                                 .height(16.dp)
                                                 .windowInsetsPadding(WindowInsets.navigationBars))
@@ -381,60 +324,30 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                                 )
                                             },
                                             actions = {
-                                                IconButton(
-                                                    modifier = Modifier.tooltip(
-                                                        state = tooltipState,
-                                                        title = "Coming soon...",
-                                                        initialVisibility = false
-                                                    ),
-                                                    onClick = {
-//                                                        val miniGamesIntent = Intent(context,
-//                                                            MiniGamesMainActivity::class.java)
-//                                                        context.startActivity(miniGamesIntent)
-                                                        tooltipState.show()
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.ic_stadia_controller_24dp),
-                                                        contentDescription = "Mini Games"
-                                                    )
-                                                }
+                                                MainTopBarActions(
+                                                    toolsTooltipState = toolsTooltipState,
+                                                    gamesTooltipState = tooltipState
+                                                )
                                             },
                                             scrollBehavior = scrollBehavior
                                         )
                                     },
                                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
                                 ) { paddingValues ->
-                                    AnimatedContent(
-                                        targetState = selectedScreenId, label = "ScreenTransition",
+                                    Box(
                                         modifier = Modifier
                                             .padding(paddingValues)
                                             .fillMaxSize(),
-                                        transitionSpec = {
-                                            (fadeIn(tween(300)) + scaleIn(
-                                                initialScale = 0.95f,
-                                                animationSpec = tween(300)
-                                            )).togetherWith(
-                                                fadeOut(tween(300)) + scaleOut(
-                                                    targetScale = 1.05f,
-                                                    animationSpec = tween(300)
-                                                )
-                                            )
-                                        }
-                                    ) { targetId ->
-                                        LaunchedEffect(targetId) { fabController.hideFab() }
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.TopCenter
-                                        ) {
-                                            ContentArea(
-                                                selectedItemId = targetId,
-                                                stargazersViewModel = stargazersViewModel,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .widthIn(max = 840.dp)
-                                            )
-                                        }
+                                        contentAlignment = Alignment.TopCenter
+                                    ) {
+                                        MainContentTransition(
+                                            selectedScreenId = selectedScreenId,
+                                            stargazersViewModel = stargazersViewModel,
+                                            fabController = fabController,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .widthIn(max = 840.dp)
+                                        )
                                     }
                                 }
                             }
@@ -539,7 +452,6 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                 label = "scrim",
                                 animationSpec = tween(300)
                             )
-
                             Box(modifier = Modifier.fillMaxSize()) {
                                 Scaffold(
                                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -554,24 +466,10 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                             },
                                             expandedHeight = 152.dp,
                                             actions = {
-                                                IconButton(
-                                                    modifier = Modifier.tooltip(
-                                                        state = tooltipState,
-                                                        title = "Coming soon...",
-                                                        initialVisibility = false
-                                                    ),
-                                                    onClick = {
-//                                                        val miniGamesIntent = Intent(context,
-//                                                            MiniGamesMainActivity::class.java)
-//                                                        context.startActivity(miniGamesIntent)
-                                                        tooltipState.show()
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.ic_stadia_controller_24dp),
-                                                        contentDescription = "Mini Games"
-                                                    )
-                                                }
+                                                MainTopBarActions(
+                                                    toolsTooltipState = toolsTooltipState,
+                                                    gamesTooltipState = tooltipState
+                                                )
                                                 AnimatedVisibility(
                                                     visible = !showSettingsSheet,
                                                     enter = fadeIn(),
@@ -589,7 +487,7 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                                         )
                                                     ) {
                                                         Icon(
-                                                            painterResource(R.drawable.ic_settings_24dp),
+                                                            Icons.Rounded.Settings,
                                                             contentDescription = stringResource(R.string.settings)
                                                         )
                                                     }
@@ -600,32 +498,15 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                     },
                                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
                                 ) { scaffoldPadding ->
-                                    AnimatedContent(
-                                        targetState = selectedScreenId, label = "ScreenTransition",
+                                    MainContentTransition(
+                                        selectedScreenId = selectedScreenId,
+                                        stargazersViewModel = stargazersViewModel,
+                                        fabController = fabController,
                                         modifier = Modifier
                                             .padding(scaffoldPadding)
-                                            .fillMaxSize(),
-                                        transitionSpec = {
-                                            (fadeIn(tween(300)) + scaleIn(
-                                                initialScale = 0.95f,
-                                                animationSpec = tween(300)
-                                            )).togetherWith(
-                                                fadeOut(tween(300)) + scaleOut(
-                                                    targetScale = 1.05f,
-                                                    animationSpec = tween(300)
-                                                )
-                                            )
-                                        }
-                                    ) { targetId ->
-                                        LaunchedEffect(targetId) { fabController.hideFab() }
-                                        ContentArea(
-                                            selectedItemId = targetId,
-                                            stargazersViewModel = stargazersViewModel,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
+                                            .fillMaxSize()
+                                    )
                                 }
-
                                 if (scrimAlpha > 0f) {
                                     Box(
                                         modifier = Modifier
@@ -644,7 +525,6 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                             }
                         }
                     }
-
                     AnimatedVisibility(
                         visible = showSettingsSheet,
                         enter = fadeIn(tween(400)),
@@ -652,7 +532,6 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                         modifier = Modifier.zIndex(100f)
                     ) {
                         val animatedVisibilityScope = this
-
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -688,6 +567,11 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                 tonalElevation = 6.dp,
                                 shadowElevation = 8.dp
                             ) {
+                                LaunchedEffect(showSettingsSheet) {
+                                    if (showSettingsSheet) {
+                                        settingsViewModel.refreshDeveloperMode()
+                                    }
+                                }
                                 SettingsSheetContent(
                                     modifier = Modifier.padding(
                                         top = WindowInsets.systemBars.asPaddingValues()
@@ -743,256 +627,98 @@ fun MainAppStructure(isExpandedScreen: Boolean = false) {
                                         )
                                     },
                                     onLanguageConfirm = { settingsViewModel.onLanguageDialogConfirm() },
-                                    onLanguageDismiss = { settingsViewModel.onLanguageDialogDismiss() }
+                                    onLanguageDismiss = { settingsViewModel.onLanguageDialogDismiss() },
+                                    onTemperatureUnitChange = { unit -> settingsViewModel.updateTemperatureUnit(unit) },
+                                    onDeveloperOptionsClick = { settingsViewModel.showDeveloperOptionsDialog() },
+                                    onDismissDeveloperOptionsDialog = { settingsViewModel.dismissDeveloperOptionsDialog() },
+                                    onShowLogcatClick = { settingsViewModel.showLogcatDialog() },
+                                    onDismissLogcatDialog = { settingsViewModel.dismissLogcatDialog() }
                                 )
                             }
                         }
                     }
-                }
-
-            }
-        }
-    }
-}
-
-@Composable
-fun SettingsSheetContent(
-    state: SettingsUiState,
-    onTotalDurationChange: (Float) -> Unit,
-    onNoiseDurationChange: (Float) -> Unit,
-    onBWNoiseDurationChange: (Float) -> Unit,
-    onHorizontalDurationChange: (Float) -> Unit,
-    onVerticalDurationChange: (Float) -> Unit,
-    onGithubTokenChange: (String) -> Unit,
-    onSaveGithubToken: () -> Unit,
-    onClearGithubToken: () -> Unit,
-    onAboutClick: () -> Unit,
-    onCloseClick: () -> Unit,
-    onLanguagePreferenceClick: () -> Unit,
-    onLanguageSelected: (Locale?) -> Unit,
-    onLanguageConfirm: () -> Unit,
-    onLanguageDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column {
-        TopAppBar(
-            title = {
-                Text(
-                    text = stringResource(R.string.settings),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-            },
-            actions = {
-                IconButton(onClick = onAboutClick) {
-                    Icon(
-                        painterResource(R.drawable.ic_info_24dp),
-                        contentDescription = stringResource(R.string.about_app)
-                    )
-                }
-                IconButton(onClick = onCloseClick) {
-                    Icon(
-                        painterResource(R.drawable.ic_close_24dp),
-                        contentDescription = "Close"
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent
-            )
-        )
-        SettingsScreen(
-            state = state,
-            onTotalDurationChange = onTotalDurationChange,
-            onNoiseDurationChange = onNoiseDurationChange,
-            onBWNoiseDurationChange = onBWNoiseDurationChange,
-            onHorizontalDurationChange = onHorizontalDurationChange,
-            onVerticalDurationChange = onVerticalDurationChange,
-            onGithubTokenChange = onGithubTokenChange,
-            onSaveGithubToken = onSaveGithubToken,
-            onClearGithubToken = onClearGithubToken,
-            onLanguagePreferenceClick = onLanguagePreferenceClick,
-            onLanguageSelected = onLanguageSelected,
-            onLanguageConfirm = onLanguageConfirm,
-            onLanguageDismiss = onLanguageDismiss,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun AppBottomNavigation(
-    directItems: List<MenuItemData>,
-    selectedItemId: String,
-    onItemClick: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    HorizontalFloatingToolbar(
-        modifier = modifier.shadow(5.dp, shape = MaterialTheme.shapes.extraLarge),
-        expanded = true,
-    ) {
-        directItems.forEach { item ->
-            val isSelected = item.id == selectedItemId
-            Surface(
-                onClick = { onItemClick(item.id) },
-                shape = CircleShape,
-                color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = item.iconResId),
-                        contentDescription = stringResource(item.titleResId),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    AnimatedVisibility(
-                        visible = isSelected,
-                        enter = expandHorizontally() + fadeIn(),
-                        exit = shrinkHorizontally() + fadeOut()
-                    ) {
-                        Row {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(item.titleResId),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
                     }
                 }
             }
         }
-
-        val isMoreSelected = selectedItemId == MORE_ITEM_ID
-        IconButton(
-            onClick = { onItemClick(MORE_ITEM_ID) },
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = if (isMoreSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                contentColor = if (isMoreSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_more_horiz_24dp),
-                contentDescription = stringResource(R.string.more),
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoreBottomSheetContent(
-    menuItems: List<MenuItemData?>,
-    currentSelectedScreenId: String?,
-    onItemClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+private fun MainTopBarActions(
+    toolsTooltipState: TooltipState,
+    gamesTooltipState: TooltipState
 ) {
-    Column(modifier = modifier.padding(vertical = 4.dp)) {
-        menuItems.forEachIndexed { index, item ->
-            val position = when {
-                menuItems.size == 1 -> CardPosition.SINGLE
-                index == 0 -> CardPosition.TOP
-                index == menuItems.lastIndex -> CardPosition.BOTTOM
-                else -> CardPosition.MIDDLE
-            }
-            val selectedCardCorners = CardPosition.SINGLE
-            if (item != null) {
-                val isSelected = item.id == currentSelectedScreenId
-                CustomCardItem(
-                    position = if (isSelected) selectedCardCorners else position,
-                    title = stringResource(item.titleResId),
-                    icon = item.iconResId,
-                    colors = if (isSelected)
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    else
-                        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    onClick = { onItemClick(item.id) }
-                )
-            }
+    val context = LocalContext.current
+    val showToolsTooltip = remember { !AppPrefs.isToolsTooltipShown(context) }
+    LaunchedEffect(toolsTooltipState.isVisible) {
+        if (toolsTooltipState.isVisible) {
+            AppPrefs.setToolsTooltipShown(context, true)
         }
     }
-}
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-@Composable
-fun ContentArea(
-    selectedItemId: String?,
-    stargazersViewModel: StargazersViewModel,
-    modifier: Modifier = Modifier
-) {
-    when (selectedItemId) {
-        "tools" -> ConvertersScreen(modifier = modifier)
-        "power_menu" -> PowerMenuScreen(modifier = modifier)
-        "share_files" -> ShareScreen(modifier = modifier)
-        "app_list" -> AppListScreen()
-        "stargazers" -> StargazersScreen(viewModel = stargazersViewModel)
-        "about_device" -> DeviceInfoScreen(modifier = modifier)
-        "battery" -> BatteryInfoScreen(modifier = modifier)
-        "display" -> DisplayInfoScreen(modifier = modifier)
-        "network" -> NetworkInfoScreen(modifier = modifier)
-        "storage" -> StorageScreen(modifier = modifier)
-        "ram" -> RAMScreen(modifier = modifier)
-        else -> {
-            Column(
-                modifier = modifier
-                    .padding(16.dp)
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Select an option from the bottom bar.")
-            }
+    IconButton(
+        modifier = Modifier.tooltip(
+            state = toolsTooltipState,
+            title = "Tools is now here!",
+            initialVisibility = showToolsTooltip
+        ),
+        onClick = {
+            val intent = Intent(context, ConvertersActivity::class.java)
+            context.startActivity(intent)
         }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_build_24dp),
+            contentDescription = stringResource(R.string.tools)
+        )
     }
-}
-
-@Composable
-fun CordItem(
-    label: String,
-    value: Float,
-    position: CordPosition
-) {
-    val largeCornerRadius = 24.dp
-    val smallCornerRadius = 4.dp
-
-    val shape = when (position) {
-        CordPosition.START -> RoundedCornerShape(topStart = largeCornerRadius, topEnd = smallCornerRadius, bottomStart = largeCornerRadius, bottomEnd = smallCornerRadius)
-        CordPosition.MIDDLE -> RoundedCornerShape(smallCornerRadius)
-        CordPosition.END -> RoundedCornerShape(topStart = smallCornerRadius, topEnd = largeCornerRadius, bottomStart = smallCornerRadius, bottomEnd = largeCornerRadius)
-    }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = shape,
-            modifier = Modifier.padding(bottom = 8.dp, start = 2.dp, end = 2.dp)
-        ) {
-            Text(
-                text = value.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-            )
+    IconButton(
+        modifier = Modifier.tooltip(
+            state = gamesTooltipState,
+            title = "Coming soon...",
+            initialVisibility = false
+        ),
+        onClick = {
+            gamesTooltipState.show()
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.secondary,
+    ) {
+        Icon(
+            Icons.Rounded.Games,
+            contentDescription = "Mini Games"
         )
     }
 }
-
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Composable
+private fun MainContentTransition(
+    selectedScreenId: String,
+    stargazersViewModel: StargazersViewModel,
+    fabController: FabController,
+    modifier: Modifier = Modifier
+) {
+    AnimatedContent(
+        targetState = selectedScreenId,
+        label = "ScreenTransition",
+        modifier = modifier,
+        transitionSpec = {
+            (fadeIn(tween(300)) + scaleIn(
+                initialScale = 0.95f,
+                animationSpec = tween(300)
+            )).togetherWith(
+                fadeOut(tween(300)) + scaleOut(
+                    targetScale = 1.05f,
+                    animationSpec = tween(300)
+                )
+            )
+        }
+    ) { targetId ->
+        LaunchedEffect(targetId) { fabController.hideFab() }
+        ContentArea(
+            selectedItemId = targetId,
+            stargazersViewModel = stargazersViewModel,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Preview(showBackground = true, name = "Main App Preview")
 @Composable

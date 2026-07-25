@@ -25,6 +25,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "OST Tools"
-include(":app")
-include(":wear-app")
- 
+include(":app", ":wear-app", ":core")

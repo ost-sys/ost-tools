@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.applist
-
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -11,7 +10,6 @@ import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import java.util.Locale
 import kotlin.math.abs
-
 suspend fun getInstalledApps(context: Context): List<AppInfo> = withContext(Dispatchers.IO) {
     val pm = context.packageManager
     val packages = try {
@@ -20,9 +18,7 @@ suspend fun getInstalledApps(context: Context): List<AppInfo> = withContext(Disp
         Log.e("AppListUtils", "Failed to get installed applications", e)
         emptyList()
     }
-
     val appList = mutableListOf<AppInfo>()
-
     packages.forEach { appInfo ->
         try {
             val appName = pm.getApplicationLabel(appInfo).toString()
@@ -33,12 +29,9 @@ suspend fun getInstalledApps(context: Context): List<AppInfo> = withContext(Disp
                 Log.w("AppListUtils", "Failed to load icon for $packageName", e)
                 null
             }
-
             val sourceDir = appInfo.sourceDir ?: ""
             var sizeBytes = 0L
-
             val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-
             if (sourceDir.isNotEmpty()) {
                 try {
                     val file = File(sourceDir)
@@ -55,21 +48,17 @@ suspend fun getInstalledApps(context: Context): List<AppInfo> = withContext(Disp
             } else {
                 Log.w("AppListUtils", "SourceDir is empty for $packageName. Size set to 0.")
             }
-
             appList.add(AppInfo(appName, packageName, icon, sizeBytes, sourceDir, isSystemApp))
-
         } catch (e: PackageManager.NameNotFoundException) {
             Log.w("AppListUtils", "NameNotFoundException processing package (maybe uninstalled?): ${appInfo.packageName}", e)
         } catch (e: Exception) {
             Log.e("AppListUtils", "Error processing package: ${appInfo.packageName}", e)
         }
     }
-
     appList.sortBy { it.name.lowercase() }
     Log.d("AppListUtils", "Found ${appList.size} applications.")
     appList
 }
-
 fun formatBytes(bytes: Long): String {
     val absB = if (bytes == Long.MIN_VALUE) Long.MAX_VALUE else abs(bytes)
     if (absB < 1024) {

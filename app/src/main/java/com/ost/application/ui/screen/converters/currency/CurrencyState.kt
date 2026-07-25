@@ -1,7 +1,5 @@
 package com.ost.application.ui.screen.converters.currency
-
 import androidx.compose.runtime.Stable
-
 enum class NetworkStatus {
     LOADING,
     CONNECTED,
@@ -13,7 +11,6 @@ data class TargetCurrencyInfo(
     val code: String,
     val result: String? = null
 )
-
 @Stable
 data class CurrencyConverterUiState(
     val networkStatus: NetworkStatus = NetworkStatus.LOADING,

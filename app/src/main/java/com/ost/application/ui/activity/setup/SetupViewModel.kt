@@ -1,5 +1,4 @@
 package com.ost.application.ui.activity.setup
-
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
@@ -11,6 +10,8 @@ import com.ost.application.R
 import com.ost.application.ui.screen.settings.PrefKeys
 import com.ost.application.ui.screen.settings.SettingsUiState
 import com.topjohnwu.superuser.Shell
+import com.ost.application.core.settings.TemperatureUnit
+import com.ost.application.settings.PhoneTemperatureUnitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,38 +20,41 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.xmlpull.v1.XmlPullParser
 import java.util.Locale
-
+import com.ost.application.core.locale.LocaleHelper
+import com.ost.application.core.settings.sync.SettingsSyncClient
 class SetupViewModel(application: Application) : AndroidViewModel(application) {
-
     private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(application)
     private val githubPrefs: SharedPreferences = application.getSharedPreferences("github_prefs", Context.MODE_PRIVATE)
-
+    private val temperatureRepository = PhoneTemperatureUnitRepository(application, viewModelScope)
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
-
     private val _isRootGranted = MutableStateFlow(false)
     val isRootGranted: StateFlow<Boolean> = _isRootGranted.asStateFlow()
-
     init {
         loadSettings()
         loadSupportedLocales()
         checkInitialRootStatus()
+        viewModelScope.launch {
+            temperatureRepository.unit.collect { unit ->
+                _uiState.update { it.copy(temperatureUnit = unit) }
+            }
+        }
     }
-
+    fun updateTemperatureUnit(unit: TemperatureUnit) {
+        temperatureRepository.updateUnit(unit)
+    }
     private fun checkInitialRootStatus() {
         viewModelScope.launch(Dispatchers.IO) {
             val isRoot = Shell.isAppGrantedRoot() == true
             _isRootGranted.update { isRoot }
         }
     }
-
     fun requestRootAccess() {
         viewModelScope.launch(Dispatchers.IO) {
             val isRoot = Shell.getShell().isRoot
             _isRootGranted.update { isRoot }
         }
     }
-
     private fun loadSettings() {
         _uiState.update { currentState ->
             currentState.copy(
@@ -63,7 +67,6 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
     }
-
     private fun loadSupportedLocales() {
         val context = getApplication<Application>()
         val locales = mutableListOf<Locale>()
@@ -84,36 +87,57 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         }
         _uiState.update { it.copy(supportedLocales = locales) }
     }
-
     fun updateTotalDuration(newValue: Int) {
         prefs.edit { putInt(PrefKeys.TOTAL_DURATION, newValue) }
         _uiState.update { it.copy(totalDuration = newValue) }
     }
-
     fun updateNoiseDuration(newValue: Int) {
         prefs.edit { putInt(PrefKeys.NOISE_DURATION, newValue) }
         _uiState.update { it.copy(noiseDuration = newValue) }
     }
-
     fun updateBlackWhiteNoiseDuration(newValue: Int) {
         prefs.edit { putInt(PrefKeys.BLACK_WHITE_NOISE_DURATION, newValue) }
         _uiState.update { it.copy(blackWhiteNoiseDuration = newValue) }
     }
-
     fun updateHorizontalDuration(newValue: Int) {
         prefs.edit { putInt(PrefKeys.HORIZONTAL_DURATION, newValue) }
         _uiState.update { it.copy(horizontalDuration = newValue) }
     }
-
     fun updateVerticalDuration(newValue: Int) {
         prefs.edit { putInt(PrefKeys.VERTICAL_DURATION, newValue) }
         _uiState.update { it.copy(verticalDuration = newValue) }
     }
-
+    private val syncClient = SettingsSyncClient(application)
+    fun onLanguagePreferenceClick() {
+        _uiState.update {
+            it.copy(
+                isLanguageDialogVisible = true,
+                selectedLanguageInDialog = it.currentAppliedLocale
+            )
+        }
+    }
+    fun onLanguageSelectedInDialog(locale: Locale?) {
+        _uiState.update { it.copy(selectedLanguageInDialog = locale) }
+    }
+    fun onLanguageDialogDismiss() {
+        _uiState.update { it.copy(isLanguageDialogVisible = false) }
+    }
+    fun onLanguageDialogConfirm() {
+        val selectedLocale = _uiState.value.selectedLanguageInDialog
+        LocaleHelper.setLocale(selectedLocale)
+        _uiState.update {
+            it.copy(
+                isLanguageDialogVisible = false,
+                currentAppliedLocale = selectedLocale ?: LocaleHelper.getSystemLocale()
+            )
+        }
+        viewModelScope.launch {
+            syncClient.pushLanguageTag(LocaleHelper.getCurrentLanguageTag())
+        }
+    }
     fun updateGithubToken(token: String) {
         _uiState.update { it.copy(githubToken = token) }
     }
-
     fun saveAllSettings() {
         val state = _uiState.value
         prefs.edit {
@@ -123,7 +147,6 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
                 .putInt(PrefKeys.HORIZONTAL_DURATION, state.horizontalDuration)
                 .putInt(PrefKeys.VERTICAL_DURATION, state.verticalDuration)
         }
-
         githubPrefs.edit { putString("token", state.githubToken) }
     }
 }

@@ -1,5 +1,4 @@
 package com.ost.application.appmanager
-
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -47,7 +46,6 @@ import androidx.wear.compose.material3.rememberRevealState
 import coil.compose.rememberAsyncImagePainter
 import com.ost.application.R
 import kotlinx.coroutines.launch
-
 @OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun AppManagerScreen(
@@ -57,21 +55,17 @@ fun AppManagerScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val uninstallEvent by UninstallBroadcastReceiver.uninstallEvent.collectAsState()
-
     LaunchedEffect(Unit) {
         viewModel.loadApps(context.packageManager)
     }
-
     LaunchedEffect(uninstallEvent) {
         if (uninstallEvent > 0) {
             viewModel.loadApps(context.packageManager)
         }
     }
-
     AppScaffold(timeText = { TimeText() }) {
         key(uiState.showSystemApps) {
             val listState = rememberScalingLazyListState()
-
             ScreenScaffold(scrollState = listState) {
                 if (uiState.isLoading) {
                     Box(
@@ -111,23 +105,19 @@ fun AppManagerScreen(
                                 }
                             }
                         }
-
                         val filteredApps = if (uiState.showSystemApps) {
                             uiState.apps
                         } else {
                             uiState.apps.filter { !it.isSystemApp }
                         }
-
                         items(filteredApps, key = { it.packageName }) { app ->
                             val revealState = rememberRevealState()
                             val scope = rememberCoroutineScope()
-
                             fun snapBack() {
                                 scope.launch {
                                     revealState.snapTo(androidx.wear.compose.material3.RevealValue.Covered)
                                 }
                             }
-
                             SwipeToReveal(
                                 revealState = revealState,
                                 secondaryAction = {

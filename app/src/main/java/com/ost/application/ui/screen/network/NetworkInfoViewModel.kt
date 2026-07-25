@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.network
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
@@ -40,13 +39,11 @@ import java.net.InetAddress
 import java.net.NetworkInterface
 import java.net.URL
 import java.util.Enumeration
-
 object NetworkType {
     const val WIFI = 1
     const val MOBILE = 2
     const val NONE = 0
 }
-
 @Stable
 data class NetworkInfoUiState(
     val carrierName: String = "Loading...",
@@ -59,28 +56,20 @@ data class NetworkInfoUiState(
     val isLoadingIp: Boolean = true,
     val permissionGranted: Boolean = true
 )
-
 sealed class NetworkInfoAction {
     data class RequestPermission(val permission: String) : NetworkInfoAction()
     data class ShowToast(val messageResId: Int) : NetworkInfoAction()
 }
-
-
 class NetworkInfoViewModel(application: Application) : AndroidViewModel(application) {
-
     private val _uiState = MutableStateFlow(NetworkInfoUiState())
     val uiState: StateFlow<NetworkInfoUiState> = _uiState.asStateFlow()
-
     private val _action = Channel<NetworkInfoAction>(Channel.BUFFERED)
     val action = _action.receiveAsFlow()
-
     private var periodicUpdateJob: Job? = null
     private var _originalIpAddress: String = ""
-
     init {
         checkPermissions()
     }
-
     private fun checkPermissions() {
         val context = getApplication<Application>()
         val granted = ActivityCompat.checkSelfPermission(
@@ -88,24 +77,20 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
         ) == PackageManager.PERMISSION_GRANTED
         _uiState.update { it.copy(permissionGranted = granted) }
     }
-
     fun requestPermission() {
         viewModelScope.launch {
             _action.send(NetworkInfoAction.RequestPermission(Manifest.permission.READ_PHONE_STATE))
         }
     }
-
     fun loadInitialDataAndStartUpdates() {
         checkPermissions()
         loadIpAddress()
         startPeriodicUpdates()
     }
-
     fun stopUpdates() {
         periodicUpdateJob?.cancel()
         periodicUpdateJob = null
     }
-
     private fun startPeriodicUpdates() {
         stopUpdates()
         periodicUpdateJob = viewModelScope.launch(Dispatchers.Default) {
@@ -115,16 +100,13 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
-
     private fun loadIpAddress() {
         if (!_uiState.value.isLoadingIp && _originalIpAddress.isNotEmpty()) return
-
         _uiState.update { it.copy(isLoadingIp = true, ipAddressDisplay = "Loading...") }
         viewModelScope.launch(Dispatchers.IO) {
             val context = getApplication<Application>()
             val connStatus = getConnectivityStatus(context)
             var ipResult = getString(R.string.not_connected_to_internet)
-
             ipResult = when (connStatus) {
                 NetworkType.WIFI -> {
                     val localIp = getLocalIpAddress(context)
@@ -141,9 +123,7 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
                 NetworkType.MOBILE -> getMobileIpAddress() ?: getString(R.string.failed_to_obtain_ip)
                 else -> getString(R.string.not_connected_to_internet)
             }
-
             _originalIpAddress = ipResult
-
             withContext(Dispatchers.Main) {
                 _uiState.update {
                     it.copy(
@@ -154,8 +134,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
-
-
     private suspend fun updateNetworkDisplayInfo() {
         val context = getApplication<Application>()
         val connStatus = getConnectivityStatus(context)
@@ -164,7 +142,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
         var carrier = getString(R.string.sim_card_is_not_detected)
         var country = "??"
         var netType = getString(R.string.unknown)
-
         if (_uiState.value.permissionGranted) {
             val manager = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
             if (manager != null) {
@@ -180,8 +157,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
         } else {
             netType = getString(R.string.grant_permission_to_continue)
         }
-
-
         withContext(Dispatchers.Main) {
             _uiState.update {
                 it.copy(
@@ -194,7 +169,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
-
     fun toggleIpMasking() {
         val currentMaskedState = _uiState.value.isIpMasked
         val newMaskedState = !currentMaskedState
@@ -205,18 +179,14 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             )
         }
     }
-
     private fun maskIp(ip: String): String {
         return ip.replace(Regex("[0-9]"), "*")
     }
-
     private fun getString(resId: Int): String {
         return getApplication<Application>().getString(resId)
     }
-
     private fun getConnectivityStatus(context: Context): Int {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return NetworkType.NONE
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val network = cm.activeNetwork ?: return NetworkType.NONE
             val capabilities = cm.getNetworkCapabilities(network) ?: return NetworkType.NONE
@@ -236,7 +206,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
-
     private fun getConnectivityStatusString(connStatus: Int): String {
         return when (connStatus) {
             NetworkType.WIFI -> getString(R.string.wifi_enabled)
@@ -244,7 +213,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             else -> getString(R.string.not_connected_to_internet)
         }
     }
-
     private fun getConnectivityStatusIconRes(connStatus: Int): Int {
         return when (connStatus) {
             NetworkType.WIFI -> R.drawable.ic_wifi_24dp
@@ -252,7 +220,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             else -> R.drawable.ic_no_wifi_24dp
         }
     }
-
     @SuppressLint("MissingPermission", "HardwareIds")
     private fun getLocalIpAddress(context: Context): String {
         return try {
@@ -265,7 +232,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             getString(R.string.failed_to_obtain_ip)
         }
     }
-
     private suspend fun getPublicIp(): String = withContext(Dispatchers.IO) {
         try {
             val url = URL("https://api64.ipify.org?format=json")
@@ -273,7 +239,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             connection.requestMethod = "GET"
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
-
             if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                 val reader = BufferedReader(InputStreamReader(connection.getInputStream()))
                 val response = reader.readText()
@@ -290,8 +255,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             getString(R.string.failed_to_obtain_ip)
         }
     }
-
-
     private fun getMobileIpAddress(): String? {
         try {
             val interfaces: Enumeration<NetworkInterface> = NetworkInterface.getNetworkInterfaces()
@@ -302,7 +265,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
                         networkInterface.displayName.contains("ccmni", ignoreCase = true) ||
                         networkInterface.displayName.contains("radio", ignoreCase = true) ||
                         networkInterface.displayName.contains("uwbr", ignoreCase = true)) {
-
                         val addresses: Enumeration<InetAddress> = networkInterface.inetAddresses
                         while (addresses.hasMoreElements()) {
                             val inetAddress = addresses.nextElement()
@@ -318,7 +280,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
         }
         return null
     }
-
     @SuppressLint("MissingPermission")
     private fun getNetworkTypeStringWithLogging(manager: TelephonyManager): String {
         val networkTypeInt: Int = try {
@@ -330,7 +291,6 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
             Log.e("NetworkInfoViewModel", "Exception reading network type", e)
             return getString(R.string.error)
         }
-
         return when (networkTypeInt) {
             TelephonyManager.NETWORK_TYPE_LTE -> "LTE"
             TelephonyManager.NETWORK_TYPE_HSPAP -> "HSPA+"

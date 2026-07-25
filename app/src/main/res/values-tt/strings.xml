@@ -1,7 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="http://schemas.android.com/tools" ns0:ignore="MissingTranslation">
     <string name="settings">Көйләүләр</string>
     <string name="about_app">Программа турында</string>
-    <string name="version">Версия</string>
+    <string name="version_s">Версия</string>
     <string name="information">Мәгълүмат</string>
     <string name="checking_for_updates">Яңартулар тикшерелә…</string>
     <string name="error_getting_version_information">Версия мәгълүматын алуда хата</string>
@@ -174,7 +175,6 @@
     <string name="conversion_rate_error">Курс мәгълүматы юк</string>
     <string name="more">Тагын</string>
     <string name="devices">Җайланмалар</string>
-    <string name="make_discoverable">Күренерлек итү</string>
     <string name="resolving">Чишелә %1$s...</string>
     <string name="starting_receiver">Кабул итүче кабызыла...</string>
     <string name="receive_error">Кабул итү хатасы: %1$s</string>
@@ -207,7 +207,6 @@
     <string name="failed_to_launch">%1$s эшләтеп булмады</string>
     <string name="is_not_a_startup_application">%1$s кушымтасын башлап булмый</string>
     <string name="error_loading_app_list">Кушымталар исемлеген йөкләү хатасы: %1$s</string>
-    <string name="unknown_error">Билгесез хата</string>
     <string name="no_apps_found">Кушымталар табылмады.</string>
     <string name="no_non_system_apps_found">Системаныкы булмаган кушымталар табылмады.</string>
     <string name="delete">Бетерү</string>
@@ -223,7 +222,6 @@
     <string name="failed_to_launch_uninstall">Бетерүне башлап булмады</string>
     <string name="uninstall_error">Бетерергә тырышу хатасы</string>
     <string name="loading">Йөкләнә...</string>
-    <string name="searching_for_devices">Җайланмалар эзләнә…</string>
     <string name="waiting_for_resolution">Чишелеш көтелә…</string>
     <string name="unknown_device">Билгесез җайланма</string>
     <string name="error_connection_lost_during_send">Хата: Җибәрү вакытында тоташу өзелде</string>
@@ -253,7 +251,6 @@
     <string name="error_no_download_dir">Хата: Йөкләмәләр директориясе юк</string>
     <string name="find_devices">Җайланмаларны эзләү</string>
     <string name="stop_search">Эзләүне туктату</string>
-    <string name="press_find_or_enable_receiving">"Җайланмаларны эзләү" төймәсенә басыгыз яки кабул итүне кабызыгыз</string>
     <string name="idle_status">Көтү режимы</string>
     <string name="wear_version_unknown">Билгесез</string>
     <string name="wear_update_instructions_button">Яңарту буенча күрсәтмәләр</string>
@@ -318,7 +315,6 @@
     <string name="edit_currency">Валютаны үзгәртү</string>
     <string name="github_login">GitHub логин</string>
     <string name="enter_your_personal_access_token_to_view_your_repositories">Репозиторийларыгызны карау өчен шәхси керү токеныгызны (Personal Access Token) кертегез</string>
-    <string name="token">Токен</string>
     <string name="personal_access_token">Шәхси керү токены</string>
     <string name="save_refresh">Саклау һәм яңарту</string>
     <string name="exit">Чыгу</string>

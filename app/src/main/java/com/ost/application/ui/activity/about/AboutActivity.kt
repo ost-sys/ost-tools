@@ -2,9 +2,7 @@
     ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class,
     ExperimentalMaterial3ExpressiveApi::class
 )
-
 package com.ost.application.ui.activity.about
-
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -30,8 +28,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
@@ -51,6 +47,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -79,7 +77,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -104,6 +101,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.model.rememberMarkdownState
 import com.ost.application.BuildConfig
 import com.ost.application.R
 import com.ost.application.ui.components.ExpressiveShapeBackground
@@ -112,15 +112,10 @@ import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
 import com.ost.application.ui.components.SectionTitle
 import com.ost.application.util.toast
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
-
 class AboutActivity : ComponentActivity() {
     private val viewModel: AboutViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -131,14 +126,12 @@ class AboutActivity : ComponentActivity() {
         }
     }
 }
-
 private data class InfoCardData(
     val iconRes: Int,
     val title: String,
     val summary: String?,
     val onClick: () -> Unit
 )
-
 @Composable
 fun AboutScreen(
     viewModel: AboutViewModel,
@@ -150,60 +143,43 @@ fun AboutScreen(
     val launchers = rememberActionLaunchers(viewModel = viewModel)
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
-
-    val devicesList = remember(context) {
-        listOf(
-            InfoCardData(
-                R.drawable.ic_iphone_24dp,
-                "iPhone 13 mini",
-                "MLK13ZA/A",
-                viewModel::onIphoneClick
-            ),
-            InfoCardData(
-                R.drawable.ic_mobile_24dp,
-                "Galaxy S10",
-                "SM-G937F",
-                viewModel::onAndroidPhoneClick
-            ),
-            InfoCardData(
-                R.drawable.ic_desktop_windows_24dp,
-                context.getString(R.string.computer),
-                context.getString(R.string.information_pc),
-                viewModel::onPcClick
-            ),
-            InfoCardData(
-                R.drawable.ic_laptop_mac_24dp,
-                "MacBook Air",
-                "Apple M4, MC6T4PA/A, 16/256",
-                viewModel::onLaptopClick
-            ),
-            InfoCardData(
-                R.drawable.ic_watch_24dp,
-                "Galaxy Watch 7",
-                "SM-L300",
-                viewModel::onWatchClick
-            ),
-            InfoCardData(
-                R.drawable.ic_galaxy_buds_24dp,
-                "Galaxy Buds 2",
-                "SM-R177",
-                viewModel::onGalaxyBudsClick
-            ),
-            InfoCardData(
-                R.drawable.ic_airpods_pro_24dp,
-                "AirPods Pro (2nd generation)",
-                "A2698",
-                viewModel::onAirPodsClick
-            )
+    val devicesList = listOf(
+        InfoCardData(
+            R.drawable.ic_iphone_notch_24dp,
+            "iPhone 13 mini",
+            "MLK13ZA/A",
+            viewModel::onIphoneClick
+        ),
+        InfoCardData(
+            R.drawable.ic_desktop_windows_24dp,
+            stringResource(R.string.computer),
+            stringResource(R.string.information_pc),
+            viewModel::onPcClick
+        ),
+        InfoCardData(
+            R.drawable.ic_macbook_24dp,
+            "MacBook Air",
+            "Apple M4, MC6T4PA/A, 16/256",
+            viewModel::onLaptopClick
+        ),
+        InfoCardData(
+            R.drawable.ic_watch_24dp,
+            "Galaxy Watch 7",
+            "SM-L300",
+            viewModel::onWatchClick
+        ),
+        InfoCardData(
+            R.drawable.ic_airpods_pro_24dp,
+            "AirPods Pro 2 (Lightning Case)",
+            "A2698",
+            viewModel::onAirPodsClick
         )
-    }
-
-    LaunchedEffect(key1 = viewModel.action) {
+    )
+    LaunchedEffect(key1 = Unit) {
         viewModel.action.onEach { action ->
             handleAboutAction(action, context, launchers)
         }.launchIn(this)
     }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -213,7 +189,6 @@ fun AboutScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -273,9 +248,7 @@ fun AboutScreen(
                 viewModel = viewModel,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-
             SectionTitle(stringResource(R.string.current_devices))
-
             devicesList.forEachIndexed { index, item ->
                 val position = when {
                     devicesList.size == 1 -> CardPosition.SINGLE
@@ -295,7 +268,6 @@ fun AboutScreen(
             }
         }
     }
-
     UpdateConfirmationDialog(
         show = state.showUpdateConfirmDialog,
         latestVersion = state.latestPhoneVersionName,
@@ -303,33 +275,28 @@ fun AboutScreen(
         onDismiss = viewModel::dismissUpdateConfirmation,
         onConfirm = viewModel::startDownload
     )
-
     DownloadProgressDialog(
         show = state.showDownloadDialog,
         progress = state.downloadProgress,
         onCancel = viewModel::cancelDownload
     )
-
     ChangelogDialog(
         show = state.showChangelogDialog,
         version = state.latestPhoneVersionName ?: state.currentVersionName,
         changelog = state.changelog,
         onDismiss = viewModel::dismissChangelogDialog
     )
-
     WearUpdateInstructionsDialog(
         show = state.showWearUpdateInstructionsDialog,
         wearApkUrl = state.latestWearApkUrl,
         onDismiss = viewModel::dismissWearUpdateInstructions,
         onDownloadClick = viewModel::openWearApkDownloadLink
     )
-
     PcInfoDialog(
         showDialog = state.showPcInfoDialog,
         onDismiss = viewModel::dismissPcDialog
     )
 }
-
 @Composable
 fun AboutHeaderContent(
     state: AboutUiState,
@@ -337,7 +304,6 @@ fun AboutHeaderContent(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -357,15 +323,14 @@ fun AboutHeaderContent(
                     viewModel.onAppIconClick()
                 }
             )
-
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground_app),
                 contentDescription = stringResource(id = R.string.app_name),
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
-                modifier = Modifier.size(125.dp)
+                modifier = Modifier
+                    .size(75.dp)
             )
         }
-
         Text(
             text = stringResource(id = R.string.app_name),
             fontWeight = FontWeight.Bold,
@@ -373,16 +338,13 @@ fun AboutHeaderContent(
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
-
         Text(
             modifier = Modifier.alpha(0.8f),
             text = BuildConfig.APPLICATION_ID,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
-
         Spacer(modifier = Modifier.height(12.dp))
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -397,9 +359,7 @@ fun AboutHeaderContent(
                 onPhoneUpdateClick = if (state.updateState == UpdateState.AVAILABLE) viewModel::showUpdateConfirmation else null,
                 onWearUpdateClick = null
             )
-
             Spacer(modifier = Modifier.size(8.dp))
-
             AnimatedVisibility(
                 visible = state.wearNodeConnected,
                 enter = fadeIn() + slideInVertically { it / 2 },
@@ -413,10 +373,8 @@ fun AboutHeaderContent(
                             state.wearUpdateCheckState == WearUpdateCheckState.REQUESTING_INSTALLED -> stringResource(
                         R.string.checking_for_updates
                     )
-
                     else -> stringResource(R.string.wear_version_unknown)
                 }
-
                 VersionInfoBadge(
                     isWearBadge = true,
                     versionText = wearVersionDisplay,
@@ -433,28 +391,13 @@ fun AboutHeaderContent(
                 )
             }
         }
-
         Spacer(modifier = Modifier.height(24.dp))
-
         UnifiedSocialLinks(onLinkClick = viewModel::onSocialClick)
     }
 }
-
 @Composable
 fun PcInfoDialog(showDialog: Boolean, onDismiss: () -> Unit) {
-    AnimatedVisibility(
-        visible = showDialog,
-        enter = scaleIn(animationSpec = tween(durationMillis = 300)) + fadeIn(
-            animationSpec = tween(
-                durationMillis = 200
-            )
-        ),
-        exit = scaleOut(animationSpec = tween(durationMillis = 300)) + fadeOut(
-            animationSpec = tween(
-                durationMillis = 200
-            )
-        )
-    ) {
+    if (showDialog) {
         AlertDialog(
             icon = {
                 Box(
@@ -481,7 +424,6 @@ fun PcInfoDialog(showDialog: Boolean, onDismiss: () -> Unit) {
         )
     }
 }
-
 @Composable
 fun PcInfoContent() {
     Column {
@@ -492,7 +434,6 @@ fun PcInfoContent() {
         PcSpecItem("${stringResource(R.string.rom)}:", "HDD 1TB\nM2_2 SATA 256GB\nSATA SSD 240 GB")
     }
 }
-
 @Composable
 fun PcSpecItem(label: String, value: String) {
     Row(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -500,18 +441,15 @@ fun PcSpecItem(label: String, value: String) {
         Text(value)
     }
 }
-
 private data class SocialLinkData(
     @DrawableRes val iconRes: Int,
     @StringRes val contentDescRes: Int,
     val url: String
 )
-
 @Composable
 fun UnifiedSocialLinks(onLinkClick: (String) -> Unit) {
     val cornerRadiusLarge = 50.dp
     val cornerRadiusMedium = 8.dp
-
     val cornerValues = remember {
         listOf(
             listOf(cornerRadiusLarge, cornerRadiusMedium, cornerRadiusMedium, cornerRadiusLarge),
@@ -521,7 +459,6 @@ fun UnifiedSocialLinks(onLinkClick: (String) -> Unit) {
             listOf(cornerRadiusMedium, cornerRadiusLarge, cornerRadiusLarge, cornerRadiusMedium)
         )
     }
-
     val socialLinks = remember {
         listOf(
             SocialLinkData(
@@ -551,9 +488,6 @@ fun UnifiedSocialLinks(onLinkClick: (String) -> Unit) {
             )
         )
     }
-
-    val scope = rememberCoroutineScope()
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
@@ -564,17 +498,11 @@ fun UnifiedSocialLinks(onLinkClick: (String) -> Unit) {
                 iconRes = linkData.iconRes,
                 contentDesc = stringResource(linkData.contentDescRes),
                 defaultCorners = cornerValues[index],
-                onClick = {
-                    scope.launch {
-                        delay(1L.milliseconds)
-                        onLinkClick(linkData.url)
-                    }
-                }
+                onClick = { onLinkClick(linkData.url) }
             )
         }
     }
 }
-
 @Composable
 fun StyledSocialButton(
     iconRes: Int,
@@ -585,25 +513,20 @@ fun StyledSocialButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-
     val shapeAnimationDuration = 100
     val colorAnimationDuration = 100
-
     val containerColor by animateColorAsState(
         targetValue = if (isPressed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
         animationSpec = tween(durationMillis = colorAnimationDuration),
         label = "ContainerColorAnimation"
     )
-
     val contentColor by animateColorAsState(
         targetValue = if (isPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.secondary,
         animationSpec = tween(durationMillis = colorAnimationDuration),
         label = "ContentColorAnimation"
     )
-
     val buttonWidth = 64.dp
     val pressedRadius = buttonWidth / 2
-
     val topStart by animateDpAsState(
         targetValue = if (isPressed) pressedRadius else defaultCorners[0],
         animationSpec = tween(shapeAnimationDuration),
@@ -624,9 +547,7 @@ fun StyledSocialButton(
         animationSpec = tween(shapeAnimationDuration),
         label = "BottomStart"
     )
-
     val finalShape = RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
-
     Surface(
         modifier = modifier.size(width = buttonWidth, height = 64.dp),
         shape = finalShape,
@@ -644,7 +565,6 @@ fun StyledSocialButton(
         }
     }
 }
-
 @Composable
 fun VersionInfoBadge(
     isWearBadge: Boolean,
@@ -662,7 +582,6 @@ fun VersionInfoBadge(
     } else {
         phoneUpdateState == UpdateState.CHECKING
     }
-
     val statusIconInfo: Pair<Int, Int>? = remember(phoneUpdateState, wearUpdateState) {
         when {
             isWearBadge && wearUpdateState == WearUpdateCheckState.AVAILABLE -> R.drawable.ic_info_24dp to R.string.wear_update_instructions_button
@@ -672,7 +591,6 @@ fun VersionInfoBadge(
             else -> null
         }
     }
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -691,7 +609,6 @@ fun VersionInfoBadge(
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(6.dp))
-
         Text(
             text = versionText,
             fontWeight = FontWeight.Medium,
@@ -700,11 +617,9 @@ fun VersionInfoBadge(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-
         if (isLoading || statusIconInfo != null) {
             Spacer(modifier = Modifier.width(8.dp))
         }
-
         if (isLoading) {
             CircularWavyProgressIndicator(modifier = Modifier.size(18.dp), color = contentColor)
         } else {
@@ -723,7 +638,6 @@ fun VersionInfoBadge(
         }
     }
 }
-
 @Composable
 fun UpdateConfirmationDialog(
     show: Boolean,
@@ -736,10 +650,20 @@ fun UpdateConfirmationDialog(
         AlertDialog(
             onDismissRequest = onDismiss,
             icon = {
-                Icon(
-                    painterResource(R.drawable.ic_download_for_offline_24dp),
-                    contentDescription = null
-                )
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    ExpressiveShapeBackground(
+                        iconSize = 64.dp,
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.ic_download_for_offline_24dp),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
             },
             title = { Text(stringResource(R.string.update_available)) },
             text = {
@@ -752,11 +676,17 @@ fun UpdateConfirmationDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    val markdownText = changelog?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.no_changelog_available)
+                    val markdownState = rememberMarkdownState(markdownText)
                     LazyColumn {
                         item {
-                            Text(
-                                changelog ?: stringResource(R.string.no_changelog_available),
-                                style = MaterialTheme.typography.bodySmall
+                            Markdown(
+                                markdownState = markdownState,
+                                typography = markdownTypography(
+                                    paragraph = MaterialTheme.typography.bodySmall,
+                                    list = MaterialTheme.typography.bodySmall
+                                )
                             )
                         }
                     }
@@ -768,14 +698,13 @@ fun UpdateConfirmationDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) {
+                Button(onClick = onDismiss) {
                     Text(stringResource(R.string.cancel))
                 }
             }
         )
     }
 }
-
 @Composable
 fun DownloadProgressDialog(
     show: Boolean,
@@ -805,7 +734,6 @@ fun DownloadProgressDialog(
         )
     }
 }
-
 @Composable
 fun ChangelogDialog(
     show: Boolean,
@@ -817,22 +745,20 @@ fun ChangelogDialog(
         AlertDialog(
             onDismissRequest = onDismiss,
             title = {
-                Text(
-                    "${
-                        stringResource(
-                            R.string.version,
-                            version
-                        )
-                    } ${BuildConfig.VERSION_NAME}"
-                )
+                Text(stringResource(R.string.version_s, version))
             },
             text = {
+                val markdownText = changelog?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.no_changelog_available)
+                val markdownState = rememberMarkdownState(markdownText)
                 LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
                     item {
-                        Text(
-                            text = changelog?.takeIf { it.isNotBlank() }
-                                ?: stringResource(R.string.no_changelog_available),
-                            style = MaterialTheme.typography.bodyMedium
+                        Markdown(
+                            markdownState = markdownState,
+                            typography = markdownTypography(
+                                paragraph = MaterialTheme.typography.bodyMedium,
+                                list = MaterialTheme.typography.bodyMedium
+                            )
                         )
                     }
                 }
@@ -845,7 +771,6 @@ fun ChangelogDialog(
         )
     }
 }
-
 @Composable
 fun WearUpdateInstructionsDialog(
     show: Boolean,
@@ -891,14 +816,12 @@ fun WearUpdateInstructionsDialog(
         )
     }
 }
-
 data class AboutActionLaunchers(
     val permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
     val activityResultLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
     val installPermissionLauncher: ManagedActivityResultLauncher<Intent, ActivityResult>,
     val storagePermissionLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>
 )
-
 @Composable
 fun rememberActionLaunchers(viewModel: AboutViewModel): AboutActionLaunchers {
     val context = LocalContext.current
@@ -907,11 +830,9 @@ fun rememberActionLaunchers(viewModel: AboutViewModel): AboutActionLaunchers {
     ) { _: Boolean ->
         viewModel.refreshPermissions()
     }
-
     val activityResultLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _: ActivityResult -> }
-
     val installPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -923,7 +844,6 @@ fun rememberActionLaunchers(viewModel: AboutViewModel): AboutActionLaunchers {
             context.toast(context.getString(R.string.install_unknown_apps_permission))
         }
     }
-
     val storagePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -935,17 +855,13 @@ fun rememberActionLaunchers(viewModel: AboutViewModel): AboutActionLaunchers {
             context.toast(context.getString(R.string.storage_permission_r))
         }
     }
-
-    return remember {
-        AboutActionLaunchers(
-            permissionLauncher = permissionLauncher,
-            activityResultLauncher = activityResultLauncher,
-            installPermissionLauncher = installPermissionLauncher,
-            storagePermissionLauncher = storagePermissionLauncher
-        )
-    }
+    return AboutActionLaunchers(
+        permissionLauncher = permissionLauncher,
+        activityResultLauncher = activityResultLauncher,
+        installPermissionLauncher = installPermissionLauncher,
+        storagePermissionLauncher = storagePermissionLauncher
+    )
 }
-
 fun handleAboutAction(
     action: AboutAction,
     context: Context,
@@ -972,11 +888,9 @@ fun handleAboutAction(
                 Log.e("AboutScreenAction", "Error launching intent: ${action.intent}", e)
             }
         }
-
         is AboutAction.RequestPermission -> {
             launchers.permissionLauncher.launch(action.permission)
         }
-
         AboutAction.RequestInstallPermission -> {
             val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
                 data = "package:${context.packageName}".toUri()
@@ -991,7 +905,6 @@ fun handleAboutAction(
                 context.toast(context.getString(R.string.error))
             }
         }
-
         AboutAction.RequestStoragePermissionLegacy -> {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                 launchers.storagePermissionLauncher.launch(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))

@@ -1,5 +1,4 @@
 package com.ost.application.ui.components
-
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -41,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ost.application.R
 import kotlinx.coroutines.delay
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePickerDialog(
@@ -85,9 +83,7 @@ fun MorphingConvertButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
-
     var isSuccess by remember { mutableStateOf(false) }
-
     LaunchedEffect(isSuccess) {
         if (isSuccess) {
             delay(600)
@@ -116,7 +112,6 @@ fun MorphingConvertButton(
         animationSpec = tween(durationMillis = 200),
         label = "corner"
     )
-
     val flexFontFamily = remember(animatedWeight, animatedWidth) {
         FontFamily(
             Font(
@@ -128,7 +123,6 @@ fun MorphingConvertButton(
             )
         )
     }
-
     Button(
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)

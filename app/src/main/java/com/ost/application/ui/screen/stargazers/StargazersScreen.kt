@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.stargazers
-
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -27,6 +26,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Book
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,7 +71,6 @@ import com.ost.application.ui.state.FabSize
 import com.ost.application.ui.state.LocalFabController
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-
 @Composable
 fun StargazersScreen(
     viewModel: StargazersViewModel
@@ -79,11 +81,9 @@ fun StargazersScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val context = LocalContext.current
-
     BackHandler(enabled = selectedRepo != null) {
         viewModel.clearSelection()
     }
-
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedContent(
             targetState = when {
@@ -124,7 +124,6 @@ fun StargazersScreen(
         }
     }
 }
-
 @Composable
 fun LoginScreen(
     isLoading: Boolean,
@@ -133,7 +132,6 @@ fun LoginScreen(
 ) {
     var text by remember { mutableStateOf("") }
     val context = LocalContext.current
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -149,7 +147,6 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 forcedShape = ExpressiveShapeType.CLOVER_8
             )
-
             Image(
                 painter = painterResource(R.drawable.ic_star_24dp),
                 contentDescription = null,
@@ -167,15 +164,11 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-
         Spacer(modifier = Modifier.height(8.dp))
-
         DefaultTip(
             stringResource(R.string.enter_your_personal_access_token_to_view_your_repositories),
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         if (error != null) {
             WarningTip(
                 title = stringResource(R.string.error),
@@ -183,7 +176,6 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
-
         if (isLoading) {
             @OptIn(ExperimentalMaterial3ExpressiveApi::class)
             CircularWavyProgressIndicator()
@@ -211,7 +203,6 @@ fun LoginScreen(
                         )
                     }
                 }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
@@ -228,9 +219,7 @@ fun LoginScreen(
                     ) {
                         Text(stringResource(R.string.load_repositories))
                     }
-
                     Spacer(modifier = Modifier.width(2.dp))
-
                     FilledTonalButton(
                         onClick = {
                             context.startActivity(Intent(Intent.ACTION_VIEW,
@@ -251,7 +240,6 @@ fun LoginScreen(
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RepoListContent(
@@ -261,7 +249,6 @@ fun RepoListContent(
     onRepoClick: (GitHubRepo) -> Unit
 ) {
     val state = rememberPullToRefreshState()
-
     PullToRefreshBox(
         isRefreshing = isLoading,
         onRefresh = onRefresh,
@@ -293,13 +280,14 @@ fun RepoListContent(
                         index == repos.lastIndex -> CardPosition.BOTTOM
                         else -> CardPosition.MIDDLE
                     }
-
                     CustomCardItem(
                         title = repo.name,
                         summary = repo.htmlUrl,
-                        icon = R.drawable.ic_build_24dp,
+                        iconVector = Icons.Rounded.Book,
                         position = position,
                         status = repo.starsCount > 0,
+                        smallCardText = repo.starsCount.toString(),
+                        smallCardIcon = Icons.Rounded.Star,
                         onClick = { onRepoClick(repo) }
                     )
                 }
@@ -307,7 +295,6 @@ fun RepoListContent(
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun StargazersListContent(
@@ -322,7 +309,6 @@ fun StargazersListContent(
     val pullState = rememberPullToRefreshState()
     val context = LocalContext.current
     val fabController = LocalFabController.current
-
     LaunchedEffect(selectedRepo) {
         if (selectedRepo != null) {
             fabController.setFab(
@@ -330,31 +316,25 @@ fun StargazersListContent(
                 description = "Star",
                 fabSize = FabSize.Small,
                 action = {
-//                    val intent = Intent(Intent.ACTION_VIEW, selectedRepo!!.htmlUrl.toUri())
-//                    context.startActivity(intent)
                 }
             )
         } else {
             fabController.hideFab()
         }
     }
-
     val shouldLoadMore by remember {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
             val totalItems = layoutInfo.totalItemsCount
             val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-
             totalItems > 0 && (totalItems - lastVisibleItemIndex < 10)
         }
     }
-
     LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) {
             viewModel.loadNextPage()
         }
     }
-
     PullToRefreshBox(
         isRefreshing = isLoading && users.isEmpty(),
         onRefresh = onRefresh,
@@ -382,7 +362,6 @@ fun StargazersListContent(
                     index == users.lastIndex -> CardPosition.BOTTOM
                     else -> CardPosition.MIDDLE
                 }
-
                 CustomCardItem(
                     title = user.name ?: user.login,
                     summary = user.htmlUrl,
@@ -391,7 +370,6 @@ fun StargazersListContent(
                     onClick = { onUserClick(user.login) }
                 )
             }
-
             item {
                 if (isLoading && users.isNotEmpty()) {
                     Box(modifier = Modifier

@@ -1,5 +1,4 @@
 package com.ost.application.explorer.pdfreader
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,14 +10,19 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ZoomIn
+import androidx.compose.material.icons.rounded.ZoomOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,10 +40,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -51,8 +55,6 @@ import androidx.wear.compose.material3.FilledTonalIconButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
-import com.ost.application.R
-
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PdfReaderScreen(
@@ -70,17 +72,14 @@ fun PdfReaderScreen(
     onOutlineItemClick: (OutlineItem) -> Unit = {}
 ) {
     androidx.activity.compose.BackHandler { onShowExitDialog() }
-
     if (uiState.showExitDialog) {
         ExitConfirmDialog(
             currentPage = uiState.currentPage,
-            totalPages = uiState.totalPages,
             onConfirm = onExitConfirmed,
             onDismiss = onDismissExitDialog
         )
         return
     }
-
     when {
         uiState.isLoading -> LoadingScreen()
         uiState.error != null -> ErrorScreen(uiState.error)
@@ -103,7 +102,6 @@ fun PdfReaderScreen(
         )
     }
 }
-
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun PdfPageScreen(
@@ -119,14 +117,11 @@ private fun PdfPageScreen(
     var offset by remember { mutableStateOf(Offset.Zero) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val currentZoom by rememberUpdatedState(uiState.zoom)
-
     LaunchedEffect(uiState.currentPage) { offset = Offset.Zero }
     LaunchedEffect(uiState.zoom) {
         if (uiState.zoom <= PdfReaderViewModel.MIN_ZOOM) offset = Offset.Zero
     }
-
     val focusRequester = remember { FocusRequester() }
-
     LaunchedEffect(Unit) {
         try { focusRequester.requestFocus() } catch (_: Exception) {}
     }
@@ -135,7 +130,6 @@ private fun PdfPageScreen(
             try { focusRequester.requestFocus() } catch (_: Exception) {}
         }
     }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -151,7 +145,7 @@ private fun PdfPageScreen(
         uiState.currentBitmap?.let { bitmap ->
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Страница ${uiState.currentPage + 1}",
+                contentDescription = "Page ${uiState.currentPage + 1}",
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput("tap") {
@@ -165,7 +159,6 @@ private fun PdfPageScreen(
                             val newZoom = (currentZoom * gestureZoom)
                                 .coerceIn(PdfReaderViewModel.MIN_ZOOM, PdfReaderViewModel.MAX_ZOOM)
                             onZoomChange(newZoom)
-
                             if (newZoom <= PdfReaderViewModel.MIN_ZOOM) {
                                 offset = Offset.Zero
                             } else {
@@ -205,7 +198,6 @@ private fun PdfPageScreen(
             exit = fadeOut()
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -214,8 +206,8 @@ private fun PdfPageScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ZoomButton(
-                        iconRes = R.drawable.ic_zoom_out_24dp,
-                        contentDescription = "Уменьшить",
+                        iconRes = Icons.Rounded.ZoomOut,
+                        contentDescription = "Zoom out",
                         enabled = uiState.zoom > PdfReaderViewModel.MIN_ZOOM,
                         onClick = {
                             onZoomChange(
@@ -225,8 +217,8 @@ private fun PdfPageScreen(
                         }
                     )
                     ZoomButton(
-                        iconRes = R.drawable.ic_zoom_in_24dp,
-                        contentDescription = "Увеличить",
+                        iconRes = Icons.Rounded.ZoomIn,
+                        contentDescription = "Zoom in",
                         enabled = uiState.zoom < PdfReaderViewModel.MAX_ZOOM,
                         onClick = {
                             onZoomChange(
@@ -236,28 +228,26 @@ private fun PdfPageScreen(
                         }
                     )
                 }
-
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .padding(start = 2.dp)
                 ) {
                     NavButton(
-                        iconRes = R.drawable.ic_arrow_back_24dp,
-                        contentDescription = "Предыдущая",
+                        iconRes = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Previous",
                         enabled = uiState.currentPage > 0,
                         onClick = onPrevPage
                     )
                 }
-
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 2.dp)
                 ) {
                     NavButton(
-                        iconRes = R.drawable.ic_arrow_forward_24dp,
-                        contentDescription = "Следующая",
+                        iconRes = Icons.AutoMirrored.Rounded.ArrowForward,
+                        contentDescription = "Next",
                         enabled = uiState.currentPage < uiState.totalPages - 1,
                         onClick = onNextPage
                     )
@@ -266,7 +256,6 @@ private fun PdfPageScreen(
         }
     }
 }
-
 @Composable
 private fun PageIndicatorBadge(
     current: Int,
@@ -290,14 +279,12 @@ private fun PageIndicatorBadge(
             Text(text = "$current / $total", color = Color.White, fontSize = 11.sp)
             Text(text = "·", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
             Text(text = "×${"%.1f".format(zoom)}", color = Color.White.copy(alpha = 0.85f), fontSize = 9.sp)
-
         }
     }
 }
-
 @Composable
 private fun NavButton(
-    iconRes: Int,
+    iconRes: ImageVector,
     contentDescription: String,
     enabled: Boolean,
     onClick: () -> Unit
@@ -308,15 +295,14 @@ private fun NavButton(
         enabled = enabled,
     ) {
         Icon(
-            painter = painterResource(iconRes),
+            imageVector = iconRes,
             contentDescription = contentDescription,
         )
     }
 }
-
 @Composable
 private fun ZoomButton(
-    iconRes: Int,
+    iconRes: ImageVector,
     contentDescription: String,
     enabled: Boolean,
     onClick: () -> Unit
@@ -327,12 +313,11 @@ private fun ZoomButton(
         modifier = Modifier.size(36.dp)
     ) {
         Icon(
-            painter = painterResource(iconRes),
+            imageVector = iconRes,
             contentDescription = contentDescription,
         )
     }
 }
-
 @Composable
 private fun LoadingScreen() {
     Box(
@@ -341,18 +326,14 @@ private fun LoadingScreen() {
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Открываю PDF...",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
-        }
+        CircularProgressIndicator(modifier = Modifier.fillMaxSize())
+        Text(
+            text = "Loading...",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
     }
 }
-
 @Composable
 private fun ErrorScreen(error: String) {
     Box(
@@ -370,34 +351,31 @@ private fun ErrorScreen(error: String) {
         )
     }
 }
-
 @Composable
 fun ExitConfirmDialog(
     currentPage: Int,
-    totalPages: Int,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     androidx.activity.compose.BackHandler { onDismiss() }
-
     AlertDialog(
         visible = true,
         onDismissRequest = onDismiss,
         icon = {
-            Icon(painterResource(R.drawable.ic_exit_to_app_24dp), "Exit")
+            Icon(Icons.AutoMirrored.Rounded.ExitToApp, "Exit")
         },
-        title = { Text("Выйти?") },
+        title = { Text("Exit?") },
         text = {
-            Text("Стр. ${currentPage + 1} из $totalPages сохранится")
+            Text("When you reopen it, page ${currentPage + 1} will open")
         },
         dismissButton = {
             FilledTonalIconButton(onClick = onDismiss) {
-                Icon(painterResource(R.drawable.ic_cancel_24dp), "Отмена")
+                Icon(Icons.Rounded.Cancel, "Отмена")
             }
         },
         confirmButton = {
             FilledIconButton(onClick = onConfirm) {
-                Icon(painterResource(R.drawable.ic_check_circle_24dp), "OK")
+                Icon(Icons.Rounded.CheckCircle, "OK")
             }
         }
     )

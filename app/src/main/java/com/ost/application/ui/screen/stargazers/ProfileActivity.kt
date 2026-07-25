@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.stargazers
-
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -82,19 +81,14 @@ import com.ost.application.util.CustomCardItem
 import com.ost.application.ui.components.WavyDivider
 import java.io.File
 import java.io.FileOutputStream
-
 class ProfileActivity : ComponentActivity() {
-
     private val viewModel: ProfileViewModel by viewModels()
-
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         val username = intent.getStringExtra("EXTRA_USERNAME") ?: return finish()
         val token = intent.getStringExtra("EXTRA_TOKEN") ?: ""
-
         setContent {
             OSTToolsTheme {
                 val user by viewModel.user.collectAsState()
@@ -102,14 +96,11 @@ class ProfileActivity : ComponentActivity() {
                 val error by viewModel.error.collectAsState()
                 val qrCodeBitmap by viewModel.qrCodeBitmap.collectAsState()
                 val context = LocalContext.current
-
                 LaunchedEffect(Unit) {
                     viewModel.loadProfile(username, token)
                 }
-
                 SharedTransitionLayout {
                     var showQrCode by remember { mutableStateOf(false) }
-
                     Scaffold(
                         topBar = {
                             TopAppBar(
@@ -169,7 +160,6 @@ class ProfileActivity : ComponentActivity() {
                             }
                         }
                     }
-
                     AnimatedVisibility(
                         visible = showQrCode,
                         enter = fadeIn(animationSpec = tween(400)),
@@ -215,7 +205,6 @@ class ProfileActivity : ComponentActivity() {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.height(24.dp))
-
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.Center
@@ -234,9 +223,7 @@ class ProfileActivity : ComponentActivity() {
                                         ) {
                                             Text(stringResource(R.string.share))
                                         }
-
                                         Spacer(modifier = Modifier.width(2.dp))
-
                                         ElevatedButton(
                                             onClick = { shareQrCode(context, bmp, isQuickShare = true) },
                                             modifier = Modifier
@@ -260,21 +247,18 @@ class ProfileActivity : ComponentActivity() {
             }
         }
     }
-
     private fun shareQrCode(context: Context, bitmap: Bitmap, isQuickShare: Boolean) {
         try {
             val file = File(context.cacheDir, "qr_code_shared.png")
             val stream = FileOutputStream(file)
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
             stream.close()
-
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-
             if (isQuickShare) {
                 intent.setPackage("com.google.android.gms")
                 intent.component = ComponentName("com.google.android.gms", "com.google.android.gms.nearby.sharing.ShareSheetActivity")
@@ -290,12 +274,10 @@ class ProfileActivity : ComponentActivity() {
         }
     }
 }
-
 data class ActionButton(
     val iconRes: Int,
     val onClick: () -> Unit
 )
-
 @Composable
 fun MorphingButtonGroup(buttons: List<ActionButton>) {
     Row(
@@ -305,33 +287,27 @@ fun MorphingButtonGroup(buttons: List<ActionButton>) {
         buttons.forEachIndexed { index, btn ->
             val isFirst = index == 0
             val isLast = index == buttons.lastIndex
-
             val interactionSource = remember { MutableInteractionSource() }
             val isPressed by interactionSource.collectIsPressedAsState()
-
             val animSpec = tween<Int>(150)
             val topStartPercent by animateIntAsState(targetValue = if (isPressed) 50 else if (isFirst) 50 else 8, animationSpec = animSpec, label = "")
             val bottomStartPercent by animateIntAsState(targetValue = if (isPressed) 50 else if (isFirst) 50 else 8, animationSpec = animSpec, label = "")
             val topEndPercent by animateIntAsState(targetValue = if (isPressed) 50 else if (isLast) 50 else 8, animationSpec = animSpec, label = "")
             val bottomEndPercent by animateIntAsState(targetValue = if (isPressed) 50 else if (isLast) 50 else 8, animationSpec = animSpec, label = "")
-
             val shape = RoundedCornerShape(
                 topStartPercent = topStartPercent,
                 topEndPercent = topEndPercent,
                 bottomEndPercent = bottomEndPercent,
                 bottomStartPercent = bottomStartPercent
             )
-
             val backgroundColor by animateColorAsState(
                 targetValue = if (isPressed) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer,
                 animationSpec = tween(150), label = ""
             )
-
             val iconColor by animateColorAsState(
                 targetValue = if (isPressed) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
                 animationSpec = tween(150), label = ""
             )
-
             Box(
                 modifier = Modifier
                     .size(64.dp)
@@ -353,12 +329,10 @@ fun MorphingButtonGroup(buttons: List<ActionButton>) {
         }
     }
 }
-
 @Composable
 fun ProfileContent(user: GitHubUser) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -382,7 +356,6 @@ fun ProfileContent(user: GitHubUser) {
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-
                 Text(
                     text = user.name ?: user.login,
                     style = MaterialTheme.typography.headlineMedium,
@@ -395,7 +368,6 @@ fun ProfileContent(user: GitHubUser) {
                 )
             }
         }
-
         val buttons = mutableListOf<ActionButton>()
         buttons.add(ActionButton(R.drawable.about_page_github) {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(user.htmlUrl)))
@@ -419,14 +391,11 @@ fun ProfileContent(user: GitHubUser) {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             })
         }
-
         if (buttons.isNotEmpty()) {
             MorphingButtonGroup(buttons = buttons)
         }
-
         Column(modifier = Modifier.fillMaxWidth()) {
             val details = mutableListOf<@Composable (CardPosition) -> Unit>()
-
             if (!user.company.isNullOrEmpty()) {
                 details.add { position ->
                     CustomCardItem(
@@ -437,7 +406,6 @@ fun ProfileContent(user: GitHubUser) {
                     )
                 }
             }
-
             if (!user.location.isNullOrEmpty()) {
                 details.add { position ->
                     CustomCardItem(
@@ -448,7 +416,6 @@ fun ProfileContent(user: GitHubUser) {
                     )
                 }
             }
-
             details.forEachIndexed { index, composable ->
                 val position = when {
                     details.size == 1 -> CardPosition.SINGLE
@@ -458,7 +425,6 @@ fun ProfileContent(user: GitHubUser) {
                 }
                 composable(position)
             }
-
             if (!user.bio.isNullOrEmpty()) {
                 if (details.isNotEmpty()) {
                     Box(
@@ -470,7 +436,6 @@ fun ProfileContent(user: GitHubUser) {
                         WavyDivider()
                     }
                 }
-
                 CustomCardItem(
                     title = stringResource(R.string.description),
                     summary = user.bio,

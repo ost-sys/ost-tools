@@ -1,5 +1,4 @@
 package com.ost.application.presentation
-
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -46,10 +45,8 @@ import com.google.android.gms.wearable.Wearable
 import com.ost.application.BuildConfig
 import com.ost.application.R
 import com.ost.application.theme.OSTToolsTheme
-
 private const val REMOTE_OPEN_PATH = "/open_url"
 private const val ABOUT_PHONE_PATH = "/open_about"
-
 class AboutActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,12 +57,10 @@ class AboutActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun AboutScreen() {
     val context = LocalContext.current
     val listState = rememberScalingLazyListState()
-
     val iconBitmap = remember {
         try {
             val pm = context.packageManager
@@ -83,11 +78,9 @@ fun AboutScreen() {
             null
         }
     }
-
     AppScaffold(timeText = { TimeText() }) {
         ScreenScaffold(scrollState = listState) {
             Box(modifier = Modifier.fillMaxSize()) {
-
                 if (iconBitmap != null) {
                     Image(
                         bitmap = iconBitmap,
@@ -105,7 +98,6 @@ fun AboutScreen() {
                             )
                     )
                 }
-
                 ScalingLazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -126,7 +118,6 @@ fun AboutScreen() {
                             )
                         }
                     }
-
                     item {
                         Text(
                             text = stringResource(R.string.app_name),
@@ -136,7 +127,6 @@ fun AboutScreen() {
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
                     item {
                         Text(
                             text = BuildConfig.VERSION_NAME,
@@ -146,7 +136,6 @@ fun AboutScreen() {
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
                     item {
                         Text(
                             text = BuildConfig.APPLICATION_ID,
@@ -156,7 +145,6 @@ fun AboutScreen() {
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
                     item {
                         Text(
                             text = stringResource(R.string.ost),
@@ -166,7 +154,6 @@ fun AboutScreen() {
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
                     item {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -187,9 +174,7 @@ fun AboutScreen() {
                                     contentDescription = "App settings"
                                 )
                             }
-
                             Spacer(Modifier.width(16.dp))
-
                             FilledIconButton(
                                 onClick = { openAboutOnPhone(context) },
                                 modifier = Modifier.size(48.dp)
@@ -206,7 +191,6 @@ fun AboutScreen() {
         }
     }
 }
-
 fun openAboutOnPhone(context: Context) {
     val nodeClient = Wearable.getNodeClient(context)
     val messageClient = Wearable.getMessageClient(context)

@@ -1,15 +1,12 @@
 package com.ost.application.ui.state
-
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-
 enum class FabSize {
     Normal,
     Small
 }
-
 class FabController {
     var iconRes: Int? by mutableStateOf(null)
         private set
@@ -19,13 +16,12 @@ class FabController {
         private set
     var isVisible: Boolean by mutableStateOf(false)
         private set
-    var size: FabSize by mutableStateOf(FabSize.Normal) // Новое поле
+    var size: FabSize by mutableStateOf(FabSize.Normal)
         private set
-
     fun setFab(
         icon: Int,
         description: String,
-        fabSize: FabSize = FabSize.Normal, // По дефолту обычный
+        fabSize: FabSize = FabSize.Normal,
         action: () -> Unit
     ) {
         iconRes = icon
@@ -34,10 +30,8 @@ class FabController {
         onClick = action
         isVisible = true
     }
-
     fun hideFab() {
         isVisible = false
     }
 }
-
 val LocalFabController = compositionLocalOf { FabController() }

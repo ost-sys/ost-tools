@@ -1,225 +1,180 @@
 package com.ost.application.ui.screen.batteryinfo
-
-import android.annotation.SuppressLint
 import android.app.Application
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
-import android.os.PowerManager
-import android.util.Log
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ost.application.R
-import kotlinx.coroutines.Dispatchers
+import com.ost.application.core.battery.BatteryDisplayMode
+import com.ost.application.core.battery.BatteryHealth
+import com.ost.application.core.battery.BatteryInfo
+import com.ost.application.core.battery.BatteryInfoProvider
+import com.ost.application.core.battery.BatteryInfoProvider.toChargingSourceText
+import com.ost.application.core.battery.BatteryInfoProvider.toDisplayString
+import com.ost.application.core.battery.BatteryInfoStrings
+import com.ost.application.core.battery.BatteryStatusIcon
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
-import kotlin.math.roundToInt
-
-enum class BatteryDisplayMode {
-    NORMAL,
-    CHARGING,
-    POWER_SAVE
-}
+private const val GRAPH_HISTORY_SIZE = 30
 @Stable
 data class BatteryInfoUiState(
-    val levelText: String = "...",
+    val levelPercent: Int = -1,
     val iconResId: Int = R.drawable.ic_battery_full_24dp,
     val health: String = "...",
+    val healthStatus: BatteryHealth = BatteryHealth.UNKNOWN,
     val status: String = "...",
     val temperature: String = "...",
     val voltage: String = "...",
     val technology: String = "...",
     val capacity: String = "...",
     val isLoadingCapacity: Boolean = true,
-    val displayMode: BatteryDisplayMode = BatteryDisplayMode.NORMAL
+    val displayMode: BatteryDisplayMode = BatteryDisplayMode.NORMAL,
+    val cycleCount: String = "...",
+    val temperatureHistory: List<BatterySample> = emptyList(),
+    val voltageHistory: List<BatterySample> = emptyList(),
+    val temperatureMin: Float? = null,
+    val temperatureMax: Float? = null,
+    val voltageMin: Float? = null,
+    val voltageMax: Float? = null
 )
-
-@SuppressLint("UnspecifiedRegisterReceiverFlag")
-fun Context.batteryUpdatesFlow(): Flow<Intent> = callbackFlow {
-    val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            trySend(intent)
-        }
-    }
-    val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-    registerReceiver(receiver, filter)
-
-    awaitClose { unregisterReceiver(receiver) }
-}
-
-
 class BatteryInfoViewModel(application: Application) : AndroidViewModel(application) {
-
     private val _uiState = MutableStateFlow(BatteryInfoUiState())
     val uiState: StateFlow<BatteryInfoUiState> = _uiState.asStateFlow()
-
     private var batteryUpdateJob: Job? = null
     private var capacityJob: Job? = null
-
-    private val powerManager = application.getSystemService(Context.POWER_SERVICE) as PowerManager
-
+    private var samplingJob: Job? = null
+    private val samplingController = BatterySamplingController(application)
+    private var latestBatteryInfo: BatteryInfo? = null
+    private val temperatureHistory = ArrayDeque<BatterySample>(GRAPH_HISTORY_SIZE)
+    private val voltageHistory = ArrayDeque<BatterySample>(GRAPH_HISTORY_SIZE)
+    private val strings = BatteryInfoStrings(
+        charging = getString(R.string.charging),
+        chargingAc = getString(R.string.charging_ac),
+        chargingUsb = getString(R.string.charging_via_usb),
+        chargingWireless = getString(R.string.wireless_charging),
+        discharging = getString(R.string.discharging),
+        batteryLevel = getString(R.string.battery_level),
+        good = getString(R.string.good),
+        overheat = getString(R.string.overheat),
+        dead = getString(R.string.dead),
+        overVoltage = getString(R.string.over_voltage),
+        unspecifiedFailure = getString(R.string.fail),
+        cold = getString(R.string.cold),
+        unknown = getString(R.string.unknown),
+        mv = getString(R.string.mv),
+        mah = getString(R.string.mah),
+        cycleCount = getString(R.string.cycle_count),
+        notAvailable = getString(R.string.not_available)
+    )
     init {
         loadBatteryCapacity()
         startObservingBatteryUpdates()
+        startSampling()
     }
-
+    fun setScreenVisible(visible: Boolean) {
+        samplingController.setScreenVisible(visible)
+    }
     private fun startObservingBatteryUpdates() {
         batteryUpdateJob?.cancel()
-        batteryUpdateJob = getApplication<Application>().batteryUpdatesFlow()
-            .onEach { intent ->
-                val currentBatteryIntent = getApplication<Application>().registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-                currentBatteryIntent?.let {
-                    processBatteryIntent(it)
+        batteryUpdateJob = BatteryInfoProvider.observeBatteryInfo(getApplication())
+            .onEach { info ->
+                latestBatteryInfo = info
+                val iconRes = info.statusIcon.toResId()
+                _uiState.update {
+                    it.copy(
+                        levelPercent = info.levelPercent,
+                        iconResId = iconRes,
+                        health = info.health.toDisplayString(strings),
+                        healthStatus = info.health,
+                        status = info.toChargingSourceText(strings),
+                        temperature = info.temperatureCelsius?.let {
+                            String.format(Locale.getDefault(), "%.1f°C", it)
+                        } ?: strings.unknown,
+                        voltage = info.voltageVolts?.let {
+                            String.format(Locale.getDefault(), "%.2fV", it)
+                        } ?: strings.unknown,
+                        technology = info.technology ?: strings.unknown,
+                        displayMode = info.displayMode,
+                        cycleCount = info.cycleCount?.toString() ?: getString(R.string.unknown),
+                    )
                 }
             }
             .launchIn(viewModelScope)
     }
-
+    private fun startSampling() {
+        samplingJob?.cancel()
+        samplingJob = viewModelScope.launch {
+            samplingController.samplingContext
+                .distinctUntilChanged()
+                .collect { context ->
+                    while (isActive) {
+                        recordSample()
+                        kotlinx.coroutines.delay(context.intervalMs)
+                    }
+                }
+        }
+    }
+    private fun recordSample() {
+        val info = latestBatteryInfo ?: return
+        val now = System.currentTimeMillis()
+        info.temperatureCelsius?.let { temp ->
+            if (temperatureHistory.size >= GRAPH_HISTORY_SIZE) temperatureHistory.removeFirst()
+            temperatureHistory.addLast(BatterySample(now, temp, info.voltageVolts ?: 0f))
+        }
+        info.voltageVolts?.let { volt ->
+            if (voltageHistory.size >= GRAPH_HISTORY_SIZE) voltageHistory.removeFirst()
+            voltageHistory.addLast(BatterySample(now, info.temperatureCelsius ?: 0f, volt))
+        }
+        val tempValues = temperatureHistory.map { it.temperatureCelsius }
+        val voltValues = voltageHistory.map { it.voltageVolts }
+        _uiState.update {
+            it.copy(
+                temperatureHistory = temperatureHistory.toList(),
+                voltageHistory = voltageHistory.toList(),
+                temperatureMin = tempValues.minOrNull(),
+                temperatureMax = tempValues.maxOrNull(),
+                voltageMin = voltValues.minOrNull(),
+                voltageMax = voltValues.maxOrNull()
+            )
+        }
+    }
     private fun loadBatteryCapacity() {
         capacityJob?.cancel()
         capacityJob = viewModelScope.launch {
-            _uiState.update { it.copy() }
-            val capacity = getBatteryCapacity(getApplication())
+            val capacity = BatteryInfoProvider.getBatteryCapacityMah(getApplication())
             _uiState.update {
                 it.copy(
-                    capacity = if (capacity > 0) "${capacity.roundToInt()} ${getString(R.string.mah)}" else getString(R.string.unknown),
-                    isLoadingCapacity = false,
+                    capacity = if (capacity != null && capacity > 0) {
+                        "${Math.round(capacity)} ${strings.mah}"
+                    } else strings.unknown,
+                    isLoadingCapacity = false
                 )
             }
         }
     }
-
-    @SuppressLint("SetTextI18n")
-    private fun processBatteryIntent(intent: Intent) {
-        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-        val batteryPct = if (level != -1 && scale != -1) (level * 100 / scale.toFloat()).roundToInt() else -1
-
-        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN)
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
-        val isPowerSaveMode = powerManager.isPowerSaveMode
-
-        val displayMode = when {
-            isCharging -> BatteryDisplayMode.CHARGING
-            isPowerSaveMode -> BatteryDisplayMode.POWER_SAVE
-            else -> BatteryDisplayMode.NORMAL
-        }
-
-        val temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) / 10f
-        val health = intent.getIntExtra(BatteryManager.EXTRA_HEALTH, BatteryManager.BATTERY_HEALTH_UNKNOWN)
-        val voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) / 1000f
-        val technology = intent.getStringExtra(BatteryManager.EXTRA_TECHNOLOGY) ?: getString(R.string.unknown)
-        val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
-
-        val healthString = getHealthString(health)
-        val statusPair = getStatusStringAndIcon(status, plugged, batteryPct, displayMode)
-        val statusString = statusPair.first
-        val iconRes = statusPair.second
-        val levelString = getLevelString(status, plugged, batteryPct)
-
-        _uiState.update {
-            it.copy(
-                levelText = levelString,
-                iconResId = iconRes,
-                health = healthString,
-                status = statusString,
-                temperature = if (temp >= 0) String.format(Locale.getDefault(), "%.1f°C", temp) else getString(R.string.unknown),
-                voltage = if (voltage >= 0) String.format(Locale.getDefault(), "%.2fV", voltage) else getString(R.string.unknown),
-                technology = technology,
-                displayMode = displayMode
-            )
-        }
-    }
-
-    private fun getString(resId: Int): String {
-        return getApplication<Application>().getString(resId)
-    }
-
-    private fun getHealthString(health: Int): String {
-        return when (health) {
-            BatteryManager.BATTERY_HEALTH_GOOD -> getString(R.string.good)
-            BatteryManager.BATTERY_HEALTH_OVERHEAT -> getString(R.string.overheat)
-            BatteryManager.BATTERY_HEALTH_DEAD -> getString(R.string.dead)
-            BatteryManager.BATTERY_HEALTH_OVER_VOLTAGE -> getString(R.string.over_voltage)
-            BatteryManager.BATTERY_HEALTH_UNSPECIFIED_FAILURE -> getString(R.string.fail)
-            BatteryManager.BATTERY_HEALTH_COLD -> getString(R.string.cold)
-            else -> getString(R.string.unknown)
-        }
-    }
-
-    private fun getStatusStringAndIcon(status: Int, plugged: Int, level: Int, displayMode: BatteryDisplayMode): Pair<String, Int> {
-        val isCharging = displayMode == BatteryDisplayMode.CHARGING
-        val statusString: String
-        val iconRes: Int
-
-        if (isCharging) {
-            statusString = when (plugged) {
-                BatteryManager.BATTERY_PLUGGED_AC -> getString(R.string.charging)
-                BatteryManager.BATTERY_PLUGGED_USB -> getString(R.string.charging_via_usb)
-                BatteryManager.BATTERY_PLUGGED_WIRELESS -> getString(R.string.wireless_charging)
-                else -> getString(R.string.charging)
-            }
-            iconRes = R.drawable.ic_charger_24dp
-        } else {
-            statusString = getString(R.string.discharging)
-            iconRes = when {
-                displayMode == BatteryDisplayMode.POWER_SAVE -> R.drawable.ic_energy_program_saving_24dp
-                (level >= 90) -> R.drawable.ic_battery_full_alt_24dp
-                (level >= 75) -> R.drawable.ic_battery_horiz_075_24dp
-                (level >= 50) -> R.drawable.ic_battery_horiz_050_24dp
-                (level >= 25) -> R.drawable.ic_battery_low_24dp
-                (level >= 10) -> R.drawable.ic_battery_very_low_24dp
-                else -> R.drawable.ic_battery_horiz_000_24dp
-            }
-        }
-        return statusString to iconRes
-    }
-
-    private fun getLevelString(status: Int, plugged: Int, level: Int): String {
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
-        return if (isCharging) {
-            val chargingType = when (plugged) {
-                BatteryManager.BATTERY_PLUGGED_AC -> getString(R.string.charging)
-                BatteryManager.BATTERY_PLUGGED_USB -> getString(R.string.charging_via_usb)
-                BatteryManager.BATTERY_PLUGGED_WIRELESS -> getString(R.string.wireless_charging)
-                else -> getString(R.string.charging)
-            }
-            if (level >= 0) "$chargingType: $level%" else chargingType
-        } else {
-            if (level >= 0) "$level%" else "..."
-        }
-    }
-
-    @SuppressLint("PrivateApi")
-    private suspend fun getBatteryCapacity(context: Context): Double = withContext(Dispatchers.IO) {
-        var batteryCapacity = 0.0
-        try {
-            val powerProfileClass = Class.forName("com.android.internal.os.PowerProfile")
-            val powerProfile = powerProfileClass.getConstructor(Context::class.java).newInstance(context)
-            batteryCapacity = powerProfileClass.getMethod("getBatteryCapacity").invoke(powerProfile) as Double
-        } catch (e: Exception) {
-            Log.e("BatteryInfoVM", "Failed to get battery capacity via reflection", e)
-        }
-        batteryCapacity
-    }
-
+    private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
     override fun onCleared() {
         super.onCleared()
         batteryUpdateJob?.cancel()
         capacityJob?.cancel()
+        samplingJob?.cancel()
     }
+}
+private fun BatteryStatusIcon.toResId(): Int = when (this) {
+    BatteryStatusIcon.CHARGER -> R.drawable.ic_charger_24dp
+    BatteryStatusIcon.POWER_SAVE -> R.drawable.ic_energy_program_saving_24dp
+    BatteryStatusIcon.FULL -> R.drawable.ic_battery_full_alt_24dp
+    BatteryStatusIcon.HORIZ_075 -> R.drawable.ic_battery_horiz_075_24dp
+    BatteryStatusIcon.HORIZ_050 -> R.drawable.ic_battery_horiz_050_24dp
+    BatteryStatusIcon.LOW -> R.drawable.ic_battery_low_24dp
+    BatteryStatusIcon.VERY_LOW -> R.drawable.ic_battery_very_low_24dp
+    BatteryStatusIcon.HORIZ_000 -> R.drawable.ic_battery_horiz_000_24dp
 }

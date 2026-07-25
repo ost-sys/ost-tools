@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="settings">Настройки</string>
     <string name="about_app">О программе</string>
-    <string name="version">Версия</string>
+    <string name="version_s">Версия</string>
     <string name="information">Информация</string>
     <string name="checking_for_updates">Проверка обновлений…</string>
     <string name="error_getting_version_information">Ошибка при получении данных о версии</string>
@@ -175,7 +175,6 @@
     <string name="time_difference_zero">Даты и время идентичны</string>
     <string name="more">Ещё</string>
     <string name="devices">Устройства</string>
-    <string name="make_discoverable">Сделать видимым</string>
     <string name="resolving">Разрешение…</string>
     <string name="starting_receiver">Запуск приёмника…</string>
     <string name="receive_error">Ошибка получения: %1$s</string>
@@ -208,7 +207,6 @@
     <string name="failed_to_launch">Не удалось запустить %1$s</string>
     <string name="is_not_a_startup_application">%1$s не является запускаемым приложением</string>
     <string name="error_loading_app_list">Ошибка загрузки списка приложений: %1$s</string>
-    <string name="unknown_error">Неизвестная ошибка</string>
     <string name="no_apps_found">Приложения не обнаружены</string>
     <string name="no_non_system_apps_found">Нет несистемных приложений</string>
     <string name="delete">Удалить</string>
@@ -224,7 +222,6 @@
     <string name="failed_to_launch_uninstall">Не удалось запустить удаление</string>
     <string name="uninstall_error">Ошибка при попытке удаления</string>
     <string name="loading">Загрузка…</string>
-    <string name="searching_for_devices">Поиск устройств…</string>
     <string name="waiting_for_resolution">Ожидание решения…</string>
     <string name="unknown_device">Неизвестное устройство</string>
     <string name="error_connection_lost_during_send">Ошибка: Соединение потеряно во время отправки</string>
@@ -254,7 +251,6 @@
     <string name="error_no_download_dir">Ошибка: Каталог загрузок недоступен</string>
     <string name="find_devices">Поиск устройств</string>
     <string name="stop_search">Остановить поиск</string>
-    <string name="press_find_or_enable_receiving">Нажмите «Поиск устройств» или включите прием</string>
     <string name="idle_status">Неактивен</string>
     <string name="wear_version_unknown">Неизвестно</string>
     <string name="wear_update_instructions_button">Инструкции по обновлению</string>
@@ -319,7 +315,6 @@
     <string name="edit_currency">Изменить валюту</string>
     <string name="github_login">Вход Github</string>
     <string name="enter_your_personal_access_token_to_view_your_repositories">Введите свой персональный токен доступа, чтобы просмотреть свои репозитории</string>
-    <string name="token">Токен</string>
     <string name="personal_access_token">Персональный токен доступа</string>
     <string name="save_refresh">Сохранить и обновить</string>
     <string name="exit">Выход</string>
@@ -361,6 +356,33 @@
     <string name="load_repositories">Загрузить репозитории</string>
     <string name="no_repositories_found">Репозиториев нет</string>
     <string name="root_access">ROOT-доступ</string>
-    <string name="ra_perm_info">Разблокировка расширенных функций, требующих прав суперпользователя</string>
-    <string name="please_grant_all_essential_permissions_to_proceed_with_the_setup">Предоставьте все необходимые разрешения для продолжения настройки</string>
+    <string name="accessibility_service">Служба спец. возможностей</string>
+    <string name="accessibility_service_info">Вызов меню выключения и блокировка экрана без ROOT и аппаратных кнопок</string>
+    <string name="accessibility_service_label">Служба спец. возможностей OST Tools</string>
+    <string name="accessibility_service_description">Предоставляет функции вызова меню питания и блокировки экрана через Accessibility API.</string>
+    <string name="lock_screen">Блокировка</string>
+    <string name="lock_screen_q">Вы уверены, что хотите заблокировать экран?</string>
+    <string name="power_tile_label">Меню питания</string>
+    <string name="lock_tile_label">Блокировка</string>
+    <string name="accessibility_required_title">Требуется Accessibility Service</string>
+    <string name="accessibility_required_msg">Для использования этой функции включите OST Tools в системных настройках Специальных возможностей.</string>
+    <string name="open_settings">Открыть настройки</string>
+    <string name="non_root_mode">Режим без ROOT</string>
+    <string name="requires_android_9">Требуется Android 9.0 (API 28) или новее</string>
+    <string name="developer_mode">Параметры разработчика</string>
+    <string name="console_logs">Консоль логов</string>
+    <string name="log_level_all">Все</string>
+    <string name="log_level_error">Ошибки</string>
+    <string name="log_level_warn">Предупреждения</string>
+    <string name="log_level_info">Инфо</string>
+    <string name="log_level_debug">Отладка</string>
+    <string name="dev_mode_unlocked">Режим разработчика включен!</string>
+    <string name="dev_mode_taps_remaining">Вы в %1$d шагах от того, чтобы стать разработчиком.</string>
+    <string name="dev_mode_already_active">Режим разработчика уже включен.</string>
+    <string name="copy_logs">Копировать</string>
+    <string name="clear_logs">Очистить</string>
+    <string name="pause_logs">Пауза</string>
+    <string name="resume_logs">Продолжить</string>
+    <string name="logs_copied">Логи скопированы в буфер обмена</string>
+    <string name="search_logs">Поиск логов…</string>
 </resources>

@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.applist
-
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -18,7 +17,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 data class AppListUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
@@ -27,18 +25,13 @@ data class AppListUiState(
     val isRootAvailable: Boolean = false,
     val apps: List<AppInfo> = emptyList()
 )
-
 class AppListViewModel(application: Application) : AndroidViewModel(application) {
-
     private val _rawAppList = MutableStateFlow<List<AppInfo>>(emptyList())
     private val _isLoading = MutableStateFlow(true)
     private val _error = MutableStateFlow<String?>(null)
     private val _showSystemApps = MutableStateFlow(true)
     private val _searchQuery = MutableStateFlow("")
     private val _isRootAvailable = MutableStateFlow(false)
-
-    // Автоматическая реактивная фильтрация в фоновом потоке
-    // Автоматическая реактивная фильтрация в фоновом потоке
     val uiState: StateFlow<AppListUiState> = combine(
         _rawAppList,
         _isRootAvailable,
@@ -49,14 +42,12 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         val err = status.second
         val showSystem = filters.first
         val query = filters.second
-
         val filtered = apps.filter { if (showSystem) true else !it.isSystemApp }
             .filter {
                 query.isBlank() ||
                         it.name.contains(query, ignoreCase = true) ||
                         it.packageName.contains(query, ignoreCase = true)
             }
-
         AppListUiState(
             isLoading = loading,
             error = err,
@@ -66,7 +57,6 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             apps = filtered
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppListUiState())
-    // Слушатель системных удалений
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_PACKAGE_REMOVED) {
@@ -77,27 +67,22 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
     init {
         val filter = IntentFilter(Intent.ACTION_PACKAGE_REMOVED).apply {
             addDataScheme("package")
         }
         getApplication<Application>().registerReceiver(packageReceiver, filter)
-
         viewModelScope.launch(Dispatchers.IO) {
             _isRootAvailable.value = RootUtils.isRootAvailable
         }
         refresh(true)
     }
-
     override fun onCleared() {
         super.onCleared()
         getApplication<Application>().unregisterReceiver(packageReceiver)
     }
-
     fun updateSearchQuery(query: String) { _searchQuery.value = query }
     fun toggleSystemApps() { _showSystemApps.value = !_showSystemApps.value }
-
     fun refresh(showLoadingIndicator: Boolean = true) {
         viewModelScope.launch {
             if (showLoadingIndicator) _isLoading.value = true
@@ -116,7 +101,6 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
     fun uninstallAppRoot(packageName: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val success = RootUtils.uninstallAppRoot(packageName)
@@ -125,7 +109,6 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 }
-
 class AppListViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AppListViewModel::class.java)) {

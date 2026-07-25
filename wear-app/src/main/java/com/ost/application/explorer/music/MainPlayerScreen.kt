@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalHorologistApi::class)
-
 package com.ost.application.explorer.music
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -53,7 +51,6 @@ import com.google.android.horologist.media.ui.state.PlayerUiController
 import com.google.android.horologist.media.ui.state.PlayerUiState
 import com.google.android.horologist.media.ui.state.model.MediaUiModel
 import com.ost.application.R
-
 @Composable
 fun MainPlayerScreen(
     launchMode: String,
@@ -91,7 +88,6 @@ fun MainPlayerScreen(
         }
     }
 }
-
 @OptIn(ExperimentalHorologistApi::class)
 @Composable
 fun MusicPlayerScreen(
@@ -102,7 +98,6 @@ fun MusicPlayerScreen(
 ) {
     var albumArtBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showVolumeScreen by remember { mutableStateOf(false) }
-
     LaunchedEffect(uri) {
         val retriever = MediaMetadataRetriever()
         var fetchedTitle: String? = null
@@ -113,9 +108,7 @@ fun MusicPlayerScreen(
             fetchedArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
             val artBytes = retriever.embeddedPicture
             albumArtBitmap = artBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
-
             musicViewModel.setMediaUri(uri.toString(), fetchedTitle, fetchedArtist)
-
         } catch (e: Exception) {
             Log.e("MusicPlayerScreen", "Error retrieving media metadata", e)
             albumArtBitmap = null
@@ -124,7 +117,6 @@ fun MusicPlayerScreen(
             try { retriever.release() } catch (e: Exception) { Log.e("MusicPlayerScreen", "Error releasing MediaMetadataRetriever", e) }
         }
     }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         timeText = { TimeText() }
@@ -136,7 +128,6 @@ fun MusicPlayerScreen(
                 }
             }
         }
-
         Box(modifier = Modifier.fillMaxSize()) {
             if (albumArtBitmap != null) {
                 Image(
@@ -153,12 +144,10 @@ fun MusicPlayerScreen(
                     )
                 )
             }
-
             PlayerScreen(
                 modifier = Modifier.padding(horizontal = 5.dp),
                 playerViewModel = musicViewModel,
                 volumeViewModel = volumeViewModel,
-
                 mediaDisplay = { playerUiState: PlayerUiState ->
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp),
@@ -175,7 +164,6 @@ fun MusicPlayerScreen(
                         }
                     }
                 },
-
                 controlButtons = { playerController: PlayerUiController, playerUiState: PlayerUiState ->
                     PodcastControlButtons( playerController = playerController, playerUiState = playerUiState )
                 },
@@ -197,7 +185,6 @@ fun MusicPlayerScreen(
         }
     }
 }
-
 @OptIn(ExperimentalHorologistApi::class)
 @Composable
 fun FullPlayerScreen(
@@ -206,7 +193,6 @@ fun FullPlayerScreen(
     context: Context
 ) {
     var showVolumeScreen by remember { mutableStateOf(false) }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         timeText = { TimeText() }
@@ -216,7 +202,6 @@ fun FullPlayerScreen(
                 VolumeScreen(volumeViewModel = volumeViewModel)
             }
         }
-
         Box(
             modifier = Modifier.fillMaxSize().background(
                 Brush.radialGradient(colors = listOf(Color(0xFF303030), Color(0xFF101010)))
@@ -225,7 +210,6 @@ fun FullPlayerScreen(
             PlayerScreen(
                 playerViewModel = musicViewModel,
                 volumeViewModel = volumeViewModel,
-
                 mediaDisplay = { currentUiState: PlayerUiState ->
                     val readyModel = currentUiState.media as? MediaUiModel.Ready
                     Column(
@@ -261,14 +245,12 @@ fun FullPlayerScreen(
                         }
                     }
                 },
-
                 controlButtons = { playerController: PlayerUiController, currentUiState: PlayerUiState ->
                     PodcastControlButtons(
                         playerController = playerController,
                         playerUiState = currentUiState
                     )
                 },
-
                 buttons = { currentUiState: PlayerUiState ->
                     IconButton(
                         onClick = { showVolumeScreen = true },

@@ -1,5 +1,4 @@
 package com.ost.application.explorer
-
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -52,7 +51,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-
 private val EDITABLE_EXTENSIONS = setOf(
     "txt", "md", "markdown", "log", "json", "xml", "yaml", "yml",
     "toml", "ini", "cfg", "conf", "properties", "csv", "tsv",
@@ -60,38 +58,30 @@ private val EDITABLE_EXTENSIONS = setOf(
     "sh", "bash", "zsh", "bat", "ps1", "c", "cpp", "h", "hpp",
     "rs", "go", "swift", "dart", "sql", "gradle", "kts", "gitignore"
 )
-
 private fun isEditable(filePath: String): Boolean {
     val ext = File(filePath).extension.lowercase()
     return ext in EDITABLE_EXTENSIONS
 }
-
 data class EditorDialogState(val message: String, val isError: Boolean)
-
 class TextEditorActivity : ComponentActivity() {
-
     private val filePath get() = intent.getStringExtra("filePath")
     private val fileContent = mutableStateOf<String?>(null)
     private val isLoading = mutableStateOf(true)
     private val dialogState = mutableStateOf<EditorDialogState?>(null)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         if (filePath == null) {
             Log.e("TextEditor", "File path is missing!")
             dialogState.value = EditorDialogState("File path missing", true)
         } else {
             loadContent()
         }
-
         setContent {
             OSTToolsTheme {
                 TextEditorScreen()
             }
         }
     }
-
     private fun loadContent() {
         isLoading.value = true
         lifecycleScope.launch {
@@ -107,7 +97,6 @@ class TextEditorActivity : ComponentActivity() {
             isLoading.value = false
         }
     }
-
     private suspend fun readFile(path: String?): Result<String> = withContext(Dispatchers.IO) {
         try {
             path?.let {
@@ -119,7 +108,6 @@ class TextEditorActivity : ComponentActivity() {
             Result.failure(IOException("Error reading file", e))
         }
     }
-
     private suspend fun saveFile(path: String?, content: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             if (path == null) return@withContext Result.failure(IllegalArgumentException("File path is null"))
@@ -132,24 +120,20 @@ class TextEditorActivity : ComponentActivity() {
                 Result.failure(IOException("Error saving file", e))
             }
         }
-
     @Composable
     fun TextEditorScreen() {
         val content by fileContent
         val loading by isLoading
         val dialog by dialogState
-
         val editable = filePath?.let { isEditable(it) } ?: false
         val editorText = remember { mutableStateOf("") }
         val focusRequester = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
         val scrollState = rememberScrollState()
         var isSaving by remember { mutableStateOf(false) }
-
         LaunchedEffect(content) {
             editorText.value = content ?: ""
         }
-
         Scaffold(
             timeText = { TimeText() }
         ) {
@@ -188,7 +172,6 @@ class TextEditorActivity : ComponentActivity() {
                                     )
                                 }
                             }
-
                             BasicTextField(
                                 value = editorText.value,
                                 onValueChange = { if (editable) editorText.value = it },
@@ -217,7 +200,6 @@ class TextEditorActivity : ComponentActivity() {
                                     fontFamily = FontFamily(Font(R.font.consola))
                                 )
                             )
-
                             if (editable) {
                                 FilledIconButton(
                                     onClick = {
@@ -253,7 +235,6 @@ class TextEditorActivity : ComponentActivity() {
                                     }
                                 }
                             }
-
                             LaunchedEffect(loading) {
                                 if (!loading && editable) {
                                     focusRequester.requestFocus()
@@ -262,7 +243,6 @@ class TextEditorActivity : ComponentActivity() {
                         }
                     }
                 }
-
                 dialog?.let { state ->
                     FailDialog(
                         message = state.message,

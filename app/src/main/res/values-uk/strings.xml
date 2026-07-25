@@ -1,7 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="http://schemas.android.com/tools" ns0:ignore="MissingTranslation">
     <string name="settings">Налаштування</string>
     <string name="about_app">Про програму</string>
-    <string name="version">Версія</string>
+    <string name="version_s">Версія</string>
     <string name="information">Інформація</string>
     <string name="checking_for_updates">Перевірка оновлень…</string>
     <string name="error_getting_version_information">Помилка отримання даних про версію</string>
@@ -174,7 +175,6 @@
     <string name="conversion_rate_error">Курс конвертації недоступний</string>
     <string name="more">Більше</string>
     <string name="devices">Пристрої</string>
-    <string name="make_discoverable">Зробити видимим</string>
     <string name="resolving">Визначення %1$s...</string>
     <string name="starting_receiver">Запуск приймача...</string>
     <string name="receive_error">Помилка отримання: %1$s</string>
@@ -207,7 +207,6 @@
     <string name="failed_to_launch">Не вдалося запустити %1$s</string>
     <string name="is_not_a_startup_application">%1$s не є програмою для запуску</string>
     <string name="error_loading_app_list">Помилка завантаження списку додатків: %1$s</string>
-    <string name="unknown_error">Невідома помилка</string>
     <string name="no_apps_found">Додатки не знайдено.</string>
     <string name="no_non_system_apps_found">Несистемні додатки не знайдено.</string>
     <string name="delete">Видалити</string>
@@ -223,7 +222,6 @@
     <string name="failed_to_launch_uninstall">Не вдалося розпочати видалення</string>
     <string name="uninstall_error">Помилка під час спроби видалення</string>
     <string name="loading">Завантаження...</string>
-    <string name="searching_for_devices">Пошук пристроїв…</string>
     <string name="waiting_for_resolution">Очікування визначення…</string>
     <string name="unknown_device">Невідомий пристрій</string>
     <string name="error_connection_lost_during_send">Помилка: З\'єднання втрачено під час надсилання</string>
@@ -253,7 +251,6 @@
     <string name="error_no_download_dir">Помилка: Директорія завантажень недоступна</string>
     <string name="find_devices">Знайти пристрої</string>
     <string name="stop_search">Зупинити пошук</string>
-    <string name="press_find_or_enable_receiving">Натисніть \'Знайти пристрої\' або увімкніть отримання</string>
     <string name="idle_status">У режимі очікування</string>
     <string name="wear_version_unknown">Невідомо</string>
     <string name="wear_update_instructions_button">Інструкції з оновлення</string>
@@ -318,7 +315,6 @@
     <string name="edit_currency">Редагувати валюту</string>
     <string name="github_login">Увійти в GitHub</string>
     <string name="enter_your_personal_access_token_to_view_your_repositories">Введіть свій Personal Access Token (Особистий маркер доступу), щоб переглянути ваші репозиторії</string>
-    <string name="token">Токен</string>
     <string name="personal_access_token">Особистий маркер доступу</string>
     <string name="save_refresh">Зберегти та Оновити</string>
     <string name="exit">Вихід</string>

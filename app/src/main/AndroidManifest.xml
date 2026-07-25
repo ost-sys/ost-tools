@@ -85,10 +85,7 @@
             android:windowSoftInputMode="adjustPan"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|mcc|navigation|density|uiMode">
         </activity>
-        <activity
-            android:name=".ui.activity.welcome.WelcomeActivity"
-            android:exported="false"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|mcc|navigation|density|uiMode" />
+
         <activity
             android:name=".ui.activity.setup.SetupActivity"
             android:exported="false"
@@ -112,6 +109,11 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="false"
             android:resizeableActivity="true" />
+        <activity
+            android:name=".ui.activity.converters.ConvertersActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:resizeableActivity="true" />
         <activity android:name=".ui.screen.stargazers.ProfileActivity" />
         <activity android:name=".minigames.activity.MiniGamesMainActivity" />
         <activity android:name=".minigames.activity.games.MinesweeperGameActivity" />
@@ -121,6 +123,42 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <service
+            android:name="com.ost.application.core.service.OstAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:label="@string/accessibility_service_label"
+            android:description="@string/accessibility_service_description">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <service
+            android:name=".service.PowerTileService"
+            android:icon="@drawable/ic_power_new_24dp"
+            android:label="@string/power_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.LockTileService"
+            android:icon="@drawable/ic_lock_24dp"
+            android:label="@string/lock_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

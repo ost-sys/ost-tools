@@ -1,5 +1,4 @@
 package com.ost.application.explorer
-
 import android.app.Activity
 import android.app.Application
 import android.content.Context
@@ -73,9 +72,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-
 data class RenameDialogState(val message: String, val isError: Boolean)
-
 data class RenameUiState(
     val originalFileName: String = "",
     val newName: String = "",
@@ -83,31 +80,24 @@ data class RenameUiState(
     val currentDialog: RenameDialogState? = null,
     val isRenameButtonEnabled: Boolean = false
 )
-
 class RenameContract : ActivityResultContract<String, Boolean>() {
     override fun createIntent(context: Context, input: String): Intent =
         Intent(context, RenameActivity::class.java).apply {
             putExtra(RenameActivity.EXTRA_FILE_PATH, input)
         }
-
     override fun parseResult(resultCode: Int, intent: Intent?): Boolean =
         resultCode == Activity.RESULT_OK
 }
-
 class RenameActivity : ComponentActivity() {
-
     companion object {
         const val EXTRA_FILE_PATH = "file_path"
     }
-
     private class RenameViewModel(
         application: Application,
         private val originalFilePath: String
     ) : ViewModel() {
-
         private val appContext: Context = application.applicationContext
         private val originalFile = File(originalFilePath)
-
         private val _uiState = MutableStateFlow(
             RenameUiState(
                 originalFileName = originalFile.name,
@@ -115,10 +105,8 @@ class RenameActivity : ComponentActivity() {
             )
         )
         val uiState: StateFlow<RenameUiState> = _uiState.asStateFlow()
-
         private val _resultEvent = Channel<Boolean>(Channel.BUFFERED)
         val resultEvent = _resultEvent.receiveAsFlow()
-
         init {
             if (!originalFile.exists()) {
                 viewModelScope.launch { _resultEvent.send(false) }
@@ -126,22 +114,18 @@ class RenameActivity : ComponentActivity() {
                 refreshButtonState(originalFile.name)
             }
         }
-
         fun onNewNameChanged(newName: String) {
             val filtered = newName.filter { it != '/' && it != '\\' }
             _uiState.value = _uiState.value.copy(newName = filtered)
             refreshButtonState(filtered)
         }
-
         private fun refreshButtonState(name: String) {
             _uiState.value = _uiState.value.copy(
                 isRenameButtonEnabled = name.isNotBlank() && name != _uiState.value.originalFileName
             )
         }
-
         fun onRenameAttempt() {
             val newName = _uiState.value.newName.trim()
-
             if (newName.isBlank()) {
                 setDialog(appContext.getString(R.string.new_name_cannot_be_empty), isError = true)
                 return
@@ -150,12 +134,10 @@ class RenameActivity : ComponentActivity() {
                 setDialog(appContext.getString(R.string.name_is_the_same), isError = false)
                 return
             }
-
             _uiState.value = _uiState.value.copy(isBusy = true)
             viewModelScope.launch {
                 val result = renameFile(originalFile, newName)
                 _uiState.value = _uiState.value.copy(isBusy = false)
-
                 if (result.isSuccess) {
                     setDialog(appContext.getString(R.string.renamed_successfully), isError = false)
                     delay(1500)
@@ -171,21 +153,17 @@ class RenameActivity : ComponentActivity() {
                 }
             }
         }
-
         fun onDialogDismissed() {
             _uiState.value = _uiState.value.copy(currentDialog = null)
         }
-
         fun onCancelClicked() {
             viewModelScope.launch { _resultEvent.send(false) }
         }
-
         private fun setDialog(message: String, isError: Boolean) {
             _uiState.value = _uiState.value.copy(
                 currentDialog = RenameDialogState(message, isError)
             )
         }
-
         private suspend fun renameFile(file: File, newName: String): Result<Unit> =
             withContext(Dispatchers.IO) {
                 try {
@@ -210,7 +188,6 @@ class RenameActivity : ComponentActivity() {
                 }
             }
     }
-
     private val viewModel: RenameViewModel by viewModels {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -221,10 +198,8 @@ class RenameActivity : ComponentActivity() {
             }
         }
     }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val filePath = intent.getStringExtra(EXTRA_FILE_PATH)
         if (filePath == null || !File(filePath).exists()) {
             Log.e("RenameActivity", "Invalid or missing file path: $filePath")
@@ -232,18 +207,15 @@ class RenameActivity : ComponentActivity() {
             finish()
             return
         }
-
         setContent {
             OSTToolsTheme {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
                 LaunchedEffect(Unit) {
                     viewModel.resultEvent.collect { success ->
                         setResult(if (success) RESULT_OK else RESULT_CANCELED)
                         finish()
                     }
                 }
-
                 RenameScreen(
                     uiState = uiState,
                     onNewNameChanged = viewModel::onNewNameChanged,
@@ -254,7 +226,6 @@ class RenameActivity : ComponentActivity() {
             }
         }
     }
-
     @Composable
     private fun RenameScreen(
         uiState: RenameUiState,
@@ -266,11 +237,9 @@ class RenameActivity : ComponentActivity() {
         val focusRequester = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
         val listState = rememberScalingLazyListState()
-
         AppScaffold(timeText = { TimeText() }) {
             ScreenScaffold(scrollState = listState) {
                 Box(modifier = Modifier.fillMaxSize()) {
-
                     ScalingLazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -291,7 +260,6 @@ class RenameActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
-
                         item {
                             BasicTextField(
                                 value = uiState.newName,
@@ -321,14 +289,12 @@ class RenameActivity : ComponentActivity() {
                                     )
                                     .padding(horizontal = 10.dp, vertical = 8.dp)
                             )
-
                             LaunchedEffect(Unit) {
                                 delay(100)
                                 focusRequester.requestFocus()
                             }
                         }
                     }
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -347,9 +313,7 @@ class RenameActivity : ComponentActivity() {
                                 contentDescription = "Cancel"
                             )
                         }
-
                         Spacer(modifier = Modifier.width(24.dp))
-
                         FilledIconButton(
                             onClick = {
                                 focusManager.clearFocus()
@@ -371,7 +335,6 @@ class RenameActivity : ComponentActivity() {
                             }
                         }
                     }
-
                     uiState.currentDialog?.let { state ->
                         if (state.isError) {
                             FailDialog(
@@ -392,7 +355,6 @@ class RenameActivity : ComponentActivity() {
             }
         }
     }
-
     @Preview(showBackground = true, device = "id:wearos_small_round")
     @Composable
     private fun PreviewRenameScreen() {

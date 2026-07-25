@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.settings
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,18 +35,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ost.application.R
+import com.ost.application.core.settings.TemperatureUnit
 import com.ost.application.ui.components.ExpressiveShapeBackground
 import com.ost.application.ui.components.LanguagePickerDialog
+import com.ost.application.ui.components.LogcatDialog
 import com.ost.application.ui.components.SectionTitle
 import com.ost.application.util.CardPosition
 import java.util.Locale
 import kotlin.math.roundToInt
-
 @Composable
 fun getShapeForPosition(position: CardPosition): Shape {
     val large = 24.dp
     val small = 4.dp
-
     return when (position) {
         CardPosition.TOP -> RoundedCornerShape(topStart = large, topEnd = large, bottomStart = small, bottomEnd = small)
         CardPosition.MIDDLE -> RoundedCornerShape(small)
@@ -51,7 +54,6 @@ fun getShapeForPosition(position: CardPosition): Shape {
         CardPosition.SINGLE -> RoundedCornerShape(large)
     }
 }
-
 @Composable
 fun SettingsScreen(
     state: SettingsUiState,
@@ -67,6 +69,11 @@ fun SettingsScreen(
     onLanguageSelected: (Locale?) -> Unit,
     onLanguageConfirm: () -> Unit,
     onLanguageDismiss: () -> Unit,
+    onTemperatureUnitChange: (TemperatureUnit) -> Unit,
+    onDeveloperOptionsClick: () -> Unit = {},
+    onDismissDeveloperOptionsDialog: () -> Unit = {},
+    onShowLogcatClick: () -> Unit = {},
+    onDismissLogcatDialog: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (state.isLanguageDialogVisible) {
@@ -78,7 +85,42 @@ fun SettingsScreen(
             onDismiss = onLanguageDismiss
         )
     }
-
+    if (state.showDeveloperOptionsDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissDeveloperOptionsDialog,
+            title = { Text(stringResource(R.string.developer_mode)) },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SettingsCardWrapper(
+                        onClick = onShowLogcatClick,
+                        position = CardPosition.SINGLE
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.console_logs),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismissDeveloperOptionsDialog) {
+                    Text(stringResource(R.string.close))
+                }
+            }
+        )
+    }
+    if (state.showLogcatDialog) {
+        LogcatDialog(
+            onDismissRequest = onDismissLogcatDialog
+        )
+    }
     SettingsListContent(
         state = state,
         onTotalDurationChange = onTotalDurationChange,
@@ -90,10 +132,11 @@ fun SettingsScreen(
         onSaveGithubToken = onSaveGithubToken,
         onClearGithubToken = onClearGithubToken,
         onLanguagePreferenceClick = onLanguagePreferenceClick,
+        onTemperatureUnitChange = onTemperatureUnitChange,
+        onDeveloperOptionsClick = onDeveloperOptionsClick,
         modifier = modifier
     )
 }
-
 @Composable
 fun SettingsListContent(
     state: SettingsUiState,
@@ -106,9 +149,11 @@ fun SettingsListContent(
     onSaveGithubToken: () -> Unit,
     onClearGithubToken: () -> Unit,
     onLanguagePreferenceClick: () -> Unit,
+    onTemperatureUnitChange: (TemperatureUnit) -> Unit,
+    onDeveloperOptionsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    LazyColumn {
+    LazyColumn(modifier = modifier) {
         item {
             SectionTitle(
                 title = stringResource(R.string.category_general),
@@ -126,7 +171,6 @@ fun SettingsListContent(
                 )
             }
         }
-
         item {
             Spacer(modifier = Modifier.height(16.dp))
             SectionTitle(
@@ -182,7 +226,54 @@ fun SettingsListContent(
                 )
             }
         }
-
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionTitle(
+                title = "Temperature unit",
+            )
+        }
+        item {
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                val options = listOf(
+                    TemperatureUnit.DEFAULT to "Default",
+                    TemperatureUnit.CELSIUS to "Celsius (°C)",
+                    TemperatureUnit.FAHRENHEIT to "Fahrenheit (°F)"
+                )
+                options.forEachIndexed { index, (unit, label) ->
+                    val position = when {
+                        options.size == 1 -> CardPosition.SINGLE
+                        index == 0 -> CardPosition.TOP
+                        index == options.lastIndex -> CardPosition.BOTTOM
+                        else -> CardPosition.MIDDLE
+                    }
+                    val isSelected = state.temperatureUnit == unit
+                    SettingsCardWrapper(
+                        onClick = { onTemperatureUnitChange(unit) },
+                        position = position
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         item {
             Spacer(modifier = Modifier.height(16.dp))
             SectionTitle(
@@ -191,19 +282,20 @@ fun SettingsListContent(
         }
         item {
             Column(Modifier.padding(horizontal = 16.dp)) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 2.dp),
-                    shape = RoundedCornerShape(
-                        topStart = 24.dp, topEnd = 24.dp,
-                        bottomStart = 4.dp, bottomEnd = 4.dp
-                    ),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
+                SettingsCardWrapper(
+                    position = CardPosition.TOP
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.enter_your_personal_access_token_to_view_your_repositories),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
                             value = state.githubToken,
                             onValueChange = onGithubTokenChange,
@@ -213,7 +305,6 @@ fun SettingsListContent(
                         )
                     }
                 }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
@@ -230,9 +321,7 @@ fun SettingsListContent(
                     ) {
                         Text(stringResource(R.string.save_refresh))
                     }
-
                     Spacer(modifier = Modifier.width(2.dp))
-
                     FilledTonalButton(
                         onClick = onClearGithubToken,
                         modifier = Modifier
@@ -248,13 +337,30 @@ fun SettingsListContent(
                 }
             }
         }
-
+        if (state.isDeveloperModeEnabled) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionTitle(
+                    title = stringResource(R.string.developer_mode)
+                )
+            }
+            item {
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    SettingsItem(
+                        title = stringResource(R.string.developer_mode),
+                        summary = stringResource(R.string.developer_mode),
+                        icon = R.drawable.ic_terminal_24dp,
+                        onClick = onDeveloperOptionsClick,
+                        position = CardPosition.SINGLE
+                    )
+                }
+            }
+        }
         item {
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
-
 @Composable
 fun SettingsCardWrapper(
     onClick: (() -> Unit)? = null,
@@ -262,7 +368,6 @@ fun SettingsCardWrapper(
     content: @Composable () -> Unit
 ) {
     val shape = getShapeForPosition(position)
-
     Card(
         onClick = onClick ?: {},
         enabled = onClick != null,
@@ -271,118 +376,106 @@ fun SettingsCardWrapper(
             .padding(vertical = 1.dp),
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
         content()
     }
 }
-
 @Composable
 fun SettingsItem(
     title: String,
-    summary: String? = null,
-    icon: Int? = null,
+    summary: String,
+    icon: Int,
     onClick: () -> Unit,
-    position: CardPosition = CardPosition.SINGLE
+    position: CardPosition
 ) {
-    SettingsCardWrapper(onClick = onClick, position = position) {
+    val haptic = LocalHapticFeedback.current
+    SettingsCardWrapper(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        },
+        position = position
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(contentAlignment = Alignment.Center) {
-                if (icon != null) {
-                    ExpressiveShapeBackground(
-                        iconSize = 48.dp,
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    )
-                    Icon(
-                        painter = painterResource(icon),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.size(16.dp))
-                }
+                ExpressiveShapeBackground(
+                    iconSize = 36.dp,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    onClick = {}
+                )
+                Icon(
+                    painter = painterResource(id = icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
-
-            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                if (summary != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
-
 @Composable
 fun SliderSettingsItem(
     title: String,
-    summary: String? = null,
+    summary: String,
     value: Int,
     range: ClosedFloatingPointRange<Float>,
     steps: Int,
     onValueChange: (Float) -> Unit,
-    position: CardPosition = CardPosition.SINGLE
+    position: CardPosition
 ) {
-    val haptic = LocalHapticFeedback.current
-
     SettingsCardWrapper(position = position) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    if (summary != null) {
-                        Text(
-                            text = summary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
                 Text(
-                    text = value.toString(),
-                    style = MaterialTheme.typography.titleLarge,
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "$value sec",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             Slider(
                 value = value.toFloat(),
-                onValueChange = { newValue ->
-                    val intNewValue = newValue.roundToInt()
-                    if (intNewValue != value) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    }
-                    onValueChange(newValue)
-                },
+                onValueChange = { onValueChange(it) },
                 valueRange = range,
                 steps = steps,
                 modifier = Modifier.fillMaxWidth()

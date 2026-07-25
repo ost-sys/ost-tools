@@ -1,10 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="about_the_watch">Про годинник</string>
-    <string name="cpu">ЦП</string>
     <string name="battery">Батарея</string>
     <string name="display">Дисплей</string>
-    <string name="version">Версія</string>
     <string name="error">Помилка</string>
     <string name="update_check_error">Помилка перевірки оновлення</string>
     <string name="you_are_updated">Встановлено останню версію</string>
@@ -28,12 +26,8 @@
     <string name="board">Плата</string>
     <string name="build_number">Номер збірки</string>
     <string name="build_fingerprint">Складання fingerprint</string>
-    <string name="soc_manufacturer">Виробник сокету</string>
-    <string name="cores">Ядра</string>
     <string name="loading">Завантаження...</string>
     <string name="charging_ac">Провід.</string>
-    <string name="charging_usb">USB</string>
-    <string name="charging_wireless">Безпровід.</string>
     <string name="battery_level">Рівень заряду</string>
     <string name="hz">Гц</string>
     <string name="inches">дюйм</string>
@@ -97,7 +91,6 @@
     <string name="receive_error">Помилка прийому: %1$s</string>
     <string name="error_nsd_registration_exception">Помилка: Помилка реєстрації NSD (%1$s)</string>
     <string name="stop_receiving_sending_first">Спочатку зупиніть прийом/передачу</string>
-    <string name="searching_for_devices">Пошук пристроїв...</string>
     <string name="error_discovery_init_failed">Помилка: Не вдалося ініціалізувати пошук</string>
     <string name="discovery_error">Помилка пошуку: %1$s</string>
     <string name="search_stopped">Пошук зупинено.</string>
@@ -116,7 +109,6 @@
     <string name="resolving_i">Визначення...</string>
     <string name="tap_to_resolve">Натисніть для визначення</string>
     <string name="file_share">Обмін файлами</string>
-    <string name="make_discoverable">Зробити видимим</string>
     <string name="image">Зображення</string>
     <string name="video">Відео</string>
     <string name="music">Музика</string>
@@ -138,7 +130,6 @@
     <string name="error_download_subdir_is_file">Помилка: /Download/%1$s - це файл</string>
     <string name="error_permission_denied_download_subdir">Помилка: Відмовлено у доступі для шляху /Download/%1$s</string>
     <string name="error_accessing_download_subdir">Помилка доступу /Download/%1$s</string>
-    <string name="error_parsing_release_notes">Помилка аналізу приміток до випуску</string>
     <string name="no_releases_found">Випусків не знайдено</string>
     <string name="network_error">Помилка мережі</string>
     <string name="update_available_check_phone">Доступне оновлення. Подробиці перевірте на телефоні.</string>
@@ -161,7 +152,6 @@
     <string name="transfer_failed">Передача провалилася</string>
     <string name="cancelling_transfer">Скасування передачі…</string>
     <string name="scan_again">Повторне сканування</string>
-    <string name="close">Закрити</string>
     <string name="cancel">Скасування</string>
     <string name="warn_notification_permission">Повідомлення рекомендується для статусу передачі.</string>
     <string name="waiting_for_registration">Очікування реєстрації.</string>

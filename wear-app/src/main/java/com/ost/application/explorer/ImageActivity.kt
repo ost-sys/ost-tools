@@ -1,5 +1,4 @@
 package com.ost.application.explorer
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -43,19 +42,14 @@ import com.ost.application.R
 import com.ost.application.theme.OSTToolsTheme
 import kotlinx.coroutines.delay
 import java.io.File
-
 class ImageActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val imagePath = intent.getStringExtra("imagePath")
-
         if (imagePath == null) {
             finish()
             return
         }
-
         setContent {
             OSTToolsTheme {
                 ImageViewerScreen(
@@ -66,11 +60,9 @@ class ImageActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun ImageViewerScreen(imagePath: String, onDismiss: () -> Unit) {
     val swipeState = rememberSwipeToDismissBoxState()
-
     SwipeToDismissBox(
         state = swipeState,
         onDismissed = onDismiss,
@@ -81,7 +73,6 @@ fun ImageViewerScreen(imagePath: String, onDismiss: () -> Unit) {
         ZoomableImageViewer(imagePath = imagePath)
     }
 }
-
 @Composable
 fun ZoomableImageViewer(imagePath: String) {
     var scale by remember { mutableFloatStateOf(1f) }
@@ -89,20 +80,17 @@ fun ZoomableImageViewer(imagePath: String) {
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(true) }
-
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
             delay(2000)
             controlsVisible = false
         }
     }
-
     val controlsAlpha by animateFloatAsState(
         targetValue = if (controlsVisible) 1f else 0f,
         animationSpec = tween(durationMillis = 400),
         label = "controls_alpha"
     )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -141,14 +129,12 @@ fun ZoomableImageViewer(imagePath: String) {
                     translationY = offset.y
                 )
         )
-
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(32.dp),
                 strokeWidth = 2.dp
             )
         }
-
         if (isError) {
             Icon(
                 painter = painterResource(R.drawable.ic_error_24dp),
@@ -157,7 +143,6 @@ fun ZoomableImageViewer(imagePath: String) {
                 modifier = Modifier.size(32.dp)
             )
         }
-
         if (scale > 1f) {
             Box(
                 modifier = Modifier

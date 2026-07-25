@@ -1,7 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="http://schemas.android.com/tools" ns0:ignore="MissingTranslation">
     <string name="settings">Ajustes</string>
     <string name="about_app">Acerca del programa</string>
-    <string name="version">Versión</string>
+    <string name="version_s">Versión</string>
     <string name="information">Información</string>
     <string name="checking_for_updates">Buscando actualizaciones…</string>
     <string name="error_getting_version_information">Error al obtener datos de la versión</string>
@@ -174,7 +175,6 @@
     <string name="conversion_rate_error">Tasa de conversión no disponible</string>
     <string name="more">Más</string>
     <string name="devices">Dispositivos</string>
-    <string name="make_discoverable">Hacer visible</string>
     <string name="resolving">Resolviendo %1$s...</string>
     <string name="starting_receiver">Iniciando receptor...</string>
     <string name="receive_error">Error de recepción: %1$s</string>
@@ -207,7 +207,6 @@
     <string name="failed_to_launch">Error al iniciar %1$s</string>
     <string name="is_not_a_startup_application">%1$s no es una aplicación de inicio</string>
     <string name="error_loading_app_list">Error al cargar la lista de aplicaciones: %1$s</string>
-    <string name="unknown_error">Error desconocido</string>
     <string name="no_apps_found">No se encontraron aplicaciones.</string>
     <string name="no_non_system_apps_found">No se encontraron aplicaciones de usuario.</string>
     <string name="delete">Eliminar</string>
@@ -223,7 +222,6 @@
     <string name="failed_to_launch_uninstall">Error al iniciar la desinstalación</string>
     <string name="uninstall_error">Error al intentar desinstalar</string>
     <string name="loading">Cargando...</string>
-    <string name="searching_for_devices">Buscando dispositivos…</string>
     <string name="waiting_for_resolution">Esperando resolución…</string>
     <string name="unknown_device">Dispositivo desconocido</string>
     <string name="error_connection_lost_during_send">Error: Conexión perdida durante el envío</string>
@@ -253,7 +251,6 @@
     <string name="error_no_download_dir">Error: Directorio de descargas no disponible</string>
     <string name="find_devices">Buscar Dispositivos</string>
     <string name="stop_search">Detener Búsqueda</string>
-    <string name="press_find_or_enable_receiving">Presiona \'Buscar Dispositivos\' o habilita la recepción</string>
     <string name="idle_status">Inactivo</string>
     <string name="wear_version_unknown">Desconocido</string>
     <string name="wear_update_instructions_button">Instrucciones de Actualización</string>
@@ -318,7 +315,6 @@
     <string name="edit_currency">Editar moneda</string>
     <string name="github_login">Iniciar sesión en GitHub</string>
     <string name="enter_your_personal_access_token_to_view_your_repositories">Ingresa tu Token de Acceso Personal para ver tus repositorios</string>
-    <string name="token">Token</string>
     <string name="personal_access_token">Token de Acceso Personal</string>
     <string name="save_refresh">Guardar y Actualizar</string>
     <string name="exit">Salir</string>

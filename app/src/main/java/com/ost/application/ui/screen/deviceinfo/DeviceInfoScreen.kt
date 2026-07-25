@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.ost.application.ui.screen.deviceinfo
-
 import android.content.Context
 import android.util.Log
 import androidx.biometric.BiometricManager
@@ -59,10 +57,15 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ost.application.CordItem
-import com.ost.application.CordPosition
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
+import com.ost.application.core.device.BiometricStatus
+import com.ost.application.core.device.DefaultInfoAction
+import com.ost.application.core.device.DeviceFormFactor
+import com.ost.application.core.device.DeviceInfoViewModel
+import com.ost.application.core.device.ToastType
+import com.ost.application.ui.activity.main.CordItem
+import com.ost.application.ui.activity.main.CordPosition
 import com.ost.application.ui.components.ExpressiveShapeBackground
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
@@ -70,15 +73,14 @@ import com.ost.application.util.ToolsManager
 import com.ost.application.util.toast
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import java.util.Locale
 import java.util.concurrent.Executor
-
 private data class DeviceInfoRow(
     val icon: Int,
     val titleRes: Int,
     val summary: String?,
     val onClick: (() -> Unit)? = null
 )
-
 @ExperimentalMaterial3ExpressiveApi
 @Composable
 fun DeviceInfoScreen(
@@ -86,40 +88,48 @@ fun DeviceInfoScreen(
     viewModel: DeviceInfoViewModel = viewModel()
 ) {
     val bottomSpacing = LocalBottomSpacing.current
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptic = LocalHapticFeedback.current
-
     var rotationState by remember { mutableFloatStateOf(0f) }
-
     var showAccelerometerSheet by remember { mutableStateOf(false) }
-
     val rotationDegrees by animateFloatAsState(
         targetValue = rotationState,
         animationSpec = tween(durationMillis = 500),
         label = "iconRotation"
     )
-
-    val deviceInfoRows = remember(uiState) {
+    val deviceTypeString = when(uiState.deviceFormFactor) {
+        DeviceFormFactor.PHONE -> stringResource(R.string.phone)
+        DeviceFormFactor.TABLET -> stringResource(R.string.tablet)
+        DeviceFormFactor.UNKNOWN -> stringResource(R.string.device)
+    }
+    val deviceTypeIconRes = when (uiState.deviceFormFactor) {
+        DeviceFormFactor.PHONE -> R.drawable.ic_device_24dp
+        DeviceFormFactor.TABLET -> R.drawable.ic_tablet_24dp
+        DeviceFormFactor.UNKNOWN -> R.drawable.ic_phone_android_24dp
+    }
+    val fingerprintString = when (uiState.biometricStatus) {
+        BiometricStatus.SUPPORTED_AND_ENROLLED -> stringResource(R.string.support) + "\n" + stringResource(R.string.biometrics_registered)
+        BiometricStatus.SUPPORTED_NOT_ENROLLED -> stringResource(R.string.support) + "\n" + stringResource(R.string.biometrics_not_registered)
+        BiometricStatus.UNSUPPORTED -> stringResource(R.string.unsupported)
+        BiometricStatus.UNKNOWN, BiometricStatus.CHECKING -> stringResource(R.string.unknown)
+    }
+    val deviceInfoRows = remember(uiState, deviceTypeString, deviceTypeIconRes, fingerprintString) {
         listOf(
-            DeviceInfoRow(R.drawable.ic_android_24dp, R.string.android_version, "${uiState.androidVersion} (${viewModel.getLatestCodename()})", viewModel::onAndroidVersionClicked),
+            DeviceInfoRow(R.drawable.ic_android_24dp, R.string.android_version, uiState.androidVersion, viewModel::onAndroidVersionClicked),
             DeviceInfoRow(R.drawable.ic_sell_24dp, R.string.brand, uiState.brand),
             DeviceInfoRow(R.drawable.ic_developer_board_24dp, R.string.board, uiState.board),
             DeviceInfoRow(R.drawable.ic_phone_android_24dp, R.string.model, uiState.model),
             DeviceInfoRow(R.drawable.ic_mobile_code_24dp, R.string.codename, uiState.codename),
             DeviceInfoRow(R.drawable.ic_build_24dp, R.string.build_number, uiState.buildNumber),
             DeviceInfoRow(R.drawable.ic_adb_24dp, R.string.software_development_kit, uiState.sdkVersion),
-            DeviceInfoRow(uiState.deviceTypeIconRes, R.string.device_type, uiState.deviceType),
-            DeviceInfoRow(R.drawable.ic_memory_alt_24dp, R.string.ram, uiState.ramInfo),
-            DeviceInfoRow(R.drawable.ic_storage_24dp, R.string.rom, uiState.romInfo),
-            DeviceInfoRow(R.drawable.ic_3d_rotation_24dp, R.string.accelerometer, null, { showAccelerometerSheet = true}),
+            DeviceInfoRow(deviceTypeIconRes, R.string.device_type, deviceTypeString),
+            DeviceInfoRow(R.drawable.ic_3d_rotation_24dp, R.string.accelerometer, null, { showAccelerometerSheet = true }),
             DeviceInfoRow(R.drawable.ic_manufacturing_24dp, R.string.build_fingerprint, uiState.buildFingerprint),
-            DeviceInfoRow(R.drawable.ic_fingerprint_24dp, R.string.biometrics_support, uiState.fingerprintStatus)
+            DeviceInfoRow(R.drawable.ic_fingerprint_24dp, R.string.biometrics_support, fingerprintString)
         )
     }
-
     if (showAccelerometerSheet) {
         ModalBottomSheet(
             onDismissRequest = { showAccelerometerSheet = false },
@@ -128,7 +138,6 @@ fun DeviceInfoScreen(
             val x = sensorData[0]
             val y = sensorData[1]
             val z = sensorData[2]
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -149,16 +158,21 @@ fun DeviceInfoScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {}
                 Spacer(Modifier.height(48.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Absolute.Center) {
-                    CordItem("X", x, CordPosition.START)
-                    CordItem("Y", y, CordPosition.MIDDLE)
-                    CordItem("Z", z, CordPosition.END)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    val formattedX = String.format(Locale.US, "%.2f", x)
+                    val formattedY = String.format(Locale.US, "%.2f", y)
+                    val formattedZ = String.format(Locale.US, "%.2f", z)
+                    CordItem("X", formattedX, CordPosition.START, modifier = Modifier.weight(1f))
+                    CordItem("Y", formattedY, CordPosition.MIDDLE, modifier = Modifier.weight(1f))
+                    CordItem("Z", formattedZ, CordPosition.END, modifier = Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(32.dp))
             }
         }
     }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -173,16 +187,25 @@ fun DeviceInfoScreen(
             viewModel.stopPeriodicUpdates()
         }
     }
-
     LaunchedEffect(key1 = viewModel.action) {
         viewModel.action.onEach { action ->
             when (action) {
-                is DefaultInfoAction.ShowToastMsg -> context.toast(action.message)
+                is DefaultInfoAction.ShowToast -> {
+                    val msgId = when(action.type) {
+                        ToastType.SUCCESS -> R.string.success
+                        ToastType.FAIL -> R.string.fail
+                        ToastType.EASTER_EGG_NOT_FOUND -> R.string.easter_egg_not_founded
+                        ToastType.ERROR -> R.string.error
+                    }
+                    context.toast(context.getString(msgId))
+                }
+                is DefaultInfoAction.ShowToastMsg -> {
+                    context.toast(action.message)
+                }
                 is DefaultInfoAction.LaunchEasterEgg -> {
                     try {
                         context.startActivity(action.intent)
                     } catch (e: Exception) {
-                        Log.e("DeviceInfoScreen", "Failed to launch easter egg", e)
                         context.toast("Could not launch Easter Egg.")
                     }
                 }
@@ -194,7 +217,6 @@ fun DeviceInfoScreen(
             }
         }.launchIn(this)
     }
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp + bottomSpacing),
@@ -223,15 +245,13 @@ fun DeviceInfoScreen(
                         )
                     }
                     Image(
-                        painter = painterResource(id = uiState.deviceTypeIconRes),
+                        painter = painterResource(deviceTypeIconRes),
                         contentDescription = null,
                         modifier = Modifier.size(60.dp),
                         colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer)
                     )
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
                 if (uiState.isLoadingName) {
                     CircularWavyProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
@@ -247,7 +267,6 @@ fun DeviceInfoScreen(
                 }
             }
         }
-
         itemsIndexed(deviceInfoRows) { index, item ->
             val position = when {
                 deviceInfoRows.size == 1 -> CardPosition.SINGLE
@@ -255,7 +274,6 @@ fun DeviceInfoScreen(
                 index == deviceInfoRows.lastIndex -> CardPosition.BOTTOM
                 else -> CardPosition.MIDDLE
             }
-
             CustomCardItem(
                 title = stringResource(item.titleRes),
                 summary = item.summary,
@@ -266,7 +284,6 @@ fun DeviceInfoScreen(
         }
     }
 }
-
 private fun showBiometricPrompt(
     context: Context,
     onResult: (success: Boolean, message: CharSequence?) -> Unit
@@ -283,25 +300,21 @@ private fun showBiometricPrompt(
                 super.onAuthenticationSucceeded(result)
                 onResult(true, null)
             }
-
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 super.onAuthenticationError(errorCode, errString)
                 if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON && errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
                     onResult(false, errString)
                 }
             }
-
             override fun onAuthenticationFailed() {
                 super.onAuthenticationFailed()
                 onResult(false, context.getString(R.string.fail))
             }
         })
-
     val promptInfo = BiometricPrompt.PromptInfo.Builder()
         .setTitle(context.getString(R.string.fingerprint))
         .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
         .build()
-
     try {
         biometricPrompt.authenticate(promptInfo)
     } catch (e: Exception) {

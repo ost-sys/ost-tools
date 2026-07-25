@@ -1,5 +1,4 @@
 package com.ost.application.util
-
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,7 +12,6 @@ import androidx.wear.compose.material3.SuccessConfirmationDialog
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.curvedText
 import com.ost.application.R
-
 @Composable
 fun FailDialog(
     showDialog: Boolean,
@@ -40,7 +38,6 @@ fun FailDialog(
         },
     )
 }
-
 @Composable
 fun SuccessDialog(
     showDialog: Boolean,
@@ -48,7 +45,6 @@ fun SuccessDialog(
     onDismiss: () -> Unit
 ) {
     val successText = stringResource(R.string.done)
-
     SuccessConfirmationDialog(
         visible = showDialog,
         onDismissRequest = onDismiss,

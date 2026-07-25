@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.converters
-
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
@@ -33,12 +32,9 @@ import com.ost.application.R
 import com.ost.application.ui.screen.converters.currency.CurrencyConverterPage
 import com.ost.application.ui.screen.converters.currency.CurrencyConverterViewModel
 import com.ost.application.ui.screen.converters.timecalc.TimeCalculatorPage
-import com.ost.application.ui.screen.converters.timecalc.TimeCalculatorViewModel
 import com.ost.application.ui.screen.converters.timezone.TimeZoneConverterPage
-import com.ost.application.ui.state.FabSize
 import com.ost.application.ui.state.LocalFabController
 import kotlinx.coroutines.launch
-
 @ExperimentalMaterial3ExpressiveApi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,35 +46,14 @@ fun ConvertersScreen(modifier: Modifier = Modifier) {
     )
     val pagerState = rememberPagerState(pageCount = { tabTitles.size })
     val scope = rememberCoroutineScope()
-
     val fabController = LocalFabController.current
-
-    val timeCalcViewModel: TimeCalculatorViewModel = viewModel()
     val currencyViewModel: CurrencyConverterViewModel = viewModel()
-
     LaunchedEffect(pagerState.currentPage) {
-        when (pagerState.currentPage) {
-            0 -> {
-                fabController.hideFab()
-            }
-            1 -> {
-                fabController.setFab(
-                    icon = R.drawable.ic_calculate_24dp,
-                    description = "Calculate",
-                    fabSize = FabSize.Small,
-                    action = { timeCalcViewModel.calculateTimeDifference() }
-                )
-            }
-            2 -> {
-                fabController.hideFab()
-            }
-        }
+        fabController.hideFab()
     }
-
     DisposableEffect(Unit) {
         onDispose { fabController.hideFab() }
     }
-
     Column(modifier = modifier.fillMaxSize()) {
         PrimaryTabRow(
             selectedTabIndex = pagerState.currentPage,
@@ -100,13 +75,11 @@ fun ConvertersScreen(modifier: Modifier = Modifier) {
         ) {
             tabTitles.forEachIndexed { index, title ->
                 val isSelected = pagerState.currentPage == index
-
                 val textScale by animateFloatAsState(
                     targetValue = if (isSelected) 1.15f else 1.0f,
                     animationSpec = tween(durationMillis = 300),
                     label = "tab_scale_animation"
                 )
-
                 Tab(
                     selected = isSelected,
                     onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
@@ -128,7 +101,6 @@ fun ConvertersScreen(modifier: Modifier = Modifier) {
                 )
             }
         }
-
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -138,7 +110,7 @@ fun ConvertersScreen(modifier: Modifier = Modifier) {
         ) { page ->
             when (page) {
                 0 -> TimeZoneConverterPage()
-                1 -> TimeCalculatorPage(viewModel = timeCalcViewModel)
+                1 -> TimeCalculatorPage()
                 2 -> CurrencyConverterPage(viewModel = currencyViewModel)
             }
         }

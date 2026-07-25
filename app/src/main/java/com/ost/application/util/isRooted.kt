@@ -1,9 +1,7 @@
 package com.ost.application.util
-
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-
 fun isRooted(): Boolean {
     val paths = arrayOf(
         "/sbin/su",
@@ -12,9 +10,7 @@ fun isRooted(): Boolean {
         "/data/adb/magisk",
         "/su/bin/su"
     )
-
     if (paths.any { File(it).exists() }) return true
-
     return try {
         val process = Runtime.getRuntime().exec(arrayOf("which", "su"))
         val reader = BufferedReader(InputStreamReader(process.inputStream))

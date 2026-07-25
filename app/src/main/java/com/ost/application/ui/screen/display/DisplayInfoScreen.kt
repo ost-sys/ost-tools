@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.display
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,25 +42,21 @@ import com.ost.application.ui.components.ExpressiveShapeBackground
 import com.ost.application.ui.components.WavyDivider
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-
 private data class DisplayInfoRow(
     val titleRes: Int,
     val summary: String? = null,
     val onClick: (() -> Unit)? = null
 )
-
 @Composable
 fun DisplayInfoScreen(
     modifier: Modifier = Modifier,
     viewModel: DisplayInfoViewModel = viewModel()
 ) {
     val bottomSpacing = LocalBottomSpacing.current
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val haptic = LocalHapticFeedback.current
-
     DisposableEffect(lifecycleOwner, context) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -73,7 +68,6 @@ fun DisplayInfoScreen(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-
     val displayInfoRows = remember(uiState) {
         listOf(
             DisplayInfoRow(R.string.screen_diagonal, uiState.diagonal),
@@ -83,14 +77,12 @@ fun DisplayInfoScreen(
             DisplayInfoRow(R.string.stylus_support, uiState.stylusSupport)
         )
     }
-
     val actionRows = remember(context) {
         listOf(
             DisplayInfoRow(R.string.check_for_dead_pixels, onClick = { viewModel.onCheckPixelsClicked(context) }),
             DisplayInfoRow(R.string.fix_dead_pixels, onClick = { viewModel.onFixPixelsClicked(context) })
         )
     }
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp + bottomSpacing),
@@ -138,7 +130,6 @@ fun DisplayInfoScreen(
                 }
             }
         }
-
         itemsIndexed(displayInfoRows) { index, item ->
             val position = when {
                 displayInfoRows.size == 1 -> CardPosition.SINGLE
@@ -146,7 +137,6 @@ fun DisplayInfoScreen(
                 index == displayInfoRows.lastIndex -> CardPosition.BOTTOM
                 else -> CardPosition.MIDDLE
             }
-
             CustomCardItem(
                 title = stringResource(item.titleRes),
                 summary = item.summary,
@@ -154,7 +144,6 @@ fun DisplayInfoScreen(
                 onClick = item.onClick
             )
         }
-
         item {
             Box(
                 contentAlignment = Alignment.Center,
@@ -165,7 +154,6 @@ fun DisplayInfoScreen(
                 WavyDivider()
             }
         }
-
         itemsIndexed(actionRows) { index, item ->
             val position = when {
                 actionRows.size == 1 -> CardPosition.SINGLE
@@ -173,7 +161,6 @@ fun DisplayInfoScreen(
                 index == actionRows.lastIndex -> CardPosition.BOTTOM
                 else -> CardPosition.MIDDLE
             }
-
             CustomCardItem(
                 title = stringResource(item.titleRes),
                 summary = item.summary,

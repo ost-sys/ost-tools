@@ -1,5 +1,4 @@
 package com.ost.application.explorer
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
@@ -12,6 +11,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import com.ost.application.core.share.Constants
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -101,7 +101,6 @@ import androidx.wear.tooling.preview.devices.WearDevices
 import com.ost.application.R
 import com.ost.application.explorer.music.MusicActivity
 import com.ost.application.explorer.pdfreader.PdfReaderActivity
-import com.ost.application.share.Constants
 import com.ost.application.share.ShareActivity
 import com.ost.application.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
@@ -122,33 +121,25 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.log10
 import kotlin.math.pow
-
 data class FileDialogInfo(
     val message: String,
     val isError: Boolean = false,
     val actionIconResId: Int = R.drawable.ic_check_circle_24dp
 )
-
 enum class ClipboardOperation { COPY, CUT }
 data class ClipboardState(val files: Set<File>, val operation: ClipboardOperation)
-
 class FileExplorerActivity : ComponentActivity() {
-
     private val rootPath = Environment.getExternalStorageDirectory().absolutePath
     private val currentPath = mutableStateOf(rootPath)
     private val _fileList = MutableStateFlow<List<File>>(emptyList())
     val fileList: StateFlow<List<File>> = _fileList.asStateFlow()
     private val dialogInfo = mutableStateOf<FileDialogInfo?>(null)
-
     private val _clipboardState = mutableStateOf<ClipboardState?>(null)
     val clipboardState: ClipboardState? by _clipboardState
-
     private val _showActionsDialogForFile = mutableStateOf<File?>(null)
     val showActionsDialogForFile: File? by _showActionsDialogForFile
-
     val showPasteButton: Boolean
         @Composable get() = _clipboardState.value != null
-
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             val allGranted = permissions.entries.all { it.value }
@@ -161,13 +152,11 @@ class FileExplorerActivity : ComponentActivity() {
                 loadFiles(currentPath.value)
             }
         }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { FileManagerApp() }
         checkAndRequestPermissions()
     }
-
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -191,11 +180,9 @@ class FileExplorerActivity : ComponentActivity() {
             loadFiles(currentPath.value)
         }
     }
-
     private fun showActionsForFile(file: File) { _showActionsDialogForFile.value = file }
     private fun dismissActionsDialog() { _showActionsDialogForFile.value = null }
     private fun clearClipboard() { _clipboardState.value = null }
-
     private fun copyFile(file: File) {
         if (file.exists()) {
             _clipboardState.value = ClipboardState(files = setOf(file.absoluteFile), operation = ClipboardOperation.COPY)
@@ -210,7 +197,6 @@ class FileExplorerActivity : ComponentActivity() {
             dismissActionsDialog()
         }
     }
-
     private fun cutFile(file: File) {
         if (file.exists()) {
             _clipboardState.value = ClipboardState(files = setOf(file.absoluteFile), operation = ClipboardOperation.CUT)
@@ -225,7 +211,6 @@ class FileExplorerActivity : ComponentActivity() {
             dismissActionsDialog()
         }
     }
-
     private fun deleteFile(file: File) {
         dismissActionsDialog()
         lifecycleScope.launch {
@@ -238,7 +223,6 @@ class FileExplorerActivity : ComponentActivity() {
             if (deleted) loadFiles(currentPath.value)
         }
     }
-
     private fun shareFile(context: Context, file: File) {
         dismissActionsDialog()
         if (file.isDirectory) {
@@ -250,7 +234,7 @@ class FileExplorerActivity : ComponentActivity() {
             return
         }
         try {
-            val fileUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+            val fileUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val uris = ArrayList<Uri>().apply { add(fileUri) }
             val intent = Intent(context, ShareActivity::class.java).apply {
                 action = "com.ost.application.action.SEND_FILES"
@@ -263,12 +247,10 @@ class FileExplorerActivity : ComponentActivity() {
             dialogInfo.value = FileDialogInfo(getString(R.string.error_preparing_file_for_sharing), isError = true)
         }
     }
-
     private fun renameFile(file: File) {
         dismissActionsDialog()
         renameFileLauncher.launch(file.absolutePath)
     }
-
     private fun pasteFiles() {
         val state = _clipboardState.value
         if (state == null || state.files.isEmpty()) {
@@ -278,11 +260,9 @@ class FileExplorerActivity : ComponentActivity() {
         val destinationPath = currentPath.value
         val filesToProcess = state.files
         val operation = state.operation
-
         lifecycleScope.launch {
             var successCount = 0
             var errorCount = 0
-
             withContext(Dispatchers.IO) {
                 filesToProcess.forEach { sourceFile ->
                     if (!sourceFile.exists()) {
@@ -290,7 +270,6 @@ class FileExplorerActivity : ComponentActivity() {
                         return@forEach
                     }
                     var targetFile = File(destinationPath, sourceFile.name)
-
                     if (targetFile.exists()) {
                         if (operation == ClipboardOperation.CUT &&
                             sourceFile.absolutePath == targetFile.absolutePath) {
@@ -309,7 +288,6 @@ class FileExplorerActivity : ComponentActivity() {
                             return@forEach
                         }
                     }
-
                     try {
                         when (operation) {
                             ClipboardOperation.COPY -> {
@@ -337,9 +315,7 @@ class FileExplorerActivity : ComponentActivity() {
                     }
                 }
             }
-
             if (operation == ClipboardOperation.CUT && errorCount == 0) clearClipboard()
-
             val isError = errorCount > 0
             val message = when {
                 errorCount == 0 -> getString(R.string.paste_success, successCount)
@@ -354,14 +330,12 @@ class FileExplorerActivity : ComponentActivity() {
             loadFiles(currentPath.value)
         }
     }
-
     @Composable
     fun FileManagerApp() {
         val listState = rememberScalingLazyListState()
         val files = fileList.collectAsState().value
         val currentDialogInfo by dialogInfo
         val currentActionsDialogFile by _showActionsDialogForFile
-
         OSTToolsTheme {
             AppScaffold(timeText = { TimeText() }) {
                 ScreenScaffold(
@@ -369,7 +343,6 @@ class FileExplorerActivity : ComponentActivity() {
                     contentPadding = PaddingValues(10.dp),
                     edgeButton = {
                         EdgeButton(onClick = {
-                            /* still not ready */
                         }) {
                             Icon(painterResource(R.drawable.ic_settings_24dp), "Settings")
                         }
@@ -422,7 +395,6 @@ class FileExplorerActivity : ComponentActivity() {
                                 } else false
                             }
                         )
-
                         AnimatedVisibility(
                             modifier = Modifier.align(Alignment.BottomCenter),
                             visible = showPasteButton,
@@ -440,7 +412,6 @@ class FileExplorerActivity : ComponentActivity() {
                     }
                 }
             }
-
             currentActionsDialogFile?.let { fileToShowActionsFor ->
                 FileActionsDialog(
                     file = fileToShowActionsFor,
@@ -452,7 +423,6 @@ class FileExplorerActivity : ComponentActivity() {
                     onShare = { shareFile(this, fileToShowActionsFor) }
                 )
             }
-
             currentDialogInfo?.let { info ->
                 if (info.isError) {
                     FailDialog(
@@ -469,7 +439,6 @@ class FileExplorerActivity : ComponentActivity() {
                     )
                 }
             }
-
             BackHandler(enabled = true) {
                 if (currentActionsDialogFile != null) {
                     dismissActionsDialog()
@@ -486,7 +455,6 @@ class FileExplorerActivity : ComponentActivity() {
             }
         }
     }
-
     @OptIn(ExperimentalWearFoundationApi::class)
     @Composable
     fun FileList(
@@ -506,7 +474,6 @@ class FileExplorerActivity : ComponentActivity() {
         val context = LocalContext.current
         val showNewFileDialog = remember { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
-
         LaunchedEffect(path, isActionDialogVisible) {
             if (!isActionDialogVisible) {
                 delay(100)
@@ -514,7 +481,6 @@ class FileExplorerActivity : ComponentActivity() {
                 catch (e: Exception) { Log.w("FileListFocus", "RequestFocus failed: $e") }
             }
         }
-
         Crossfade(targetState = path, label = "FileListTransition") { currentDisplayPath ->
             ScalingLazyColumn(
                 modifier = modifier
@@ -561,7 +527,6 @@ class FileExplorerActivity : ComponentActivity() {
                         }
                     }
                 }
-
                 if (files.isEmpty()) {
                     item {
                         Text(
@@ -598,7 +563,6 @@ class FileExplorerActivity : ComponentActivity() {
                             }
                         }
                         val lastModifiedText = remember(file.lastModified()) { formatLastModified(file.lastModified()) }
-
                         CardItem(
                             title = file.name,
                             summary = summaryState.value,
@@ -621,7 +585,6 @@ class FileExplorerActivity : ComponentActivity() {
                 }
             }
         }
-
         if (showNewFileDialog.value) {
             NewFileDialog(
                 onDismissRequest = { showNewFileDialog.value = false },
@@ -635,7 +598,6 @@ class FileExplorerActivity : ComponentActivity() {
             )
         }
     }
-
     private fun getItemTypeAndIcon(file: File): Pair<String, Int> {
         val ext = file.extension.lowercase(Locale.ROOT)
         return when {
@@ -655,7 +617,6 @@ class FileExplorerActivity : ComponentActivity() {
             else -> getString(R.string.file) to R.drawable.ic_draft_24dp
         }
     }
-
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun NewFileDialog(onDismissRequest: () -> Unit, onCreate: (String, Boolean) -> Unit) {
@@ -663,7 +624,6 @@ class FileExplorerActivity : ComponentActivity() {
         var isDirectory by remember { mutableStateOf(false) }
         val focusRequester = remember { FocusRequester() }
         val keyboardController = LocalSoftwareKeyboardController.current
-
         Dialog(onDismissRequest = onDismissRequest) {
             Column(
                 modifier = Modifier
@@ -721,7 +681,6 @@ class FileExplorerActivity : ComponentActivity() {
             }
         }
     }
-
     private suspend fun createNewFileOrDir(path: String, name: String, isDirectory: Boolean): Pair<Boolean, String> {
         return withContext(Dispatchers.IO) {
             val safeName = name.filter { it != '/' && it != '\\' }
@@ -746,7 +705,6 @@ class FileExplorerActivity : ComponentActivity() {
             }
         }
     }
-
     fun loadFiles(path: String) {
         lifecycleScope.launch {
             val currentFile = File(path)
@@ -763,7 +721,6 @@ class FileExplorerActivity : ComponentActivity() {
                 }
                 return@launch
             }
-
             _fileList.value = withContext(Dispatchers.IO) {
                 try {
                     val files = currentFile.listFiles()
@@ -785,11 +742,9 @@ class FileExplorerActivity : ComponentActivity() {
             }
         }
     }
-
     @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
     @Composable
     fun DefaultPreview() { FileManagerApp() }
-
     private suspend fun deleteFileOrDirInternal(file: File): Pair<Boolean, String> {
         return withContext(Dispatchers.IO) {
             try {
@@ -803,7 +758,6 @@ class FileExplorerActivity : ComponentActivity() {
             }
         }
     }
-
     private fun deleteRecursively(fileOrDirectory: File): Boolean {
         return try {
             if (fileOrDirectory.isDirectory) {
@@ -825,12 +779,10 @@ class FileExplorerActivity : ComponentActivity() {
             false
         }
     }
-
     private suspend fun formatFolderSize(folder: File): String {
         return try { formatFileSize(getFolderSize(folder, depth = 0)) }
         catch (e: Exception) { Log.e(Constants.TAG, "Error calculating size for ${folder.name}", e); "N/A" }
     }
-
     private suspend fun getFolderSize(folder: File, depth: Int): Long = withContext(Dispatchers.IO) {
         if (depth > 20) {
             Log.w(Constants.TAG, "getFolderSize: max depth at ${folder.absolutePath}")
@@ -847,7 +799,6 @@ class FileExplorerActivity : ComponentActivity() {
         }
         totalSize
     }
-
     @SuppressLint("DefaultLocale")
     private fun formatFileSize(size: Long): String {
         if (size < 0) return "N/A"
@@ -859,7 +810,6 @@ class FileExplorerActivity : ComponentActivity() {
         return if (digitGroups == 0) String.format("%d %s", size.toInt(), units[digitGroups])
         else String.format("%.1f %s", sizeInUnit, units[digitGroups])
     }
-
     @SuppressLint("SimpleDateFormat")
     private fun formatLastModified(lastModified: Long): String {
         val date = Date(lastModified)
@@ -871,16 +821,13 @@ class FileExplorerActivity : ComponentActivity() {
             else -> SimpleDateFormat("dd.MM.yy", Locale.getDefault()).format(date)
         }
     }
-
     private fun isSameDay(cal1: Calendar, cal2: Calendar) =
         cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                 cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
-
     private fun isYesterday(today: Calendar, date: Calendar): Boolean {
         val yesterday = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
         return isSameDay(yesterday, date)
     }
-
     fun openFile(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
         val ext = file.extension.lowercase(Locale.ROOT)
         val intent: Intent? = when {
@@ -899,7 +846,7 @@ class FileExplorerActivity : ComponentActivity() {
                 }
             else -> {
                 try {
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                     val mimeType = context.contentResolver.getType(uri) ?: "*/*"
                     Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, mimeType)
@@ -926,15 +873,13 @@ class FileExplorerActivity : ComponentActivity() {
             showDialog(getString(R.string.error_opening_file_e, e.localizedMessage), true)
         }
     }
-
     private val renameFileLauncher = registerForActivityResult(RenameContract()) { success ->
         if (success) loadFiles(currentPath.value)
     }
-
     @SuppressLint("WearRecents")
     private fun installApk(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
         try {
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             context.startActivity(Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -948,7 +893,6 @@ class FileExplorerActivity : ComponentActivity() {
         }
     }
 }
-
 @OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun CardItem(
@@ -1010,7 +954,6 @@ fun CardItem(
         onSwipePrimaryAction = { onDeleteSwipe() }
     )
 }
-
 @Composable
 fun FileActionsDialog(
     file: File,
@@ -1023,7 +966,6 @@ fun FileActionsDialog(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
-
     Dialog(onDismissRequest = onDismissRequest) {
         LaunchedEffect(Unit) {
             delay(50)
@@ -1078,7 +1020,6 @@ fun FileActionsDialog(
         }
     }
 }
-
 @Composable
 private fun ActionChip(
     iconResId: Int,

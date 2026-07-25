@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.stargazers
-
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
@@ -14,21 +13,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 class ProfileViewModel : ViewModel() {
-
     private val _user = MutableStateFlow<GitHubUser?>(null)
     val user = _user.asStateFlow()
-
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
-
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
-
     private val _qrCodeBitmap = MutableStateFlow<Bitmap?>(null)
     val qrCodeBitmap = _qrCodeBitmap.asStateFlow()
-
     fun loadProfile(username: String, token: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -48,7 +41,6 @@ class ProfileViewModel : ViewModel() {
             }
         }
     }
-
     private fun generateQrCode(content: String) {
         if (content.isBlank()) return
         viewModelScope.launch {

@@ -10,10 +10,13 @@ android {
 
     defaultConfig {
         applicationId = "com.ost.application"
-        minSdk = 30
+        minSdk = 26
         targetSdk = 37
         versionCode = 300
-        versionName = "3.0.0-beta3"
+        versionName = "3.0.0-beta4"
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -65,12 +68,9 @@ dependencies {
     val horologist = "0.8.3-alpha"
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation("com.squareup.okhttp3:logging-interceptor:5.4.0")
-    implementation(libs.coil.compose.v340)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.ui)
-    implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation(libs.coil.compose)
     implementation("com.google.android.horologist:horologist-media-ui-model:$horologist")
     implementation("com.google.android.horologist:horologist-audio-ui-model:$horologist")
@@ -99,7 +99,6 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.ui)
     implementation(libs.ui.graphics)
-    implementation(libs.ui.tooling.preview)
     implementation(libs.compose.material)
     implementation(libs.compose.foundation)
     implementation(libs.wear.tooling.preview)
@@ -107,13 +106,12 @@ dependencies {
     implementation(libs.core.splashscreen)
     implementation(libs.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.activity)
-    implementation(libs.animation.graphics.android)
-    androidTestImplementation(platform(libs.compose.bom))
+    implementation(project(":core"))
     androidTestImplementation(libs.ui.test.junit4)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.play.services)
 }

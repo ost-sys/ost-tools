@@ -1,5 +1,4 @@
 package com.ost.application
-
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -37,27 +36,24 @@ import androidx.wear.compose.material3.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.ost.application.appmanager.AppManagerActivity
 import com.ost.application.explorer.FileExplorerActivity
-import com.ost.application.presentation.BatteryActivity
+import com.ost.application.presentation.battery.BatteryActivity
 import com.ost.application.presentation.DefaultActivity
-import com.ost.application.presentation.DisplayActivity
+import com.ost.application.presentation.display.DisplayActivity
 import com.ost.application.presentation.SettingsActivity
 import com.ost.application.share.ShareActivity
 import com.ost.application.theme.OSTToolsTheme
+import androidx.wear.compose.material3.ListHeader
 import com.ost.application.util.CardListItem
 import com.ost.application.util.CardPosition
 import com.ost.application.util.ListItem
-import com.ost.application.util.ListItems
 import com.ost.application.util.WavyDivider
 import com.ost.application.util.startActivity
-
 private const val TAG = "WearMainActivity"
-
 sealed class UpdateCheckResult {
     data class UpdateAvailable(val latestVersion: String) : UpdateCheckResult()
     object LatestVersion : UpdateCheckResult()
     data class Error(val message: String) : UpdateCheckResult()
 }
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,12 +64,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun MainApp() {
     val context = LocalContext.current
     val mainListItems = rememberMainListItems(context)
-
     AppScaffold(timeText = { TimeText() }) {
         val listState = rememberScalingLazyListState()
         ScreenScaffold(
@@ -92,7 +86,6 @@ fun MainApp() {
         }
     }
 }
-
 @Composable
 fun rememberMainListItems(context: Context): List<ListItem> {
     return remember {
@@ -106,11 +99,20 @@ fun rememberMainListItems(context: Context): List<ListItem> {
             ListItem(context.getString(R.string.display), null, R.drawable.ic_display_settings_24dp, true, CardPosition.BOTTOM) {
                 startActivity(context, DisplayActivity::class.java)
             },
-            ListItem(context.getString(R.string.file_explorer), null, R.drawable.ic_folder_24dp, true, CardPosition.TOP) {
+            ListItem(context.getString(R.string.power_menu), null, com.ost.application.core.R.drawable.ic_power_new_24dp, true, CardPosition.TOP) {
+                startActivity(context, com.ost.application.presentation.powermenu.PowerMenuActivity::class.java)
+            },
+            ListItem(context.getString(R.string.file_explorer), null, R.drawable.ic_folder_24dp, true, CardPosition.MIDDLE) {
                 startActivity(context, FileExplorerActivity::class.java)
             },
             ListItem(context.getString(R.string.share), null, R.drawable.ic_share_24dp, true, CardPosition.MIDDLE) {
                 startActivity(context, ShareActivity::class.java)
+            },
+            ListItem(context.getString(R.string.ram_title), null, com.ost.application.core.R.drawable.ic_memory_alt_24dp, true, CardPosition.MIDDLE) {
+                startActivity(context, com.ost.application.presentation.memory.RamActivity::class.java)
+            },
+            ListItem(context.getString(R.string.storage_title), null, com.ost.application.core.R.drawable.ic_storage_24dp, true, CardPosition.MIDDLE) {
+                startActivity(context, com.ost.application.presentation.memory.StorageActivity::class.java)
             },
             ListItem("Apps", null, R.drawable.ic_apps_24dp, true, CardPosition.BOTTOM) {
                 startActivity(context, AppManagerActivity::class.java)
@@ -118,7 +120,6 @@ fun rememberMainListItems(context: Context): List<ListItem> {
         )
     }
 }
-
 @Composable
 fun MainList(
     listState: ScalingLazyListState,
@@ -131,7 +132,7 @@ fun MainList(
         contentPadding = contentPadding,
         anchorType = ScalingLazyListAnchorType.ItemCenter
     ) {
-        item { ListItems(stringResource(R.string.app_name), null) }
+        item { ListHeader { Text(stringResource(R.string.app_name)) } }
         items(items.size, key = { index -> items[index].title }) { index ->
             val item = items[index]
             CardListItem(
@@ -153,7 +154,6 @@ fun MainList(
         item { VersionInfo(version = BuildConfig.VERSION_NAME) }
     }
 }
-
 @Composable
 fun VersionInfo(version: String) {
     Text(
@@ -165,7 +165,6 @@ fun VersionInfo(version: String) {
             .padding(horizontal = 16.dp)
     )
 }
-
 fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
     return try {
         fun parse(raw: String): Pair<List<Int>, String?> {
@@ -179,18 +178,15 @@ fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
             val nums = numPart.split('.').map { it.toIntOrNull() ?: 0 }
             return nums to pre
         }
-
         val (v1, pre1) = parse(latestVersion)
         val (v2, pre2) = parse(currentVersion)
         val maxLen = maxOf(v1.size, v2.size)
-
         for (i in 0 until maxLen) {
             val p1 = v1.getOrElse(i) { 0 }
             val p2 = v2.getOrElse(i) { 0 }
             if (p1 > p2) return true
             if (p1 < p2) return false
         }
-
         return when {
             pre1 == null && pre2 != null -> true
             pre1 != null && pre2 == null -> false
@@ -202,7 +198,6 @@ fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
         false
     }
 }
-
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {

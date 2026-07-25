@@ -1,7 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="http://schemas.android.com/tools" ns0:ignore="MissingTranslation">
     <string name="settings">Налады</string>
     <string name="about_app">Пра праграму</string>
-    <string name="version">Версія</string>
+    <string name="version_s">Версія</string>
     <string name="information">Інфармацыя</string>
     <string name="checking_for_updates">Праверка абнаўленняў…</string>
     <string name="error_getting_version_information">Памылка атрымання даных аб версіі</string>
@@ -174,7 +175,6 @@
     <string name="conversion_rate_error">Курс канвертацыі недаступны</string>
     <string name="more">Больш</string>
     <string name="devices">Прылады</string>
-    <string name="make_discoverable">Зрабіць бачным</string>
     <string name="resolving">Вызначэнне %1$s...</string>
     <string name="starting_receiver">Запуск прымача...</string>
     <string name="receive_error">Памылка атрымання: %1$s</string>
@@ -207,7 +207,6 @@
     <string name="failed_to_launch">Не ўдалося запусціць %1$s</string>
     <string name="is_not_a_startup_application">%1$s не з\'яўляецца праграмай для запуску</string>
     <string name="error_loading_app_list">Памылка загрузкі спісу праграм: %1$s</string>
-    <string name="unknown_error">Невядомая памылка</string>
     <string name="no_apps_found">Праграмы не знойдзены.</string>
     <string name="no_non_system_apps_found">Несістэмныя праграмы не знойдзены.</string>
     <string name="delete">Выдаліць</string>
@@ -223,7 +222,6 @@
     <string name="failed_to_launch_uninstall">Не ўдалося пачаць выдаленне</string>
     <string name="uninstall_error">Памылка падчас спробы выдалення</string>
     <string name="loading">Загрузка...</string>
-    <string name="searching_for_devices">Пошук прылад…</string>
     <string name="waiting_for_resolution">Чаканне вызначэння…</string>
     <string name="unknown_device">Невядомая прылада</string>
     <string name="error_connection_lost_during_send">Памылка: Злучэнне страчана падчас адпраўкі</string>
@@ -253,7 +251,6 @@
     <string name="error_no_download_dir">Памылка: Дырэкторыя спампоўванняў недаступная</string>
     <string name="find_devices">Знайсці прылады</string>
     <string name="stop_search">Спыніць пошук</string>
-    <string name="press_find_or_enable_receiving">Націсніце \'Знайсці прылады\' або ўключыце атрыманне</string>
     <string name="idle_status">У рэжыме чакання</string>
     <string name="wear_version_unknown">Невядома</string>
     <string name="wear_update_instructions_button">Інструкцыі па абнаўленні</string>
@@ -318,7 +315,6 @@
     <string name="edit_currency">Рэдагаваць валюту</string>
     <string name="github_login">Увайсці ў GitHub</string>
     <string name="enter_your_personal_access_token_to_view_your_repositories">Увядзіце свой Personal Access Token (Асабісты маркер доступу), каб праглядзець вашыя рэпазітарыі</string>
-    <string name="token">Токен</string>
     <string name="personal_access_token">Асабісты маркер доступу</string>
     <string name="save_refresh">Захаваць і Абнавіць</string>
     <string name="exit">Выхад</string>

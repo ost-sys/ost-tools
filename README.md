@@ -1,17 +1,51 @@
-<img src="banner.png" width="100%" loading="lazy"/>
+<div align="center">
 
-# <p align="center">OST Tools</p>
+<img src="banner.png" width="100%" alt="OST Tools banner" loading="lazy"/>
 
-### Features:
-- Material 3 Expressive
-- Some information about the phone
-- Reboot to different modes (Recovery, Fastboot, Download Mode)
-- Currency converters and time calculators
-- Restoring broken/burnt pixels and checking the display for their presence
-- Stargazers - those who put a star on one of your projects
-- List of applications
+# OST Tools
 
-## Android
+Personal Android & WearOS utility app built with **Jetpack Compose** and **Material 3 Expressive**
+
+[![Build Release](https://github.com/ost-sys/ost-tools/actions/workflows/android.yml/badge.svg)](https://github.com/ost-sys/ost-tools/actions/workflows/android.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20WearOS-3DDC84.svg)](#)
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Screenshots](#screenshots)
+  - [Android](#android-screenshots)
+  - [WearOS](#wearos-screenshots)
+- [Usage (for Stargazers)](#usage-for-stargazers)
+- [Installing on WearOS](#installing-on-wearos)
+- [Roadmap](#roadmap)
+- [Credits](#credits)
+- [License](#license)
+
+---
+
+## Features
+
+- 🎨 **Material 3 Expressive** design across phone and watch
+- 📱 Detailed phone/device information
+- 🔁 Reboot to Recovery, Fastboot, or Download Mode
+- 💱 Currency converter and time calculators
+- 🖥️ Burnt/broken pixel restoration and display checker
+- ⭐ Stargazers — see who starred your GitHub projects
+- 📦 Installed applications list
+
+## Screenshots
+
+### Android Screenshots
+
+<details>
+<summary>Show Android screenshots</summary>
+<br>
+
 <p align="center">
 <img loading="lazy" src="screenshots/Screenshot_20250409_223747_OST Tools.png" height="320"/>
 <img loading="lazy" src="screenshots/Screenshot_20250409_223751_OST Tools.png" height="320"/>
@@ -34,7 +68,14 @@
 <img loading="lazy" src="screenshots/Screenshot_20250409_224000_OST Tools.png" height="320"/>
 </p>
 
-## WearOS
+</details>
+
+### WearOS Screenshots
+
+<details>
+<summary>Show WearOS screenshots</summary>
+<br>
+
 <p align="center">
 <img loading="lazy" src="screenshots/Screenshot_20250412_134216_application.png" height="180"/>
 <img loading="lazy" src="screenshots/Screenshot_20250412_134237_application.png" height="180"/>
@@ -51,32 +92,54 @@
 <img loading="lazy" src="screenshots/Screenshot_20250412_134419_application.png" height="180"/>
 </p>
 
-### Usage (for Stargazers)
-- Get your token here - https://github.com/settings/tokens
-- Put your token in app
+</details>
 
-### How to install app on WearOS and grand permissions:
-- Pair your watch with PC using Wireless ADB ([Guildeline on XDA](https://xdaforums.com/t/guide-how-to-connect-adb-over-wifi.3368602/))
-- Install app
-```shell
-adb install wear-app-release.apk
-```
-- Grand permissions
-```shell
-adb shell
-appops set com.ost.application MANAGE_EXTERNAL_STORAGE allow
-appops set com.ost.application WRITE_EXTERNAL_STORAGE allow
-appops set com.ost.application READ_EXTERNAL_STORAGE allow
-appops set com.ost.application REQUEST_INSTALL_PACKAGES allow
-```
+## Usage (for Stargazers)
 
-## Translators
-- [Radomyr](https://github.com/BRamil0), [Anton](https://github.com/Anton-Aboba1234), [Bohdan](https://github.com/bohdan157) for the translation into Ukrainian.
-- [Luminous418](https://github.com/Luminous418) for the translation into Spanish
+1. Generate a token at [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Enter the token in the app
+
+## Installing on WearOS
+
+1. Pair your watch with your PC over Wireless ADB — see [this guide on XDA](https://xdaforums.com/t/guide-how-to-connect-adb-over-wifi.3368602/)
+2. Install the app:
+
+   ```shell
+   adb install wear-app-release.apk
+   ```
+
+3. Grant the required permissions (full storage access for creating/deleting files and installing APKs):
+
+   ```shell
+   adb shell
+   appops set com.ost.application MANAGE_EXTERNAL_STORAGE allow
+   appops set com.ost.application WRITE_EXTERNAL_STORAGE allow
+   appops set com.ost.application READ_EXTERNAL_STORAGE allow
+   appops set com.ost.application REQUEST_INSTALL_PACKAGES allow
+   ```
+
+## App Size Notice
+
+You might notice that the WearOS APK is significantly larger (~28MB) compared to the Android APK (~9MB). This is normal and expected!
+The WearOS version acts as a standalone tool including heavy-weight components such as:
+- **PDF Rendering Engine:** Bundled C++ native libraries (`libpdfium.so`) for multiple CPU architectures.
+- **Media Playback:** Extensive media libraries (`ExoPlayer` / `Media3`) and `Horologist` UI components.
+
+
+## Roadmap
+
+- [ ] Add some minigames
+- [ ] Add new features and update existing ones in the "Tools" section
+- [ ] Add [LocalSend](https://github.com/localsend/localsend) support
 
 ## Credits
-- [Weever](https://github.com/Weever1337) - For a new API for currency converter
-- [Google](https://developer.android.com/jetpack) for their Jetpack and Material Components libraries.
+
+- [Weever](https://github.com/Weever1337) — new currency converter API
+- [Google](https://developer.android.com/jetpack) — Jetpack and Material Components libraries
+- [LocalSend](https://github.com/localsend) — file sharing API (Apache 2.0)
+- [hushenghao](https://github.com/hushenghao) — [AndroidEasterEggs](https://github.com/hushenghao/AndroidEasterEggs) (Apache 2.0)
 
 ## License
-This project is licensed under the **[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0)**. See the [LICENSE](LICENSE) file for more details.
+
+This project is licensed under the **[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0)**.
+See the [LICENSE](LICENSE) file for details.

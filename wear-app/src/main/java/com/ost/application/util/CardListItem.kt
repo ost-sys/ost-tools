@@ -1,5 +1,4 @@
 package com.ost.application.util
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
@@ -20,7 +19,6 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.ost.application.R
-
 enum class CardPosition {
     TOP,
     MIDDLE,
@@ -38,7 +36,6 @@ fun CardListItem(
 ) {
     val largeCornerRadius = 24.dp
     val smallCornerRadius = 4.dp
-
     val shape = when (position) {
         CardPosition.TOP -> RoundedCornerShape(topStart = largeCornerRadius, topEnd = largeCornerRadius, bottomStart = smallCornerRadius, bottomEnd = smallCornerRadius)
         CardPosition.MIDDLE -> RoundedCornerShape(smallCornerRadius)
@@ -77,7 +74,6 @@ fun CardListItem(
         )
     )
 }
-
 @Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {

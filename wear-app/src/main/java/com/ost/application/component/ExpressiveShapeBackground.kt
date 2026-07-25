@@ -1,5 +1,4 @@
 package com.ost.application.component
-
 import android.annotation.SuppressLint
 import android.graphics.Matrix
 import android.graphics.Path
@@ -30,11 +29,8 @@ import androidx.graphics.shapes.toPath
 import androidx.wear.compose.material3.MaterialTheme
 import com.google.android.material.shape.MaterialShapes
 import kotlinx.coroutines.launch
-
-// === КОНСТАНТЫ РАЗМЕРА ===
 private const val SCALE_HUGE = 2.0f
 private const val SCALE_LARGE = 1.8f
-
 enum class ExpressiveShapeType(val visualScale: Float) {
     CIRCLE(SCALE_HUGE),
     SQUARE(SCALE_HUGE),
@@ -46,7 +42,6 @@ enum class ExpressiveShapeType(val visualScale: Float) {
     CLOVER_4(SCALE_HUGE),
     CLOVER_8(SCALE_HUGE)
 }
-
 @Composable
 fun ExpressiveShapeBackground(
     modifier: Modifier = Modifier,
@@ -57,22 +52,18 @@ fun ExpressiveShapeBackground(
 ) {
     val scope = rememberCoroutineScope()
     val morphProgress = remember { Animatable(0f) }
-
     val shapeState = remember {
         ShapeState().apply {
             val startT = forcedShape ?: ExpressiveShapeType.entries.random()
             val endT = forcedShape ?: ExpressiveShapeType.entries.random()
-
             startPolygon = getM3Shape(startT)
             endPolygon = getM3Shape(endT)
             startScale = startT.visualScale
             endScale = endT.visualScale
             type = startT
-
             morph = Morph(startPolygon, endPolygon)
         }
     }
-
     LaunchedEffect(forcedShape) {
         if (forcedShape != null && forcedShape != shapeState.type) {
             shapeState.startPolygon = shapeState.endPolygon
@@ -81,7 +72,6 @@ fun ExpressiveShapeBackground(
             shapeState.endScale = forcedShape.visualScale
             shapeState.type = forcedShape
             shapeState.morph = Morph(shapeState.startPolygon, shapeState.endPolygon)
-
             morphProgress.snapTo(0f)
             morphProgress.animateTo(
                 targetValue = 1f,
@@ -92,12 +82,10 @@ fun ExpressiveShapeBackground(
             )
         }
     }
-
     val interactionSource = remember { MutableInteractionSource() }
     val path = remember { Path() }
     val transformMatrix = remember { Matrix() }
     val pathBounds = remember { RectF() }
-
     Box(
         modifier = modifier
             .size(iconSize)
@@ -111,14 +99,12 @@ fun ExpressiveShapeBackground(
                 while (newType == shapeState.type) {
                     newType = ExpressiveShapeType.entries.random()
                 }
-
                 shapeState.startPolygon = shapeState.endPolygon
                 shapeState.startScale = shapeState.endScale
                 shapeState.endPolygon = getM3Shape(newType)
                 shapeState.endScale = newType.visualScale
                 shapeState.type = newType
                 shapeState.morph = Morph(shapeState.startPolygon, shapeState.endPolygon)
-
                 scope.launch {
                     morphProgress.snapTo(0f)
                     morphProgress.animateTo(
@@ -133,46 +119,35 @@ fun ExpressiveShapeBackground(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val drawSize = this.size
             val radius = drawSize.minDimension / 2f
-
             if (radius > 0) {
                 path.reset()
                 transformMatrix.reset()
-
                 val currentProgress = morphProgress.value
                 val currentVisualScale = lerp(shapeState.startScale, shapeState.endScale, currentProgress)
-
                 shapeState.morph.toPath(progress = currentProgress, path = path)
-
                 path.computeBounds(pathBounds, true)
                 val centerX = pathBounds.centerX()
                 val centerY = pathBounds.centerY()
                 transformMatrix.postTranslate(-centerX, -centerY)
-
                 val finalScale = radius * currentVisualScale
                 transformMatrix.postScale(finalScale, finalScale)
-
                 transformMatrix.postTranslate(drawSize.width / 2f, drawSize.height / 2f)
-
                 path.transform(transformMatrix)
                 drawPath(path = path.asComposePath(), color = color)
             }
         }
     }
 }
-
 private class ShapeState {
     var type: ExpressiveShapeType = ExpressiveShapeType.CIRCLE
     var current: ExpressiveShapeType = ExpressiveShapeType.CIRCLE
     var target: ExpressiveShapeType = ExpressiveShapeType.CIRCLE
-
     var startPolygon: RoundedPolygon = RoundedPolygon.circle(4)
     var endPolygon: RoundedPolygon = RoundedPolygon.circle(4)
     var startScale: Float = 1f
     var endScale: Float = 1f
-
     var morph: Morph = Morph(startPolygon, endPolygon)
 }
-
 @SuppressLint("RestrictedApi")
 private fun getM3Shape(type: ExpressiveShapeType): RoundedPolygon {
     return when (type) {

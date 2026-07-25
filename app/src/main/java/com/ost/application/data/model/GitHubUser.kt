@@ -1,7 +1,5 @@
 package com.ost.application.data.model
-
 import com.google.gson.annotations.SerializedName
-
 data class GitHubUser(
     val login: String,
     val id: Long,

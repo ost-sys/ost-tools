@@ -1,7 +1,5 @@
 package com.ost.application.util
-
 import androidx.annotation.Keep
-
 @Keep
 data class GitHubRelease(
     val tag_name: String,

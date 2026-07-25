@@ -1,5 +1,4 @@
 package com.ost.application.ui.activity.about
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
@@ -17,6 +16,7 @@ import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.runtime.Stable
+import com.ost.application.util.DeveloperModeManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
@@ -54,13 +54,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.Random
-
+import kotlin.time.Duration.Companion.milliseconds
 private const val TAG = "AboutViewModel"
-
 enum class UpdateState { IDLE, CHECKING, AVAILABLE, NOT_AVAILABLE, ERROR }
 enum class DownloadStatus { IDLE, DOWNLOADING, COMPLETE, FAILED }
 enum class WearUpdateCheckState { IDLE, CHECKING_GITHUB, REQUESTING_INSTALLED, UP_TO_DATE, AVAILABLE, ERROR }
-
 @Stable
 data class AboutUiState(
     val currentVersionName: String = BuildConfig.VERSION_NAME,
@@ -87,7 +85,6 @@ data class AboutUiState(
     val showWearUpdateInstructionsDialog: Boolean = false,
     val showPcInfoDialog: Boolean = false
 )
-
 sealed class AboutAction {
     data class ShowToast(val message: String) : AboutAction()
     data class ShowToastRes(val messageResId: Int) : AboutAction()
@@ -96,42 +93,24 @@ sealed class AboutAction {
     object RequestInstallPermission : AboutAction()
     object RequestStoragePermissionLegacy : AboutAction()
 }
-
 class AboutViewModel(application: Application) : AndroidViewModel(application),
     MessageClient.OnMessageReceivedListener,
     CapabilityClient.OnCapabilityChangedListener {
-
     private val _uiState = MutableStateFlow(AboutUiState())
     val uiState: StateFlow<AboutUiState> = _uiState.asStateFlow()
-
     private val _action = Channel<AboutAction>(Channel.BUFFERED)
     val action = _action.receiveAsFlow()
-
     private val downloadManager = application.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     private var currentDownloadId: Long? = null
     private var downloadProgressJob: Job? = null
-
     private val messageClient by lazy { Wearable.getMessageClient(application) }
     private val capabilityClient by lazy { Wearable.getCapabilityClient(application) }
     private val nodeClient by lazy { Wearable.getNodeClient(application) }
-
     private val wearAppCapability = "ost_wear_app_companion"
     private val requestVersionPath = "/request_wear_version"
     private val versionResponsePath = "/wear_version_response"
-
     private val phoneReleaseAssetName = "app-release.apk"
     private val wearReleaseAssetName = "wear-app-release.apk"
-
-    private val randomMessages = listOf(
-        "Callback? Ping!", "It's me, OST Tools", "You got notification!", "Привет, мир!",
-        "Success!", "S C H L E C K", "Who are you?", "Operating System Tester",
-        "Subscribe to my channel please :D", "Access denied", "I know you here!",
-        "I sent your IP-address моему создателю! Жди докс", "0x000000", "OK Google",
-        "ыыыыыыыыыыыыы", "Hello and, again, welcome to the Aperture Science computer-aided enrichment center.",
-        "Easier to assimilate than explain",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-    )
-
     init {
         loadInitialPermissions()
         Log.d(TAG, ">>> Adding listeners...")
@@ -140,7 +119,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
         Log.d(TAG, ">>> Listeners ADDED")
         checkWearConnectionAndRequestVersion()
     }
-
     private fun checkWearConnectionAndRequestVersion() {
         Log.d(TAG, "Checking Wear connection and requesting version if connected...")
         if (uiState.value.wearUpdateCheckState == WearUpdateCheckState.REQUESTING_INSTALLED) {
@@ -148,7 +126,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             return
         }
         _uiState.update { it.copy(wearUpdateCheckState = WearUpdateCheckState.REQUESTING_INSTALLED, installedWearVersionName = null) }
-
         viewModelScope.launch {
             try {
                 val connectedNodes: List<Node> = nodeClient.connectedNodes.await()
@@ -170,18 +147,15 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     private fun requestInstalledWearVersionInternal(node: Node) {
         Log.d(TAG, "Requesting installed version from node: ${node.displayName} (${node.id})")
-
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 Log.i(TAG, "Attempting to send /request_wear_version to ${node.id}")
                 messageClient.sendMessage(node.id, requestVersionPath, null).await()
                 Log.i(TAG, "Successfully sent /request_wear_version to ${node.id}")
-
                 withContext(Dispatchers.Main) {
-                    delay(10000)
+                    delay(10000.milliseconds)
                     if (uiState.value.installedWearVersionName == null) {
                         Log.w(TAG, "Request for installed Wear version timed out after 10s and version is still null.")
                         setWearUpdateState(WearUpdateCheckState.ERROR)
@@ -199,7 +173,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     private fun loadInitialPermissions() {
         val context = getApplication<Application>()
         val hasStorage = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
@@ -208,7 +181,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             true
         }
         val canInstall = context.packageManager.canRequestPackageInstalls()
-
         _uiState.update {
             it.copy(
                 hasStoragePermission = hasStorage,
@@ -217,24 +189,19 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             )
         }
     }
-
     fun refreshPermissions() {
         loadInitialPermissions()
     }
-
     fun checkUpdate(showToast: Boolean = true) {
         if (_uiState.value.updateState == UpdateState.CHECKING || _uiState.value.wearUpdateCheckState == WearUpdateCheckState.CHECKING_GITHUB) return
-
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(updateState = UpdateState.CHECKING, wearUpdateCheckState = WearUpdateCheckState.CHECKING_GITHUB, updateError = null) }
-
             var latestPhoneVersionFromRelease: String? = null
             var latestWearVersionFromRelease: String? = null
             var phoneApkDownloadUrl: String? = null
             var wearApkDownloadUrl: String? = null
             var releaseBody: String? = null
             var errorMsg: String? = null
-
             if (!isNetworkAvailable()) {
                 errorMsg = getString(R.string.no_internet_connection_detected)
             } else {
@@ -246,7 +213,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                     connection.setRequestProperty("User-Agent", "OST-Tools-App")
                     connection.connectTimeout = 10000
                     connection.readTimeout = 10000
-
                     if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                         val reader = BufferedReader(InputStreamReader(connection.inputStream))
                         val response = StringBuilder()
@@ -255,12 +221,10 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                             response.append(line)
                         }
                         reader.close()
-
                         val releases = JSONArray(response.toString())
                         if (releases.length() > 0) {
                             val latestRelease = releases.getJSONObject(0)
                             releaseBody = latestRelease.getString("body")
-
                             releaseBody?.lines()?.forEach { bodyLine ->
                                 val trimmedLine = bodyLine.trim()
                                 if (trimmedLine.startsWith("**Latest Phone Version:**")) {
@@ -269,7 +233,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                                     latestWearVersionFromRelease = trimmedLine.substringAfter(":**").trim()
                                 }
                             }
-
                             val assets = latestRelease.getJSONArray("assets")
                             for (i in 0 until assets.length()) {
                                 val asset = assets.getJSONObject(i)
@@ -281,7 +244,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                                 }
                                 if (phoneApkDownloadUrl != null && wearApkDownloadUrl != null) break
                             }
-
                             if (latestPhoneVersionFromRelease == null || latestWearVersionFromRelease == null) {
                                 errorMsg = getString(R.string.error_parsing_release_notes)
                                 Log.e(TAG, "Could not parse versions from release body: $releaseBody")
@@ -289,7 +251,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                                 errorMsg = getString(R.string.error_finding_apk) + " ($phoneReleaseAssetName)"
                                 Log.e(TAG, "Could not find asset '$phoneReleaseAssetName' in release")
                             }
-
                         } else {
                             errorMsg = getString(R.string.no_releases_found)
                         }
@@ -307,10 +268,9 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                                 errorReader.close()
                                 Log.e(TAG, "GitHub API Error Response: $errorResponse")
                             }
-                        } catch (e: Exception) { }
+                        } catch (_: Exception) { }
                     }
                     connection.disconnect()
-
                 } catch (e: IOException) {
                     Log.e(TAG, "Network error checking update", e)
                     errorMsg = getString(R.string.no_internet_connection_detected)
@@ -322,13 +282,11 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                     errorMsg = getString(R.string.error)
                 }
             }
-
             withContext(Dispatchers.Main) {
                 _uiState.update { it.copy(
                     latestWearVersionName = latestWearVersionFromRelease,
                     latestWearApkUrl = wearApkDownloadUrl
                 )}
-
                 if (errorMsg != null) {
                     _uiState.update { it.copy(
                         updateState = UpdateState.ERROR,
@@ -347,7 +305,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                 } else if (latestPhoneVersionFromRelease != null && phoneApkDownloadUrl != null && releaseBody != null) {
                     val currentVersion = _uiState.value.currentVersionName
                     val updateAvailable = compareVersions(latestPhoneVersionFromRelease, currentVersion) > 0
-
                     _uiState.update {
                         it.copy(
                             updateState = if (updateAvailable) UpdateState.AVAILABLE else UpdateState.NOT_AVAILABLE,
@@ -358,7 +315,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                         )
                     }
                     updateWearUpdateStatusIfNeeded()
-
                     if (showToast) {
                         if (updateAvailable || _uiState.value.wearUpdateCheckState == WearUpdateCheckState.AVAILABLE) {
                             _action.send(AboutAction.ShowToastRes(R.string.update_available))
@@ -386,7 +342,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     private fun compareVersions(v1: String?, v2: String?): Int {
         if (v1 == null || v2 == null) return -1
         return try {
@@ -405,13 +360,11 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             v1.compareTo(v2)
         }
     }
-
     private fun updateWearUpdateStatusIfNeeded() {
         val currentState = _uiState.value
         val latestVersion = currentState.latestWearVersionName
         val installedVersion = currentState.installedWearVersionName
         val currentWearCheckState = currentState.wearUpdateCheckState
-
         if (installedVersion != null && latestVersion != null) {
             val wearUpdateAvailable = compareVersions(latestVersion, installedVersion) > 0
             val newState = if (wearUpdateAvailable) WearUpdateCheckState.AVAILABLE else WearUpdateCheckState.UP_TO_DATE
@@ -421,54 +374,48 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
             return
         }
-
         if (installedVersion != null && latestVersion == null &&
             (currentWearCheckState == WearUpdateCheckState.REQUESTING_INSTALLED || currentWearCheckState == WearUpdateCheckState.CHECKING_GITHUB)) {
             setWearUpdateState(WearUpdateCheckState.UP_TO_DATE)
             Log.d(TAG, "Installed Wear version received, waiting for latest from GitHub. Temporarily set to UP_TO_DATE.")
             return
         }
-
         if (latestVersion != null && currentWearCheckState != WearUpdateCheckState.ERROR) {
             setWearUpdateState(WearUpdateCheckState.ERROR)
             Log.w(TAG, "Wear status update: Latest version known ($latestVersion), but installed version is missing. Setting state to ERROR.")
             return
         }
-
         Log.d(TAG, "Still in initial/intermediate Wear check state: $currentWearCheckState. Installed: ${installedVersion ?: "null"}, Latest: ${latestVersion ?: "null"}")
     }
-
     private fun setWearUpdateState(newState: WearUpdateCheckState) {
         Log.d(TAG, "Setting Wear update state to: $newState")
         _uiState.update { it.copy(wearUpdateCheckState = newState) }
     }
-
     fun showUpdateConfirmation() {
-        if (_uiState.value.updateState == UpdateState.AVAILABLE) {
-            _uiState.update { it.copy(showUpdateConfirmDialog = true) }
-        } else if (_uiState.value.updateState == UpdateState.NOT_AVAILABLE){
-            viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.latest_version_installed)) }
-        } else {
-            viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.update_check_failed_or_in_progress)) }
+        when (_uiState.value.updateState) {
+            UpdateState.AVAILABLE -> {
+                _uiState.update { it.copy(showUpdateConfirmDialog = true) }
+            }
+            UpdateState.NOT_AVAILABLE -> {
+                viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.latest_version_installed)) }
+            }
+            else -> {
+                viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.update_check_failed_or_in_progress)) }
+            }
         }
     }
-
     fun dismissUpdateConfirmation() {
         _uiState.update { it.copy(showUpdateConfirmDialog = false) }
     }
-
     fun startDownload() {
         dismissUpdateConfirmation()
         val url = _uiState.value.apkUrl ?: return
         val context = getApplication<Application>()
-
         val hasStoragePerm = _uiState.value.hasStoragePermission
-
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && !hasStoragePerm) {
             viewModelScope.launch { _action.send(AboutAction.RequestStoragePermissionLegacy) }
             return
         }
-
         try {
             val fileName = phoneReleaseAssetName
             val destination = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.let {
@@ -480,7 +427,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             if (destination.exists()) {
                 destination.delete()
             }
-
             val request = DownloadManager.Request(url.toUri())
                 .setTitle("${getString(R.string.app_name)} ${getString(R.string.update)}")
                 .setDescription(getString(R.string.downloading_update))
@@ -488,18 +434,15 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                 .setDestinationUri(Uri.fromFile(destination))
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
-
             currentDownloadId = downloadManager.enqueue(request)
             _uiState.update { it.copy(showDownloadDialog = true, downloadStatus = DownloadStatus.DOWNLOADING, downloadProgress = 0) }
             monitorDownloadProgress(currentDownloadId!!)
-
         } catch (e: Exception) {
             Log.e(TAG, "Error starting download", e)
             _uiState.update { it.copy(downloadStatus = DownloadStatus.FAILED, showDownloadDialog = false) }
             viewModelScope.launch { _action.send(AboutAction.ShowToast(getString(R.string.fail) + ": " + e.localizedMessage)) }
         }
     }
-
     private fun monitorDownloadProgress(downloadId: Long) {
         downloadProgressJob?.cancel()
         downloadProgressJob = viewModelScope.launch(Dispatchers.IO) {
@@ -515,7 +458,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                         @SuppressLint("Range") val totalBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
                         @SuppressLint("Range") val downloadedBytes = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
                         @SuppressLint("Range") val localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
-
                         withContext(Dispatchers.Main) {
                             when (status) {
                                 DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PAUSED -> {
@@ -560,21 +502,18 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                 } finally {
                     cursor?.close()
                 }
-                if (isDownloading) delay(500)
+                if (isDownloading) delay(500.milliseconds)
             }
         }
     }
-
     private fun installApk(localUriString: String?) {
         if (localUriString == null) {
             viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.update_file_not_found)) }
             return
         }
-
         val context = getApplication<Application>()
         val fileUri = localUriString.toUri()
         val installIntent = Intent(Intent.ACTION_VIEW)
-
         val apkUri: Uri =
             try {
                 val file = File(fileUri.path!!)
@@ -584,17 +523,14 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
                 viewModelScope.launch { _action.send(AboutAction.ShowToast(getString(R.string.error))) }
                 return
             }
-
         installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive")
         installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
         if (!context.packageManager.canRequestPackageInstalls()) {
             viewModelScope.launch { _action.send(AboutAction.RequestInstallPermission) }
             viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.install_unknown_apps_permission_q)) }
             return
         }
-
         viewModelScope.launch {
             try {
                 _action.send(AboutAction.LaunchIntent(installIntent))
@@ -607,7 +543,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     fun cancelDownload() {
         currentDownloadId?.let {
             downloadManager.remove(it)
@@ -617,19 +552,12 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
         _uiState.update { it.copy(showDownloadDialog = false, downloadStatus = DownloadStatus.IDLE, downloadProgress = 0) }
         viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.download_canceled)) }
     }
-
     fun onAppIconClick() {
-        val randomIndex = Random().nextInt(randomMessages.size)
-        val message = randomMessages[randomIndex]
-        viewModelScope.launch {
-            _action.send(AboutAction.ShowToast(message))
-        }
+        DeveloperModeManager.onLogoTapped(getApplication())
     }
-
     fun onSocialClick(url: String) {
         launchUrl(url)
     }
-
     fun onAppInfoClick() {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", getApplication<Application>().packageName, null)
@@ -637,7 +565,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
         }
         viewModelScope.launch { _action.send(AboutAction.LaunchIntent(intent)) }
     }
-
     fun onChangelogClick() {
         if (!_uiState.value.changelog.isNullOrEmpty()) {
             _uiState.update { it.copy(showChangelogDialog = true) }
@@ -645,11 +572,9 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             checkUpdate(showToast = true)
         }
     }
-
     fun dismissChangelogDialog() {
         _uiState.update { it.copy(showChangelogDialog = false) }
     }
-
     fun showWearUpdateInstructions() {
         if (_uiState.value.wearUpdateCheckState == WearUpdateCheckState.AVAILABLE && _uiState.value.latestWearApkUrl != null) {
             _uiState.update { it.copy(showWearUpdateInstructionsDialog = true) }
@@ -657,11 +582,9 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.wear_update_instructions_not_available)) }
         }
     }
-
     fun dismissWearUpdateInstructions() {
         _uiState.update { it.copy(showWearUpdateInstructionsDialog = false) }
     }
-
     fun openWearApkDownloadLink() {
         val url = _uiState.value.latestWearApkUrl
         if (url != null) {
@@ -670,7 +593,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             viewModelScope.launch { _action.send(AboutAction.ShowToastRes(R.string.wear_apk_download_link_not_found)) }
         }
     }
-
     private fun launchUrl(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -683,11 +605,9 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     private fun getString(resId: Int): String {
         return getApplication<Application>().getString(resId)
     }
-
     @SuppressLint("MissingPermission")
     private fun isNetworkAvailable(): Boolean {
         val connectivityManager = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -695,7 +615,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
-
     private fun getDownloadErrorReason(reasonCode: Int): String {
         return when (reasonCode) {
             DownloadManager.ERROR_CANNOT_RESUME -> "Cannot Resume"
@@ -710,7 +629,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             else -> "Unknown Error ($reasonCode)"
         }
     }
-
     override fun onMessageReceived(messageEvent: MessageEvent) {
         Log.d(TAG, "Message received from ${messageEvent.sourceNodeId}: ${messageEvent.path}")
         when (messageEvent.path) {
@@ -722,7 +640,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     override fun onCapabilityChanged(capabilityInfo: CapabilityInfo) {
         Log.w(TAG, ">>> onCapabilityChanged CALLED for capability: ${capabilityInfo.name}")
         Log.w(TAG, "Capability changed: ${capabilityInfo.name}, Nodes: ${capabilityInfo.nodes.joinToString { it.displayName }} Count: ${capabilityInfo.nodes.size}")
@@ -746,7 +663,6 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
             }
         }
     }
-
     override fun onCleared() {
         super.onCleared()
         messageClient.removeListener(this)
@@ -754,18 +670,13 @@ class AboutViewModel(application: Application) : AndroidViewModel(application),
         downloadProgressJob?.cancel()
     }
     fun onIphoneClick() = launchUrl("https://support.apple.com/en-us/111873")
-    fun onAndroidPhoneClick() = launchUrl("https://www.samsung.com/latin_en/smartphones/galaxy-s10/specs/")
     fun onWatchClick() = launchUrl("https://www.samsung.com/us/watches/galaxy-watch7/")
     fun onLaptopClick() = launchUrl("https://support.apple.com/en-us/122209")
-    fun onGalaxyBudsClick() = launchUrl("https://www.samsung.com/us/app/mobile-audio/galaxy-buds2/")
     fun onAirPodsClick() = launchUrl("https://support.apple.com/en-us/111851")
-
     fun onPcClick() {
         _uiState.update { it.copy(showPcInfoDialog = true) }
     }
-
     fun dismissPcDialog() {
         _uiState.update { it.copy(showPcInfoDialog = false) }
     }
-
 }

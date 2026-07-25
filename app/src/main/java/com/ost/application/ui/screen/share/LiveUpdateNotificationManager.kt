@@ -1,5 +1,4 @@
 package com.ost.application.ui.screen.share
-
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -14,16 +13,14 @@ import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.ost.application.R
+import com.ost.application.core.share.Constants
 import java.util.UUID
 import kotlin.math.log10
 import kotlin.math.pow
-
 @RequiresApi(Build.VERSION_CODES.BAKLAVA)
 object LiveUpdateNotificationManager {
-
     private lateinit var notificationManager: NotificationManager
     private lateinit var appContext: Context
-
     fun initialize(context: Context) {
         appContext = context.applicationContext
         notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -36,45 +33,35 @@ object LiveUpdateNotificationManager {
         }
         notificationManager.createNotificationChannel(channel)
     }
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showPreparing() = showNotification(NotificationState.Preparing)
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showConnecting() = showNotification(NotificationState.Connecting)
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showWaitingForAcceptance() = showNotification(NotificationState.WaitingForAcceptance)
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showTransferring(progress: Int, uris: List<Uri>, totalSize: Long, isSending: Boolean) {
         showNotification(NotificationState.Transferring(progress, uris, totalSize, isSending))
     }
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showCompleted(uris: List<Uri>, isSending: Boolean) {
         showNotification(NotificationState.Completed(uris, isSending))
     }
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showCancelled(message: String?) = showNotification(NotificationState.Cancelled(message))
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showFailed(errorMessage: String) = showNotification(NotificationState.Failed(errorMessage))
-
     private fun showNotification(state: NotificationState) {
         if (!::notificationManager.isInitialized) return
         val builder = buildNotificationForState(state)
         notificationManager.notify(Constants.NOTIFICATION_ID_TRANSFER, builder.build())
     }
-
     private fun buildNotificationForState(state: NotificationState): NotificationCompat.Builder {
         val cancelIntent = Intent(appContext, ShareService::class.java).apply { action = Constants.ACTION_CANCEL_TRANSFER }
         val cancelPendingIntent = PendingIntent.getService(
             appContext, 0, cancelIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-
         val builder = when (state) {
             is NotificationState.Preparing -> buildBaseNotification(isSending = true)
                 .setContentTitle("Preparing files")
@@ -88,7 +75,6 @@ object LiveUpdateNotificationManager {
             is NotificationState.Transferring -> {
                 val title = if (state.isSending) "Sending ${state.uris.size} files" else "Receiving ${state.uris.size} files"
                 val currentBytes = (state.progress / 100.0 * state.totalSize).toLong()
-
                 val progressStyle = buildRichProgressStyle(state.progress)
                 progressStyle.setProgressTrackerIcon(
                     IconCompat.createWithResource(
@@ -97,7 +83,6 @@ object LiveUpdateNotificationManager {
                     )
                 )
                 progressStyle.setProgress(state.progress)
-
                 buildBaseNotification(isSending = state.isSending)
                     .setContentTitle(title)
                     .setContentText("${currentBytes.formatFileSize()} of ${state.totalSize.formatFileSize()}")
@@ -116,7 +101,6 @@ object LiveUpdateNotificationManager {
                     .setProgress(0, 0, false)
                     .setTimeoutAfter(10000)
                     .setAutoCancel(true)
-
                 if (!state.isSending && state.uris.isNotEmpty()) {
                     val fileUri = state.uris.first()
                     val openIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -144,16 +128,13 @@ object LiveUpdateNotificationManager {
                 .setTimeoutAfter(10000)
                 .setAutoCancel(true)
         }
-
         if (state is NotificationState.Connecting || state is NotificationState.WaitingForAcceptance || state is NotificationState.Transferring) {
             builder.addAction(R.drawable.ic_cancel_24dp, "Cancel", cancelPendingIntent)
         } else {
             builder.clearActions()
         }
-
         return builder
     }
-
     private fun buildBaseNotification(isOngoing: Boolean = true, isSending: Boolean? = null): NotificationCompat.Builder {
         val smallIcon = when (isSending) {
             true -> R.drawable.ic_upload_file_24dp
@@ -167,15 +148,12 @@ object LiveUpdateNotificationManager {
             .setOngoing(isOngoing)
             .setRequestPromotedOngoing(isOngoing)
     }
-
     private fun buildRichProgressStyle(progress: Int): NotificationCompat.ProgressStyle {
         val pointColor = Color.valueOf(236f / 255f, 183f / 255f, 255f / 255f, 1f).toArgb()
         val segmentColor = Color.valueOf(134f / 255f, 247f / 255f, 250f / 255f, 1f).toArgb()
-
         val progressStyle = NotificationCompat.ProgressStyle().setProgressSegments(
             List(4) { NotificationCompat.ProgressStyle.Segment(25).setColor(segmentColor) }
         )
-
         val points = mutableListOf<NotificationCompat.ProgressStyle.Point>()
         if (progress >= 25) points.add(NotificationCompat.ProgressStyle.Point(25).setColor(pointColor))
         if (progress >= 50) points.add(NotificationCompat.ProgressStyle.Point(50).setColor(pointColor))
@@ -186,7 +164,6 @@ object LiveUpdateNotificationManager {
         }
         return progressStyle
     }
-
     private fun Long.formatFileSize(): String {
         if (this <= 0) return "0 B"
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
@@ -199,7 +176,6 @@ object LiveUpdateNotificationManager {
             String.format(java.util.Locale.US, "%.1f", sizeInUnit)
         } + " " + units[unitIndex]
     }
-
     private sealed class NotificationState {
         object Preparing : NotificationState()
         object Connecting : NotificationState()

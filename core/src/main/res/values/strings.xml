@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share">Share</string>
+    <string name="quick_share">Quick Share</string>
+    <string name="starting_receiver">Starting receiver…</string>
+    <string name="stopping_receiver">Stopping receiver</string>
+    <string name="receiver_stopped">Receiver stopped.</string>
+    <string name="receiver_active_waiting">Receiver active. Waiting…</string>
+    <string name="searching">Searching for nearby devices…</string>
+    <string name="discovery_stopped">Discovery stopped.</string>
+    <string name="found_device_s">Found %1$d device(s)</string>
+    <string name="error_nsd_register_failed">Error: NSD Register Failed (%1$d)</string>
+    <string name="error_nsd_unregister_failed">Error: NSD Unregister Failed (%1$s)</string>
+    <string name="error_nsd_exception">Error: NSD Exception (%1$s)</string>
+    <string name="error_discovery_failed">Error: Discovery failed (%1$d)</string>
+    <string name="error_discovery_stop_failed">Error: Discovery stop failed (%1$d)</string>
+    <string name="discovery_error">Discovery error: %1$s</string>
+    <string name="error_device_details_missing">Error: Device details missing.</string>
+    <string name="transfer_already_active">Transfer already in progress.</string>
+    <string name="preparing_files">Preparing files…</string>
+    <string name="error_file_info_multi">Error reading file info: %1$s</string>
+    <string name="error_file_size_negative">Error: Invalid size for %1$s</string>
+    <string name="connecting_to">Connecting to %1$s…</string>
+    <string name="requesting_send_multi">Requesting transfer of %1$d file(s)…</string>
+    <string name="internal_server_error">Internal server error: %1$s</string>
+    <string name="error_port_in_use">Port %1$s already in use.</string>
+    <string name="fatal_server_error">Fatal server error: %1$s</string>
+    <string name="idle_status">Ready</string>
+    <string name="transfer_active">Transfer in progress</string>
+    <string name="transfer_complete">Transfer complete.</string>
+    <string name="transfer_rejected">Transfer rejected</string>
+    <string name="error_server_rejected_transfer">Error: Server rejected transfer</string>
+    <string name="cancelling_transfer">Cancelling transfer…</string>
+    <string name="sent_prefix">SENT</string>
+    <string name="received_prefix">RECEIVED</string>
+</resources>

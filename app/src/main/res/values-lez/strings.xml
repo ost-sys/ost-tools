@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="settings">Настройкаяр</string>
     <string name="about_app">Программадикай</string>
-    <string name="version">Версия</string>
+    <string name="version_s">Версия</string>
     <string name="information">Малумат</string>
     <string name="checking_for_updates">Обновленияр ахтармишзава…</string>
     <string name="error_getting_version_information">Версиядикай малумат къачудайла гъалатI хьана</string>
@@ -175,7 +175,6 @@
     <string name="time_difference_zero">Тарихарни вахт сад я</string>
     <string name="more">Мадни</string>
     <string name="devices">Устройствояр</string>
-    <string name="make_discoverable">Акун патал ахъаюн</string>
     <string name="resolving">Разрешение гузва…</string>
     <string name="starting_receiver">Приёмник куькIуьрзава…</string>
     <string name="receive_error">Къачунин гъалатI: %1$s</string>
@@ -208,7 +207,6 @@
     <string name="failed_to_launch">%1$s куькIуьриз хьанач</string>
     <string name="is_not_a_startup_application">%1$s запускать ийидай приложение туш</string>
     <string name="error_loading_app_list">Приложениейрин список загрузка авунин гъалатI: %1$s</string>
-    <string name="unknown_error">Тийижир гъалатI</string>
     <string name="no_apps_found">Приложениеяр жагъанач</string>
     <string name="no_non_system_apps_found">Системадин тушир приложениеяр авач</string>
     <string name="delete">Удалить авун</string>
@@ -224,7 +222,6 @@
     <string name="failed_to_launch_uninstall">Удалить авун куькIуьриз хьанач</string>
     <string name="uninstall_error">Удалить ийидайла гъалатI хьана</string>
     <string name="loading">Загрузка ийизва…</string>
-    <string name="searching_for_devices">Устройствояр жугъурзава…</string>
     <string name="waiting_for_resolution">Решение гуналди вил вегьезва…</string>
     <string name="unknown_device">Тийижир устройство</string>
     <string name="error_connection_lost_during_send">ГъалатI: Рахкъурдайла алакъа атIана</string>
@@ -254,7 +251,6 @@
     <string name="error_no_download_dir">ГъалатI: Загрузкаяр авай каталогдиз доступ авач</string>
     <string name="find_devices">Устройствояр жугъурун</string>
     <string name="stop_search">Жугъурун акъвазарун</string>
-    <string name="press_find_or_enable_receiving">«Устройствояр жугъурун» илис ва я прием куькIуьра</string>
     <string name="idle_status">Актив туш</string>
     <string name="wear_version_unknown">Тийижир</string>
     <string name="wear_update_instructions_button">Обновленидин инструкцияяр</string>
@@ -319,7 +315,6 @@
     <string name="edit_currency">Валюта дегишарун</string>
     <string name="github_login">Github-диз гьахьун</string>
     <string name="enter_your_personal_access_token_to_view_your_repositories">Куь репозиторияр акун патал куь персонал доступдин токен кхя</string>
-    <string name="token">Токен</string>
     <string name="personal_access_token">Персонал доступдин токен</string>
     <string name="save_refresh">Хуьн ва цIийи хъувун</string>
     <string name="exit">Экверив</string>

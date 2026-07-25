@@ -1,19 +1,15 @@
 package com.ost.application.ui.screen.display.test;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Toast;
-
 import androidx.activity.ComponentActivity;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.ost.application.R;
-
 public class PixelTestActivity extends ComponentActivity {
     private final int[] colors = {
             Color.RED,
@@ -32,50 +28,40 @@ public class PixelTestActivity extends ComponentActivity {
     private static final int REQUEST_WRITE_SETTINGS = 100;
     private int originalBrightness = -1;
     private int originalBrightnessMode = -1;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         final View colorView = new View(this);
         colorView.setBackgroundColor(colors[currentColorIndex]);
         setContentView(colorView);
-
         saveCurrentBrightnessSettings();
         setMaxBrightness();
-
         EdgeToEdge.enable(this);
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN |
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
-
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         colorView.setOnClickListener(v -> {
             currentColorIndex = (currentColorIndex + 1) % colors.length;
             colorView.setBackgroundColor(colors[currentColorIndex]);
         });
-
         colorView.setOnLongClickListener(v -> {
             finish();
             return true;
         });
     }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         restoreOriginalBrightnessSettings();
     }
-
     @Override
     protected void onStop() {
         super.onStop();
         restoreOriginalBrightnessSettings();
     }
-
     private void saveCurrentBrightnessSettings() {
         try {
             originalBrightness = Settings.System.getInt(
@@ -90,7 +76,6 @@ public class PixelTestActivity extends ComponentActivity {
             e.printStackTrace();
         }
     }
-
     private void setMaxBrightness() {
         try {
             Settings.System.putInt(
@@ -107,7 +92,6 @@ public class PixelTestActivity extends ComponentActivity {
             Toast.makeText(this, getString(R.string.brightness_permission_r), Toast.LENGTH_SHORT).show();
         }
     }
-
     private void restoreOriginalBrightnessSettings() {
         try {
             if (originalBrightness != -1) {
@@ -117,7 +101,6 @@ public class PixelTestActivity extends ComponentActivity {
                         originalBrightness
                 );
             }
-
             if (originalBrightnessMode != -1) {
                 Settings.System.putInt(
                         getContentResolver(),
@@ -129,7 +112,6 @@ public class PixelTestActivity extends ComponentActivity {
             e.printStackTrace();
         }
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

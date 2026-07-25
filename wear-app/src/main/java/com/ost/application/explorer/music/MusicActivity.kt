@@ -1,7 +1,5 @@
 @file:OptIn(ExperimentalHorologistApi::class)
-
 package com.ost.application.explorer.music
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -32,23 +30,18 @@ import com.google.android.horologist.audio.SystemAudioRepository
 import com.google.android.horologist.audio.ui.VolumeViewModel
 import com.google.android.horologist.media.data.repository.PlayerRepositoryImpl
 import com.ost.application.theme.OSTToolsTheme
-
 internal const val MUSIC_ACTIVITY_TAG = "MusicActivityLog"
 private const val SEEK_INCREMENT_MS = 10000L
-
 class MusicActivity : ComponentActivity() {
-
     companion object {
         const val LAUNCH_MODE_EXTRA = "launch_mode"
         const val MODE_FULL_PLAYER = "mode_full"
         const val MODE_SINGLE_FILE = "mode_single"
     }
-
     private lateinit var player: ExoPlayer
     private var musicUri: Uri? = null
     private var launchMode by mutableStateOf(MODE_SINGLE_FILE)
     private var pendingAction: (() -> Unit)? = null
-
     private val musicViewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -60,7 +53,6 @@ class MusicActivity : ComponentActivity() {
         }
         }
         private val musicViewModel: MusicViewModel by viewModels { musicViewModelFactory }
-
     private val volumeViewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -69,7 +61,6 @@ class MusicActivity : ComponentActivity() {
         }
     }
     private val volumeViewModel: VolumeViewModel by viewModels { volumeViewModelFactory }
-
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
@@ -80,16 +71,13 @@ class MusicActivity : ComponentActivity() {
                 finish()
             }
         }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val incomingIntent = intent
         val action = incomingIntent.action
         val data = incomingIntent.data
         val modeExtra = incomingIntent.getStringExtra(LAUNCH_MODE_EXTRA)
         val musicPath = incomingIntent.getStringExtra("musicPath")
-
         when {
             modeExtra == MODE_FULL_PLAYER || (action == Intent.ACTION_MAIN && data == null) -> {
                 launchMode = MODE_FULL_PLAYER
@@ -108,7 +96,6 @@ class MusicActivity : ComponentActivity() {
                 musicUri = null
             }
         }
-
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_AUDIO
         } else {
@@ -125,7 +112,6 @@ class MusicActivity : ComponentActivity() {
             }
         }
     }
-
     @androidx.annotation.OptIn(UnstableApi::class)
     private fun initializePlayerAndSetContent() {
         if (launchMode == MODE_SINGLE_FILE && musicUri == null) {
@@ -133,7 +119,6 @@ class MusicActivity : ComponentActivity() {
             finish()
             return
         }
-
         player = ExoPlayer.Builder(this)
             .setSeekForwardIncrementMs(SEEK_INCREMENT_MS)
             .setSeekBackIncrementMs(SEEK_INCREMENT_MS)
@@ -154,7 +139,6 @@ class MusicActivity : ComponentActivity() {
                     }
                 })
             }
-
         setContent {
             OSTToolsTheme {
                 MainPlayerScreen(
@@ -167,7 +151,6 @@ class MusicActivity : ComponentActivity() {
             }
         }
     }
-
     @SuppressLint("ServiceCast")
     fun createVolumeViewModel(): VolumeViewModel {
         val audioRepository = SystemAudioRepository.fromContext(applicationContext)
@@ -180,7 +163,6 @@ class MusicActivity : ComponentActivity() {
             onCleared = { audioRepository.close() }
         )
     }
-
     override fun onDestroy() {
         super.onDestroy()
         if (::player.isInitialized) { player.release() }

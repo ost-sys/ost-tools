@@ -1,10 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="about_the_watch">О часах</string>
-    <string name="cpu">ЦПУ</string>
     <string name="battery">Батарея</string>
     <string name="display">Дисплей</string>
-    <string name="version">Версия</string>
     <string name="error">Ошибка</string>
     <string name="update_check_error">Ошибка проверки обновления</string>
     <string name="you_are_updated">Последняя версия установлена</string>
@@ -28,12 +26,8 @@
     <string name="board">Плата</string>
     <string name="build_number">Номер сборки</string>
     <string name="build_fingerprint">Сборка fingerprint</string>
-    <string name="soc_manufacturer">Производитель сокета</string>
-    <string name="cores">Ядра</string>
     <string name="loading">Загрузка...</string>
     <string name="charging_ac">Провод.</string>
-    <string name="charging_usb">USB</string>
-    <string name="charging_wireless">Беспровод.</string>
     <string name="battery_level">Уров. заряда</string>
     <string name="hz">Гц</string>
     <string name="inches">дюйм</string>
@@ -97,7 +91,6 @@
     <string name="receive_error">Ошибка при приёме: %1$s</string>
     <string name="error_nsd_registration_exception">Ошибка: NSD Регистрация не удалась (%1$s)</string>
     <string name="stop_receiving_sending_first">Сначала остановите приём/передачу</string>
-    <string name="searching_for_devices">Поиск устройств...</string>
     <string name="error_discovery_init_failed">Ошибка: Ошибка инициализации поиска</string>
     <string name="discovery_error">Ошибка поиска: %1$s</string>
     <string name="search_stopped">Поиск остановлен.</string>
@@ -116,7 +109,6 @@
     <string name="resolving_i">Разрешение...</string>
     <string name="tap_to_resolve">Нажмите для разрешения</string>
     <string name="file_share">Обмен файлами</string>
-    <string name="make_discoverable">Сделать видимым</string>
     <string name="image">Картинка</string>
     <string name="video">Видео</string>
     <string name="music">Музыка</string>
@@ -138,7 +130,6 @@
     <string name="resolving_prefix">Обнаружение</string>
     <string name="receiving_prefix">Получение</string>
     <string name="error_nsd_registration_failed">Ошибка: регистрация NSD не удалась (код: %1$d)</string>
-    <string name="error_parsing_release_notes">Ошибка при анализе примечаний к выпуску</string>
     <string name="no_releases_found">Релизы не найдены</string>
     <string name="network_error">Ошибка сети</string>
     <string name="update_available_check_phone">Доступно обновление. Проверьте свой телефон для получения подробной информации.</string>
@@ -161,7 +152,6 @@
     <string name="transfer_failed">Передача провалилась</string>
     <string name="cancelling_transfer">Отмена передачи…</string>
     <string name="scan_again">Повторное сканирование</string>
-    <string name="close">Закрыть</string>
     <string name="cancel">Отмена</string>
     <string name="warn_notification_permission">Уведомления рекомендуются для статуса передачи.</string>
     <string name="waiting_for_registration">Ожидание регистрации…</string>
@@ -169,6 +159,15 @@
     <string name="connecting_prefix">Подключение</string>
     <string name="sent_prefix">Отправлено</string>
     <string name="incoming_prefix">Входящие</string>
-    <string name="starting_package_installer">Запуск установщика пакета…</string>
-    <string name="package_installer_not_found">Установщик пакета не найден.</string>
+    <string name="accessibility_service">Служба спец. возможностей</string>
+    <string name="accessibility_service_info">Вызов меню выключения и блокировка экрана без ROOT и аппаратных кнопок</string>
+    <string name="accessibility_service_label">Служба спец. возможностей OST Tools</string>
+    <string name="accessibility_service_description">Предоставляет функции вызова меню питания и блокировки экрана через Accessibility API.</string>
+    <string name="power_menu">Меню питания</string>
+    <string name="turn_off">Выключить</string>
+    <string name="lock_screen">Блокировка</string>
+    <string name="accessibility_required_title">Требуется Accessibility Service</string>
+    <string name="accessibility_required_msg">Для использования этой функции включите OST Tools в системных настройках Специальных возможностей.</string>
+    <string name="open_settings">Открыть настройки</string>
+    <string name="non_root_mode">Режим без ROOT</string>
 </resources>
