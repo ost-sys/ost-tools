@@ -5,7 +5,8 @@ data class DisplayInfo(
     val dpi: String = "N/A",
     val diagonal: String = "N/A",
     val orientation: String = "N/A",
-    val stylusSupport: String = "N/A"
+    val stylusSupport: String = "N/A",
+    val cornerRadius: String = "N/A"
 )
 data class DisplayInfoStrings(
     val hz: String,
@@ -14,5 +15,6 @@ data class DisplayInfoStrings(
     val portrait: String,
     val landscape: String,
     val supported: String,
-    val unsupported: String
+    val unsupported: String,
+    val px: String = "px"
 )

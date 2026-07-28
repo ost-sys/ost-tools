@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-parcelize")
 }
@@ -16,7 +15,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 400
-        versionName = "4.0.0-beta4"
+        versionName = "4.0.0-beta5"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         }

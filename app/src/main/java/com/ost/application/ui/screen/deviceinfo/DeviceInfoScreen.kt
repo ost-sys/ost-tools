@@ -115,7 +115,8 @@ fun DeviceInfoScreen(
         BiometricStatus.UNSUPPORTED -> stringResource(R.string.unsupported)
         BiometricStatus.UNKNOWN, BiometricStatus.CHECKING -> stringResource(R.string.unknown)
     }
-    val deviceInfoRows = remember(uiState, deviceTypeString, deviceTypeIconRes, fingerprintString) {
+    val trebleString = stringResource(if (uiState.isTrebleSupported) R.string.support else R.string.unsupported)
+    val deviceInfoRows = remember(uiState, deviceTypeString, deviceTypeIconRes, fingerprintString, trebleString) {
         listOf(
             DeviceInfoRow(R.drawable.ic_android_24dp, R.string.android_version, uiState.androidVersion, viewModel::onAndroidVersionClicked),
             DeviceInfoRow(R.drawable.ic_sell_24dp, R.string.brand, uiState.brand),
@@ -127,7 +128,14 @@ fun DeviceInfoScreen(
             DeviceInfoRow(deviceTypeIconRes, R.string.device_type, deviceTypeString),
             DeviceInfoRow(R.drawable.ic_3d_rotation_24dp, R.string.accelerometer, null, { showAccelerometerSheet = true }),
             DeviceInfoRow(R.drawable.ic_manufacturing_24dp, R.string.build_fingerprint, uiState.buildFingerprint),
-            DeviceInfoRow(R.drawable.ic_fingerprint_24dp, R.string.biometrics_support, fingerprintString)
+            DeviceInfoRow(R.drawable.ic_fingerprint_24dp, R.string.biometrics_support, fingerprintString),
+            DeviceInfoRow(R.drawable.ic_security_24dp, R.string.security_patch, uiState.securityPatch),
+            DeviceInfoRow(R.drawable.ic_terminal_24dp, R.string.kernel_version, uiState.kernelVersion),
+            DeviceInfoRow(R.drawable.ic_manufacturing_24dp, R.string.bootloader, uiState.bootloader),
+            DeviceInfoRow(R.drawable.ic_signal_cellular_24dp, R.string.baseband_version, uiState.radioVersion),
+            DeviceInfoRow(R.drawable.ic_layers_24dp, R.string.partitions, uiState.partitionStyle),
+            DeviceInfoRow(R.drawable.ic_android_24dp, R.string.project_treble, trebleString),
+            DeviceInfoRow(R.drawable.ic_schedule_24dp, R.string.uptime, uiState.uptime)
         )
     }
     if (showAccelerometerSheet) {

@@ -52,6 +52,26 @@ enum class CardPosition {
     SINGLE
 }
 @Composable
+fun BetaBadge(
+    modifier: Modifier = Modifier,
+    containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.tertiaryContainer,
+    contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onTertiaryContainer
+) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        modifier = modifier
+    ) {
+        Text(
+            text = "BETA",
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+@Composable
 fun CustomCardItem(
     title: String,
     status: Boolean = true,
@@ -60,6 +80,7 @@ fun CustomCardItem(
     iconVector: ImageVector? = null,
     smallCardIcon: ImageVector? = null,
     smallCardText: String? = null,
+    hasBetaBadge: Boolean = false,
     summary: String? = null,
     position: CardPosition = CardPosition.SINGLE,
     colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -103,13 +124,19 @@ fun CustomCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (hasBetaBadge) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            BetaBadge()
+                        }
+                    }
                     if (!summary.isNullOrEmpty()) {
                         Spacer(Modifier.height(2.dp))
                         Text(

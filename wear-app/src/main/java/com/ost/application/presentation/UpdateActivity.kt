@@ -39,10 +39,9 @@ import com.google.android.gms.wearable.Wearable
 import com.ost.application.BuildConfig
 import com.ost.application.R
 import com.ost.application.UpdateCheckResult
-import com.ost.application.isNewerVersion
+import com.ost.application.core.update.UpdateChecker
 import com.ost.application.theme.OSTToolsTheme
 import com.ost.application.util.FailDialog
-import com.ost.application.util.RetrofitClient
 import com.ost.application.util.SuccessDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -73,7 +72,9 @@ class UpdateActivity : ComponentActivity() {
 fun UpdateScreen() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
-    var includeBeta by remember { mutableStateOf(prefs.getBoolean(KEY_INCLUDE_BETA, false)) }
+    var includeBeta by remember {
+        mutableStateOf(prefs.getBoolean(KEY_INCLUDE_BETA, UpdateChecker.isPrereleaseVersion(BuildConfig.VERSION_NAME)))
+    }
     var isChecking by remember { mutableStateOf(false) }
     var dialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
     val coroutineScope = rememberCoroutineScope()
@@ -210,39 +211,15 @@ suspend fun checkForUpdatesWithChannel(
 ): UpdateCheckResult {
     return withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Step 1: executing request")
-            val response = RetrofitClient.instance.getReleases().execute()
-            Log.d(TAG, "Step 2: response received, successful=${response.isSuccessful}")
-            if (response.isSuccessful) {
-                Log.d(TAG, "Step 3: parsing body")
-                val allReleases = response.body()
-                Log.d(TAG, "Step 4: allReleases size=${allReleases?.size}, raw=$allReleases")
-                Log.d(TAG, "Step 5: filtering")
-                val releases = allReleases
-                    ?.filter {
-                        Log.d(TAG, "  item: tag=${it.tag_name} draft=${it.draft} prerelease=${it.prerelease}")
-                        it.draft != true && (includeBeta || it.prerelease != true)
-                    }
-                    ?.takeIf { it.isNotEmpty() }
-                    ?: return@withContext UpdateCheckResult.Error(
-                        context.getString(R.string.no_releases_found)
-                    )
-                Log.d(TAG, "Step 6: comparing versions")
-                val latestTag = releases[0].tag_name
-                val currentVersion = BuildConfig.VERSION_NAME
-                if (isNewerVersion(latestTag, currentVersion)) {
-                    UpdateCheckResult.UpdateAvailable(latestTag)
-                } else {
-                    UpdateCheckResult.LatestVersion
-                }
+            val release = UpdateChecker.fetchLatestRelease(includePrereleases = includeBeta)
+                ?: return@withContext UpdateCheckResult.Error(context.getString(R.string.no_releases_found))
+            val latestWearVersion = release.wearVersion
+                ?: return@withContext UpdateCheckResult.Error(context.getString(R.string.update_check_error))
+            if (UpdateChecker.isNewerVersion(latestWearVersion, BuildConfig.VERSION_NAME)) {
+                UpdateCheckResult.UpdateAvailable(latestWearVersion)
             } else {
-                UpdateCheckResult.Error(
-                    "${context.getString(R.string.update_check_error)} (${response.code()})"
-                )
+                UpdateCheckResult.LatestVersion
             }
-        } catch (e: ClassCastException) {
-            Log.e(TAG, "ClassCastException!", e)
-            UpdateCheckResult.Error("CCE: ${e.message}")
         } catch (e: IOException) {
             Log.e(TAG, "Network error", e)
             UpdateCheckResult.Error(context.getString(R.string.network_error))

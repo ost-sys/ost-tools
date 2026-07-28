@@ -126,6 +126,7 @@ fun MoreBottomSheetContent(
             CustomCardItem(
                 position = if (isSelected) selectedCardCorners else position,
                 title = stringResource(item.titleResId),
+                hasBetaBadge = item.id == "storage" || item.id == "ram",
                 icon = if (item.icon is MenuIcon.Res) item.icon.resId else null,
                 colors = if (isSelected) {
                     CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)

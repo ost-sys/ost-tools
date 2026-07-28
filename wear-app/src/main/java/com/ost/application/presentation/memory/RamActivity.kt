@@ -12,7 +12,14 @@ import com.ost.application.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
 import com.ost.application.util.InfoListScreenContent
 import com.ost.application.util.ListItem
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.TimeText
 import java.util.Locale
 class RamActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,10 +71,17 @@ fun RamScreen() {
             )
         )
     }
-    InfoListScreenContent(
-        listState = listState,
-        screenTitle = stringResource(R.string.ram_title),
-        icon = com.ost.application.core.R.drawable.ic_memory_alt_24dp,
-        items = items
-    )
+    AppScaffold(timeText = { TimeText() }) {
+        ScreenScaffold(
+            scrollState = listState,
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        ) {
+            InfoListScreenContent(
+                listState = listState,
+                screenTitle = stringResource(R.string.ram_title),
+                icon = com.ost.application.core.R.drawable.ic_memory_alt_24dp,
+                items = items
+            )
+        }
+    }
 }

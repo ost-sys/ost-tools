@@ -55,22 +55,23 @@ class VideoActivity : ComponentActivity() {
     @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val videoPath = intent.getStringExtra("videoPath") ?: run {
-            finish()
-            return
-        }
+        val videoUri = intent.getStringExtra("videoPath")?.let { "file://$it".toUri() }
+            ?: intent.data
+            ?: run {
+                finish()
+                return
+            }
         setContent {
             OSTToolsTheme {
-                VideoPlayerScreen(videoPath = videoPath)
+                VideoPlayerScreen(videoUri = videoUri)
             }
         }
     }
 }
 @OptIn(UnstableApi::class)
 @Composable
-fun VideoPlayerScreen(videoPath: String) {
+fun VideoPlayerScreen(videoUri: android.net.Uri) {
     val context = LocalContext.current
-    val videoUri = "file://$videoPath".toUri()
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(videoUri))
@@ -83,6 +84,7 @@ fun VideoPlayerScreen(videoPath: String) {
             player = exoPlayer
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            keepScreenOn = true
         }
     }
     val audioManager = remember {
@@ -118,13 +120,13 @@ fun VideoPlayerScreen(videoPath: String) {
             controlsVisible = false
         }
     }
-    LaunchedEffect(exoPlayer) {
-        while (true) {
-            delay(500)
+    LaunchedEffect(isPlaying) {
+        while (isPlaying) {
             val duration = exoPlayer.duration
             if (duration > 0L) {
                 videoProgress = exoPlayer.currentPosition.toFloat() / duration.toFloat()
             }
+            delay(500)
         }
     }
     val controlsAlpha by animateFloatAsState(

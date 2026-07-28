@@ -123,7 +123,7 @@ class FileSender(
                 }
                 writer.flush()
                 notificationListener?.onWaitingForAcceptance()
-                val response = withTimeoutOrNull(30000) { reader.readLine() }
+                val response = withTimeoutOrNull(Constants.SENDER_RESPONSE_TIMEOUT_MILLIS) { reader.readLine() }
                 if (response == Constants.CMD_ACCEPT) {
                     statusUpdateCallback("${Constants.SENT_PREFIX}: $numberOfFiles files")
                     _transferProgress.value = 0
@@ -147,7 +147,7 @@ class FileSender(
                                 bytesSentCurrentFile += bytesReadCurrentFile
                                 totalBytesSentOverall += bytesReadCurrentFile
                             } catch (sockEx: IOException) {
-                                throw CancellationException("Connection lost during send", sockEx)
+                                throw IOException("Connection lost during send", sockEx)
                             }
                             val currentOverallProgress: Int = if (totalSize > 0) {
                                 ((totalBytesSentOverall * 100) / totalSize).toInt()
@@ -225,13 +225,10 @@ class FileSender(
                     val fallbackName = uri.lastPathSegment ?: "file_${System.currentTimeMillis()}"
                     val cleanName = File(name ?: fallbackName).name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().take(240).ifBlank { fallbackName }
                     var size = if (sizeIndex != -1 && !cursor.isNull(sizeIndex)) cursor.getLong(sizeIndex) else -1L
-                    if (size <= 0) {
-                        try {
-                            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                                val availableBytes = inputStream.available()
-                                size = if (availableBytes > 0) availableBytes.toLong() else 0L
-                            } ?: run { size = -1L }
-                        } catch (ex: Exception) { Log.e(Constants.TAG, "FileSender: Error getting available bytes from URI: ${ex.message}"); size = -1L }
+                    if (size < 0) {
+                        size = try {
+                            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
+                        } catch (ex: Exception) { Log.e(Constants.TAG, "FileSender: Error getting file length from URI: ${ex.message}"); -1L }
                     }
                     if (size >= 0) cleanName to size else null
                 } else null

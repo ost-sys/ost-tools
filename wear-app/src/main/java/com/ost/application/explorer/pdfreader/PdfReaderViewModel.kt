@@ -59,30 +59,55 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
         private const val UI_HIDE_DELAY_MS = 3000L
     }
     fun loadDocument(filePath: String) {
+        val file = File(filePath)
+        loadDocumentInternal(
+            documentKey = filePath,
+            fileName = file.name,
+            openDescriptor = {
+                if (!file.exists()) null
+                else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            }
+        )
+    }
+    fun loadDocument(uri: android.net.Uri) {
+        val application = getApplication<Application>()
+        loadDocumentInternal(
+            documentKey = uri.toString(),
+            fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "PDF",
+            openDescriptor = { application.contentResolver.openFileDescriptor(uri, "r") }
+        )
+    }
+    private fun loadDocumentInternal(
+        documentKey: String,
+        fileName: String,
+        openDescriptor: () -> ParcelFileDescriptor?
+    ) {
+        val application = getApplication<Application>()
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null, filePath = filePath) }
+            _uiState.update { it.copy(isLoading = true, error = null, filePath = documentKey) }
             withContext(Dispatchers.IO) {
                 try {
-                    val file = File(filePath)
-                    if (!file.exists()) {
-                        _uiState.update { it.copy(isLoading = false, error = "Файл не найден") }
+                    closeRenderer()
+                    val descriptor = openDescriptor()
+                    if (descriptor == null) {
+                        _uiState.update {
+                            it.copy(isLoading = false, error = application.getString(com.ost.application.R.string.pdf_file_not_found))
+                        }
                         return@withContext
                     }
-                    closeRenderer()
-                    fileDescriptor = ParcelFileDescriptor.open(
-                        file, ParcelFileDescriptor.MODE_READ_ONLY
-                    )
+                    fileDescriptor = descriptor
                     pdfRenderer = PdfRenderer(fileDescriptor!!)
                     val totalPages = pdfRenderer!!.pageCount
-                    val savedPage = prefs.getInt(PREF_PAGE_PREFIX + filePath, 0)
+                    val savedPage = prefs.getInt(PREF_PAGE_PREFIX + documentKey, 0)
                         .coerceIn(0, (totalPages - 1).coerceAtLeast(0))
-                    val savedZoom = prefs.getFloat(PREF_ZOOM_PREFIX + filePath, 2.0f)
+                    val savedZoom = prefs.getFloat(PREF_ZOOM_PREFIX + documentKey, 2.0f)
                         .coerceIn(MIN_ZOOM, MAX_ZOOM)
-                    val outline = parseOutline(file)
+                    val outline = runCatching { openDescriptor() }.getOrNull()
+                        ?.let { parseOutline(it) } ?: emptyList()
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            fileName = file.name,
+                            fileName = fileName,
                             totalPages = totalPages,
                             currentPage = savedPage,
                             zoom = savedZoom,
@@ -93,20 +118,24 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
                 } catch (e: Exception) {
                     Log.e(TAG, "Error loading PDF", e)
                     _uiState.update {
-                        it.copy(isLoading = false, error = "Ошибка: ${e.localizedMessage}")
+                        it.copy(
+                            isLoading = false,
+                            error = application.getString(
+                                com.ost.application.R.string.pdf_open_error,
+                                e.localizedMessage ?: e.javaClass.simpleName
+                            )
+                        )
                     }
                 }
             }
         }
         scheduleHideUi()
     }
-    private fun parseOutline(file: File): List<OutlineItem> {
+    private fun parseOutline(descriptor: ParcelFileDescriptor): List<OutlineItem> {
         val result = mutableListOf<OutlineItem>()
         var pdfDocument: PdfDocument? = null
         try {
-            pdfDocument = pdfiumCore.newDocument(
-                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            )
+            pdfDocument = pdfiumCore.newDocument(descriptor)
             val bookmarks = pdfiumCore.getTableOfContents(pdfDocument)
             flattenBookmarks(bookmarks, depth = 0, result = result)
         } catch (e: Exception) {

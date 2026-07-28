@@ -301,7 +301,15 @@ fun MainAppStructure(isExpandedScreen: Boolean = false, initialShowSettingsSheet
                                             allValidMenuItems.forEach { item ->
                                                 NavigationDrawerItem(
                                                     icon = { MenuItemIcon(icon = item.icon) },
-                                                    label = { Text(stringResource(item.titleResId)) },
+                                                    label = {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(stringResource(item.titleResId))
+                                                            if (item.id == "storage" || item.id == "ram") {
+                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                com.ost.application.util.BetaBadge()
+                                                            }
+                                                        }
+                                                    },
                                                     selected = selectedScreenId == item.id,
                                                     onClick = { selectedScreenId = item.id },
                                                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -319,10 +327,16 @@ fun MainAppStructure(isExpandedScreen: Boolean = false, initialShowSettingsSheet
                                     topBar = {
                                         TopAppBar(
                                             title = {
-                                                Text(
-                                                    displayTitle,
-                                                    fontWeight = FontWeight.Bold
-                                                )
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        displayTitle,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    if (selectedScreenId == "storage" || selectedScreenId == "ram") {
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        com.ost.application.util.BetaBadge()
+                                                    }
+                                                }
                                             },
                                             actions = {
                                                 MainTopBarActions(
@@ -460,10 +474,16 @@ fun MainAppStructure(isExpandedScreen: Boolean = false, initialShowSettingsSheet
                                     topBar = {
                                         LargeFlexibleTopAppBar(
                                             title = {
-                                                Text(
-                                                    displayTitle,
-                                                    fontWeight = FontWeight.Bold
-                                                )
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        displayTitle,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    if (selectedScreenId == "storage" || selectedScreenId == "ram") {
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        com.ost.application.util.BetaBadge()
+                                                    }
+                                                }
                                             },
                                             expandedHeight = 152.dp,
                                             actions = {
@@ -673,13 +693,9 @@ private fun MainTopBarActions(
         )
     }
     IconButton(
-        modifier = Modifier.tooltip(
-            state = gamesTooltipState,
-            title = "Coming soon...",
-            initialVisibility = false
-        ),
         onClick = {
-            gamesTooltipState.show()
+            val intent = Intent(context, com.ost.application.minigames.activity.MiniGamesMainActivity::class.java)
+            context.startActivity(intent)
         }
     ) {
         Icon(

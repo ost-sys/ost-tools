@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -13,7 +12,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 300
-        versionName = "3.0.0-beta4"
+        versionName = "3.0.0-beta5"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         }
@@ -72,6 +71,7 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.ui)
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
     implementation("com.google.android.horologist:horologist-media-ui-model:$horologist")
     implementation("com.google.android.horologist:horologist-audio-ui-model:$horologist")
     implementation("com.google.android.horologist:horologist-audio-ui-material3:$horologist")
@@ -80,6 +80,7 @@ dependencies {
     implementation("com.google.android.horologist:horologist-media-ui-material3:$horologist")
     implementation("com.google.android.horologist:horologist-media3-outputswitcher:$horologist")
     implementation("com.google.android.horologist:horologist-media-data:$horologist")
+    implementation("com.google.android.horologist:horologist-images-coil:$horologist")
     implementation("com.google.android.horologist:horologist-tiles:$horologist")
     implementation("androidx.wear:wear-ongoing:1.1.0")
     implementation(libs.kotlinx.coroutines.play.services)
@@ -92,6 +93,7 @@ dependencies {
     implementation(libs.horologist.audio)
     implementation(libs.horologist.audio.ui)
     implementation(libs.horologist.composables)
+    implementation("androidx.palette:palette-ktx:1.0.0")
     testImplementation(libs.horologist.roboscreenshots)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.wear.compose.ui.tooling)

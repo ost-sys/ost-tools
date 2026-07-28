@@ -7,6 +7,7 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.view.Display
 import android.view.InputDevice
+import android.view.RoundedCorner
 import android.view.WindowManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -38,8 +39,30 @@ object DisplayInfoProvider {
                 Configuration.ORIENTATION_LANDSCAPE -> strings.landscape
                 else -> "N/A"
             },
-            stylusSupport = if (hasStylusSupport()) strings.supported else strings.unsupported
+            stylusSupport = if (hasStylusSupport()) strings.supported else strings.unsupported,
+            cornerRadius = resolveCornerRadius(windowManager, strings) ?: "N/A"
         )
+    }
+    private fun resolveCornerRadius(windowManager: WindowManager, strings: DisplayInfoStrings): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        return try {
+            val insets = windowManager.currentWindowMetrics.windowInsets
+            val topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT)?.radius
+            val topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT)?.radius
+            val bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT)?.radius
+            val bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT)?.radius
+            val all = listOfNotNull(topLeft, topRight, bottomLeft, bottomRight)
+            when {
+                all.isEmpty() -> null
+                all.all { it == all.first() } -> "${all.first()} ${strings.px}"
+                topLeft == topRight && bottomLeft == bottomRight ->
+                    "↑ ${topLeft ?: 0} / ↓ ${bottomLeft ?: 0} ${strings.px}"
+                else -> "${topLeft ?: 0} / ${topRight ?: 0} / ${bottomLeft ?: 0} / ${bottomRight ?: 0} ${strings.px}"
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
     fun observeDisplayInfo(
         context: Context,

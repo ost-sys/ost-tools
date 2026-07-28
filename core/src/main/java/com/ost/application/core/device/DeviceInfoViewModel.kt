@@ -43,6 +43,13 @@ data class DefaultInfoUiState(
     val sdkVersion: String = "---",
     val deviceFormFactor: DeviceFormFactor = DeviceFormFactor.UNKNOWN,
     val buildFingerprint: String = "---",
+    val securityPatch: String = "---",
+    val kernelVersion: String = "---",
+    val bootloader: String = "---",
+    val radioVersion: String = "---",
+    val partitionStyle: String = "---",
+    val isTrebleSupported: Boolean = false,
+    val uptime: String = "---",
     val biometricStatus: BiometricStatus = BiometricStatus.CHECKING,
     val isFingerprintTestable: Boolean = false,
     val isLoadingName: Boolean = true
@@ -77,7 +84,13 @@ class DeviceInfoViewModel(application: Application) : AndroidViewModel(applicati
                 buildNumber = repository.getBuildNumber(),
                 sdkVersion = repository.getSdkInt(),
                 buildFingerprint = repository.getBuildFingerprint(),
-                deviceFormFactor = repository.getDeviceFormFactor()
+                deviceFormFactor = repository.getDeviceFormFactor(),
+                securityPatch = repository.getSecurityPatch(),
+                kernelVersion = repository.getKernelVersion(),
+                bootloader = repository.getBootloader(),
+                radioVersion = repository.getRadioVersion(),
+                partitionStyle = repository.getPartitionStyle(),
+                isTrebleSupported = repository.isTrebleSupported()
             )
         }
     }
@@ -131,14 +144,25 @@ class DeviceInfoViewModel(application: Application) : AndroidViewModel(applicati
                 testable = false
             }
         }
+        val uptime = formatUptime(SystemClock.elapsedRealtime())
         withContext(Dispatchers.Main) {
             _uiState.update {
                 it.copy(
                     biometricStatus = status,
-                    isFingerprintTestable = testable
+                    isFingerprintTestable = testable,
+                    uptime = uptime
                 )
             }
         }
+    }
+    private fun formatUptime(elapsedMillis: Long): String {
+        val totalSeconds = elapsedMillis / 1000
+        val days = totalSeconds / 86400
+        val hours = (totalSeconds % 86400) / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        val hms = String.format(java.util.Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
+        return if (days > 0) "${days}d $hms" else hms
     }
     @SuppressLint("PrivateApi")
     fun getSystemProperty(key: String): String? {

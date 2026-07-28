@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -43,7 +45,11 @@ fun MiniGamesMainScreen(onNavigateBack: () -> Unit) {
         topBar = {
             LargeFlexibleTopAppBar(
                 title = {
-                    Text("Mini Games")
+                    androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text("Mini Games")
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+                        com.ost.application.util.BetaBadge()
+                    }
                 },
                 navigationIcon = {
                     FilledTonalIconButton(

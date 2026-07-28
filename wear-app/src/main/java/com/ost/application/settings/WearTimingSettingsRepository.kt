@@ -25,6 +25,14 @@ class WearTimingSettingsRepository(
     override val settings: StateFlow<TimingSettings> = _settings.asStateFlow()
     init {
         scope.launch { refreshAvailability() }
+        scope.launch {
+            syncClient.observeTimingSettings().collect { synced ->
+                if (prefs.getBoolean(KEY_SYNC_ENABLED, false)) {
+                    _syncState.value = WearSyncState.Enabled
+                    _settings.value = synced
+                }
+            }
+        }
     }
     private fun loadLocalSettings() = TimingSettings(
         totalDuration = prefs.getInt(TimingPrefKeys.TOTAL_DURATION, TimingSettings.Defaults.TOTAL_DURATION),
@@ -42,9 +50,6 @@ class WearTimingSettingsRepository(
         when {
             available && wantsSync -> enableSync(phoneSettings)
             else -> {
-                if (wantsSync && !available) {
-                    prefs.edit().putBoolean(KEY_SYNC_ENABLED, false).apply()
-                }
                 _syncState.value = if (available) WearSyncState.Disabled else WearSyncState.Unavailable
                 _settings.value = loadLocalSettings()
             }
@@ -53,11 +58,6 @@ class WearTimingSettingsRepository(
     private fun enableSync(initialValue: TimingSettings?) {
         _syncState.value = WearSyncState.Enabled
         if (initialValue != null) _settings.value = initialValue
-        scope.launch {
-            syncClient.observeTimingSettings().collect { synced ->
-                if (_syncState.value == WearSyncState.Enabled) _settings.value = synced
-            }
-        }
     }
     fun setSyncEnabled(enabled: Boolean) {
         if (enabled && _syncState.value == WearSyncState.Unavailable) return

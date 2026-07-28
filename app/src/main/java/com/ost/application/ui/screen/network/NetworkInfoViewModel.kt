@@ -54,7 +54,11 @@ data class NetworkInfoUiState(
     val iconRes: Int = R.drawable.ic_no_wifi_24dp,
     val isIpMasked: Boolean = false,
     val isLoadingIp: Boolean = true,
-    val permissionGranted: Boolean = true
+    val permissionGranted: Boolean = true,
+    val dnsServers: String = "---",
+    val gateway: String = "---",
+    val interfaceName: String = "---",
+    val isVpnActive: Boolean = false
 )
 sealed class NetworkInfoAction {
     data class RequestPermission(val permission: String) : NetworkInfoAction()
@@ -157,6 +161,7 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
         } else {
             netType = getString(R.string.grant_permission_to_continue)
         }
+        val linkDetails = getLinkDetails(context)
         withContext(Dispatchers.Main) {
             _uiState.update {
                 it.copy(
@@ -164,10 +169,46 @@ class NetworkInfoViewModel(application: Application) : AndroidViewModel(applicat
                     countryCode = country,
                     networkTypeString = netType,
                     connectivityStatusString = connectivityString,
-                    iconRes = icon
+                    iconRes = icon,
+                    dnsServers = linkDetails.dns,
+                    gateway = linkDetails.gateway,
+                    interfaceName = linkDetails.interfaceName,
+                    isVpnActive = linkDetails.isVpn
                 )
             }
         }
+    }
+    private data class LinkDetails(
+        val dns: String,
+        val gateway: String,
+        val interfaceName: String,
+        val isVpn: Boolean
+    )
+    private fun getLinkDetails(context: Context): LinkDetails {
+        val notAvailable = getString(R.string.not_available)
+        val empty = LinkDetails(notAvailable, notAvailable, notAvailable, false)
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return empty
+        val network = cm.activeNetwork ?: return empty
+        val linkProperties = cm.getLinkProperties(network) ?: return empty
+        val capabilities = cm.getNetworkCapabilities(network)
+        val privateDnsName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            linkProperties.privateDnsServerName
+        } else null
+        val dns = when {
+            privateDnsName != null -> privateDnsName
+            linkProperties.dnsServers.isNotEmpty() ->
+                linkProperties.dnsServers.mapNotNull { it.hostAddress }.joinToString("\n")
+            else -> notAvailable
+        }
+        val gateway = linkProperties.routes
+            .firstOrNull { it.gateway != null && it.gateway?.isAnyLocalAddress == false }
+            ?.gateway?.hostAddress ?: notAvailable
+        return LinkDetails(
+            dns = dns,
+            gateway = gateway,
+            interfaceName = linkProperties.interfaceName ?: notAvailable,
+            isVpn = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+        )
     }
     fun toggleIpMasking() {
         val currentMaskedState = _uiState.value.isIpMasked

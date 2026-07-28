@@ -187,6 +187,16 @@ fun SettingsScreen(viewModel: WearSettingsViewModel = viewModel()) {
                 item { CenteredWavyDivider() }
                 item {
                     CardListItem(
+                        title = context.getString(R.string.shortcuts),
+                        summary = null,
+                        icon = R.drawable.ic_apps_24dp,
+                        status = true,
+                        position = CardPosition.SINGLE,
+                        onClick = { startActivity(context, ShortcutsActivity::class.java) }
+                    )
+                }
+                item {
+                    CardListItem(
                         title = "Check Updates",
                         summary = null,
                         icon = R.drawable.ic_update_24dp,

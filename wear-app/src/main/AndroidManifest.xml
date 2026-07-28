@@ -122,19 +122,53 @@
         <activity android:name=".explorer.ImageActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:noHistory="false"/>
+            android:noHistory="false">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
         <activity android:name=".explorer.TextEditorActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:noHistory="false"/>
+            android:noHistory="false">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="text/*" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="application/xml" />
+            </intent-filter>
+        </activity>
         <activity android:name=".explorer.VideoActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:noHistory="false"/>
+            android:noHistory="false">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+        </activity>
         <activity android:name=".explorer.music.MusicActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:noHistory="false"/>
+            android:noHistory="false">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+        </activity>
         <activity android:name=".explorer.FileExplorerActivity"
             android:exported="true"
             android:excludeFromRecents="true"
@@ -147,7 +181,15 @@
         <activity android:name=".explorer.pdfreader.PdfReaderActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:noHistory="false"/>
+            android:noHistory="false">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".presentation.tools.PixelTestActivity"
@@ -166,6 +208,63 @@
             android:exported="false"
             android:noHistory="false"/>
         <activity android:name=".presentation.display.DisplayActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="false"/>
+        <activity android:name=".presentation.network.NetworkActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="false"/>
+        <activity android:name=".presentation.cpu.CpuActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="false"/>
+        <service
+            android:name=".explorer.music.PlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
+        <activity android:name=".explorer.music.LibraryActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="false"/>
+
+        <!-- Optional launcher shortcuts, toggled from Settings > Shortcuts. -->
+        <activity-alias
+            android:name=".ExplorerShortcut"
+            android:targetActivity=".explorer.FileExplorerActivity"
+            android:label="@string/file_explorer"
+            android:icon="@mipmap/ic_launcher_explorer"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".MusicShortcut"
+            android:targetActivity=".explorer.music.LibraryActivity"
+            android:label="@string/music"
+            android:icon="@mipmap/ic_launcher_music"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity android:name=".presentation.ShortcutsActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="false"/>
+
+        <activity android:name=".presentation.stargazers.StargazersActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:noHistory="false"/>
@@ -246,10 +345,6 @@
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data android:scheme="wear" android:host="*" android:path="/request_wear_version"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
-                <data android:scheme="wear" android:host="*" android:path="/open_settings"/>
             </intent-filter>
         </service>
     </application>

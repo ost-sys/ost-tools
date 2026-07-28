@@ -31,6 +31,8 @@ object SettingsSyncPaths {
     const val KEY_TEMPERATURE_UNIT = "temperature_unit"
     const val KEY_GITHUB_TOKEN_PRESENT = "github_token_present"
     const val MESSAGE_OPEN_SETTINGS_PATH = "/open_settings"
+    const val STARGAZERS_REQUEST_PATH = "/stargazers_request"
+    const val STARGAZERS_RESPONSE_PATH = "/stargazers_response"
 }
 class SettingsSyncClient(private val context: Context) {
     private val dataClient: DataClient? by lazy {

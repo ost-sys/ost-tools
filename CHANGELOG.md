@@ -1,48 +1,39 @@
-Latest Phone Version: v4.0.0-beta4  
-Latest Wear OS Version: v3.0.0-beta4  
+**Latest Phone Version:** v4.0.0-beta5
+**Latest Wear OS Version:** v3.0.0-beta5
 
 ---
 
-## Changelog — Android (v4.0.0-beta4)
+## Changelog — Android (v4.0.0-beta5)
 
 ### New Features & Improvements
-- Added initial Welcome Screen and Setup flow.
-- Introduced Developer Mode Manager and a built-in Logcat Dialog component.
-- Implemented new Mesh Gradient Background component for modern visuals.
-- Added Accessibility Service configuration for expanded system interaction.
-- Redesigned cross-device file sharing UI (OST Share) with mDNS/NSD auto-discovery and real-time transfer progress tracking.
-- Refreshed launcher icons, brand graphics, and application color palettes.
-- Added new CustomTooltip component for rich contextual tooltips.
-- Updated Stargazers Profile UI with unified FileProvider integration.
-- Expanded device battery, display, and general device information retrieval logic.
-- Refactored settings synchronization and persistence mechanisms.
+- Redesigned Battery Info Screen: Introduced a Material 3 Hero Unit with CircularWavyProgressIndicator, Sparkline Metric Graphs for temperature/voltage history, and Health & Cycle Count M3 cards.
+- Advanced Device Info: Expanded Device Info screen to display Security Patch Level, Kernel Version, Bootloader Version, Baseband/Radio Version, Partition Style, Project Treble Support, and System Uptime.
+- Detailed Network Metrics: Expanded Network Info screen to show DNS Servers, Gateway IP, Network Interface Name, and Active VPN Status via ConnectivityManager.
+- Regional Settings & Temperature Units: Linked regional temperature unit selection (Celsius/Fahrenheit) across CPU Info and Battery Info screens with dynamic conversion.
+- MiniGames & Minesweeper Modernization: Wired MiniGames launch button directly into MainActivity's TopAppBar and completely redesigned the Minesweeper game board to be fully responsive across smartphones, tablets, foldables, and landscape modes.
+- Experimental Features & Beta Badging: Integrated custom BetaBadge components with cross-platform navigation support, tagging ROM, RAM, and Minigames in mobile bottom sheets, top app bars, and tablet/desktop side navigation drawers.
+- Architecture Refactoring: Extracted SharedPreferences logic out of ViewModels into dedicated repositories (PhoneTimingSettingsRepository, GithubTokenRepository).
+- Permissions Expansion: Massively updated AndroidManifest.xml to support new system integrations, including permissions for Bluetooth, Media (Audio/Images/Video), Package Installation & Deletion, Biometrics, Notifications, and Activity Recognition.
+- Codebase Cleanup & Localization: Consolidated hardcoded text into strings.xml resource files and simplified the Android CI/CD workflow.
 
 ### Bug Fixes
-- Fixed device discovery issues where macOS devices were not consistently detected.
-- Fixed NullPointerException crash during file sharing when unparceling DiscoveredDevice data.
-- Fixed SocketTimeoutException during transfer acceptance by increasing read timeouts.
-- Standardized FileProvider authority across all share intents.
+- Merged community PR fixing a navbar background glitch in MainActivity.
 
 ---
 
-## Changelog — Wear OS (v3.0.0-beta4)
+## Changelog — Wear OS (v3.0.0-beta5)
 
 ### New Features & Improvements
-- Added Welcome and Setup activities for new users.
-- Introduced new diagnostic tools: Burn-In Recovery and Pixel Test.
-- Added dedicated Battery and Display information screens.
-- Completely refactored Wear OS file sharing (OST Share):
-  - Built-in Wear OS file receiver and sender screens (SendUI, ReceiveUI, ReceivedFilesUI).
-  - Improved layout in SendUI by removing unnecessary pagination.
-  - Added gap for the top curve progress indicator to prevent TimeText from overlapping the progress bar.
-- Refined Material 3 dynamic card list layouts:
-  - Corrected card positioning in Received Files to dynamically switch between Top, Bottom, Middle, and Single shapes around date headers.
-- Introduced WearOrbBackground for visual enhancements.
-- Updated App Manager screen with improved detail views and uninstallation handling.
-- Enhanced File Explorer and Reader applications, including major updates to PDF reader, image/video viewers, text editor, and music player screens.
-- Replaced generic toasts with native Wear OS FailDialog and SuccessDialog feedback.
+- Wear OS Player Overhaul: Complete redesign of the media player adhering strictly to official Google Horologist guidelines with a Material 3 Expressive UI.
+- Adaptive Color Palette: Added dynamic UI color extraction from track cover art using Palette/Bitmap color extraction, smoothly adapting background and playback controls.
+- File Explorer Image Thumbnails: The File Explorer now generates and caches image thumbnails, displaying previews instead of generic icons via ThumbnailCache.
+- File Explorer Hidden Files: Added an Explorer Settings dialog with a toggle to hide or show hidden files, persisting via shared preferences.
+- Direct APK Installation: Users can now tap on .apk files directly in the Wear OS File Explorer to trigger the system package installer.
+- Text Editor Upgrades: Improved the Text Editor UI with a BasicTextField border and a functional save action coupled with a loading spinner while saving.
+- PDF Reader URI Support: PdfReaderActivity can now open PDFs directly from content URIs in addition to absolute file paths.
+- Regional Settings & Temperature Units: Linked regional temperature unit selection (Celsius/Fahrenheit) across CPU Info and Battery Info screens.
+- Architecture Refactoring: Migrated SharedPreferences logic to WearTimingSettingsRepository.
+- Permissions Expansion: Updated AndroidManifest.xml to support package installation, Bluetooth, media reading, and foreground services.
+- Codebase Cleanup & Localization: Consolidated hardcoded text into strings.xml resource files.
 
-### Bug Fixes
-- Fixed file sharing crashes on Wear OS when launching the transfer service.
-- Fixed FileProvider authority handling in FileExplorerActivity.
-- Improved list scrolling performance and component alignment across the app.
+**This is a pre-release version! Bugs and instability are possible.**

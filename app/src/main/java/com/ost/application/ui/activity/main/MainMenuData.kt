@@ -1,6 +1,8 @@
 package com.ost.application.ui.activity.main
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Games
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,6 +19,7 @@ data class MenuItemData(
     val icon: MenuIcon
 )
 internal const val MORE_ITEM_ID = "more_button_id"
+
 internal fun createMenuItems(isRooted: Boolean): List<MenuItemData> {
     return listOfNotNull(
         MenuItemData("power_menu", R.string.power_menu, MenuIcon.Res(R.drawable.ic_power_new_24dp)),
@@ -24,6 +27,7 @@ internal fun createMenuItems(isRooted: Boolean): List<MenuItemData> {
         MenuItemData("stargazers", R.string.stargazers, MenuIcon.Res(R.drawable.ic_stars_24dp)),
         MenuItemData("app_list", R.string.apps_list, MenuIcon.Res(R.drawable.ic_apps_24dp)),
         MenuItemData("about_device", R.string.about_device, MenuIcon.Res(R.drawable.ic_device_24dp)),
+        MenuItemData("cpu", R.string.cpu, MenuIcon.Res(R.drawable.ic_developer_board_24dp)),
         MenuItemData("battery", R.string.battery, MenuIcon.Res(R.drawable.ic_battery_full_24dp)),
         MenuItemData("display", R.string.display, MenuIcon.Res(R.drawable.ic_screen_24dp)),
         MenuItemData("network", R.string.network, MenuIcon.Res(R.drawable.ic_wifi_24dp)),

@@ -43,7 +43,18 @@ fun DefaultScreen(
         ListItem(stringResource(R.string.codename), uiState.codename, null, true, CardPosition.MIDDLE, null),
         ListItem(stringResource(R.string.build_number), uiState.buildNumber, null, true, CardPosition.MIDDLE, null),
         ListItem(stringResource(R.string.sdk), uiState.sdkVersion, null, true, CardPosition.MIDDLE, null),
-        ListItem(stringResource(R.string.build_fingerprint), uiState.buildFingerprint, null, true, CardPosition.BOTTOM, null)
+        ListItem(stringResource(R.string.build_fingerprint), uiState.buildFingerprint, null, true, CardPosition.MIDDLE, null),
+        ListItem(stringResource(R.string.security_patch), uiState.securityPatch, null, true, CardPosition.MIDDLE, null),
+        ListItem(stringResource(R.string.kernel_version), uiState.kernelVersion, null, true, CardPosition.MIDDLE, null),
+        ListItem(stringResource(R.string.bootloader), uiState.bootloader, null, true, CardPosition.MIDDLE, null),
+        ListItem(stringResource(R.string.baseband_version), uiState.radioVersion, null, true, CardPosition.MIDDLE, null),
+        ListItem(stringResource(R.string.partitions), uiState.partitionStyle, null, true, CardPosition.MIDDLE, null),
+        ListItem(
+            stringResource(R.string.project_treble),
+            stringResource(if (uiState.isTrebleSupported) R.string.support else R.string.unsupported),
+            null, true, CardPosition.MIDDLE, null
+        ),
+        ListItem(stringResource(R.string.uptime), uiState.uptime, null, true, CardPosition.BOTTOM, null)
     )
     AppScaffold(timeText = { TimeText() }) {
         val listState = rememberScalingLazyListState()

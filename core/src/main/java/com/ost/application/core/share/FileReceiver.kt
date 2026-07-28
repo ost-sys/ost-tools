@@ -38,6 +38,7 @@ import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 @SuppressLint("MissingPermission")
 class FileReceiver(
     private val context: Context,
@@ -48,6 +49,7 @@ class FileReceiver(
     private var serverSocketRef: ServerSocket? = null
     private var serverJob: Job? = null
     private val clientHandlerJobs = ConcurrentHashMap<String, Job>()
+    private val clientSlotBusy = AtomicBoolean(false)
     private val incomingTransferConfirmations = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
     private val _isReceivingActive = MutableStateFlow(false)
     val isReceivingActive: StateFlow<Boolean> = _isReceivingActive.asStateFlow()
@@ -238,6 +240,14 @@ class FileReceiver(
         delay(100)
     }
     private suspend fun handleClient(clientSocket: Socket) {
+        if (!clientSlotBusy.compareAndSet(false, true)) {
+            Log.d(Constants.TAG, "FileReceiver: Another transfer is pending or active. Rejecting ${clientSocket.remoteSocketAddress}.")
+            runCatching {
+                PrintWriter(OutputStreamWriter(clientSocket.getOutputStream(), Charsets.UTF_8), true).println(Constants.CMD_REJECT)
+            }
+            runCatching { clientSocket.close() }
+            return
+        }
         var reader: BufferedReader? = null
         var writer: PrintWriter? = null
         var fileOutputStream: BufferedOutputStream? = null
@@ -269,8 +279,8 @@ class FileReceiver(
                     if (numberOfFilesExpected <= 0 || totalExpectedSize < 0) {
                         throw IllegalArgumentException("Invalid count ($numberOfFilesExpected) or size ($totalExpectedSize) in MULTI_REQUEST")
                     }
+                    if (!_isReceivingActive.value) throw CancellationException("Receiver stopped before receiving multi meta")
                     scope.launch(Dispatchers.Main.immediate) {
-                        if (!_isReceivingActive.value) throw CancellationException("Receiver stopped before receiving multi meta")
                         _transferProgress.value = 0
                         _transferFileStatus.value = null
                         _lastReceivedFiles.value = emptyList()
@@ -306,8 +316,8 @@ class FileReceiver(
                     numberOfFilesExpected = 1
                     totalExpectedSize = fileSize
                     receivedFilesInfo.add(FileTransferInfo(uri = null, name = fileName, size = fileSize))
+                    if (!_isReceivingActive.value) throw CancellationException("Receiver stopped before receiving single file")
                     scope.launch(Dispatchers.Main.immediate) {
-                        if (!_isReceivingActive.value) throw CancellationException("Receiver stopped before receiving single file")
                         _transferProgress.value = 0
                         _transferFileStatus.value = null
                         _lastReceivedFiles.value = emptyList()
@@ -368,8 +378,8 @@ class FileReceiver(
                         ?: throw IOException("Cannot create target file: ${fileInfo.name}")
                     val fileToProcess = currentFileReceiving
                     val currentFileStatusText = "Receiving file ${index + 1}/$numberOfFilesExpected: ${fileInfo.name}"
+                    if (!_isReceivingActive.value) throw CancellationException("Receiver stopped before receiving file ${index + 1}")
                     scope.launch(Dispatchers.Main.immediate) {
-                        if (!_isReceivingActive.value) throw CancellationException("Receiver stopped before receiving file ${index + 1}")
                         _transferFileStatus.value = currentFileStatusText
                     }
                     try {
@@ -439,29 +449,10 @@ class FileReceiver(
                         throw IOException("File size mismatch for ${fileInfo.name}")
                     }
                 }
+                finalizeSavedFiles(successfullySavedFiles.toList())
                 scope.launch(Dispatchers.Main.immediate) {
                     _transferProgress.value = 100
                     _transferFileStatus.value = null
-                    
-                    scope.launch(Dispatchers.IO) {
-                        val dir = getPublicDownloadOstDir()
-                        if (dir != null) {
-                            successfullySavedFiles.forEach {
-                                ReceivedFilesLedger.addEntry(dir, it.name)
-                            }
-                            val validEntries = ReceivedFilesLedger.getValidEntries(dir)
-                            val files = validEntries.mapNotNull {
-                                val f = File(dir, it.fileName)
-                                if (f.exists()) f else null
-                            }
-                            _lastReceivedFiles.value = files
-                        } else {
-                            val currentFiles = _lastReceivedFiles.value.toMutableList()
-                            currentFiles.addAll(0, successfullySavedFiles)
-                            _lastReceivedFiles.value = currentFiles
-                        }
-                    }
-                    
                     statusUpdateCallback("${Constants.RECEIVED_PREFIX}: $numberOfFilesExpected files")
                 }
                 delay(250)
@@ -477,20 +468,20 @@ class FileReceiver(
             notificationListener?.onCancelled(e.message)
             notificationListener?.onCancelNotification(Constants.NOTIFICATION_ID_INCOMING_FILE)
             currentFileReceiving?.delete()
-            successfullySavedFiles.forEach { runCatching { it.delete() } }
+            finalizeSavedFiles(successfullySavedFiles.toList())
         } catch (e: Exception) {
             Log.e(Constants.TAG, "FileReceiver: Error in handleClient: ${e.message}", e)
             val errorMsg = e.message ?: e.javaClass.simpleName
             scope.launch(Dispatchers.Main.immediate) {
                 _transferProgress.value = null
                 _transferFileStatus.value = null
-                _lastReceivedFiles.value = emptyList()
                 statusUpdateCallback("ERROR: $errorMsg")
             }
             notificationListener?.onFailed(errorMsg)
             currentFileReceiving?.delete()
-            successfullySavedFiles.forEach { runCatching { it.delete() } }
+            finalizeSavedFiles(successfullySavedFiles.toList())
         } finally {
+            clientSlotBusy.set(false)
             if (requestId != null) {
                 incomingTransferConfirmations.remove(requestId)
             }
@@ -510,6 +501,22 @@ class FileReceiver(
                 _transferFileStatus.value = null
             }
             Log.d(Constants.TAG, "FileReceiver: handleClient finally block finished.")
+        }
+    }
+    private fun finalizeSavedFiles(savedFiles: List<File>) {
+        if (savedFiles.isEmpty()) return
+        scope.launch(Dispatchers.IO) {
+            val dir = getPublicDownloadOstDir()
+            if (dir != null) {
+                savedFiles.forEach { ReceivedFilesLedger.addEntry(dir, it.name) }
+                val validEntries = ReceivedFilesLedger.getValidEntries(dir)
+                _lastReceivedFiles.value = validEntries.mapNotNull {
+                    val f = File(dir, it.fileName)
+                    if (f.exists()) f else null
+                }
+            } else {
+                _lastReceivedFiles.value = savedFiles + _lastReceivedFiles.value
+            }
         }
     }
     private fun getPublicDownloadOstDir(): File? {
@@ -547,7 +554,8 @@ class FileReceiver(
     }
     private fun ensureReceiveFile(targetDir: File, originalFileName: String): File? {
         val sanitizedFileName = originalFileName
-            .replace(Regex("[^a-zA-Z0-9.\\-_ ]"), "_")
+            .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            .replace(Regex("\\p{Cntrl}"), "_")
             .trim()
             .take(240)
             .ifBlank { "file_${System.currentTimeMillis()}" }

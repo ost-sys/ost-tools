@@ -72,7 +72,8 @@ fun NetworkInfoScreen(
             viewModel.stopUpdates()
         }
     }
-    val networkInfoRows = remember(uiState.permissionGranted, uiState.isLoadingIp, uiState) {
+    val vpnString = stringResource(if (uiState.isVpnActive) R.string.yes else R.string.no)
+    val networkInfoRows = remember(uiState.permissionGranted, uiState.isLoadingIp, uiState, vpnString) {
         listOf(
             NetworkInfoRow(R.string.operator_country, uiState.countryCode),
             NetworkInfoRow(
@@ -86,7 +87,11 @@ fun NetworkInfoScreen(
                 summary = uiState.ipAddressDisplay,
                 isLoading = uiState.isLoadingIp,
                 onClick = if (!uiState.isLoadingIp) viewModel::toggleIpMasking else null
-            )
+            ),
+            NetworkInfoRow(R.string.dns_servers, uiState.dnsServers),
+            NetworkInfoRow(R.string.gateway, uiState.gateway),
+            NetworkInfoRow(R.string.network_interface, uiState.interfaceName),
+            NetworkInfoRow(R.string.vpn, vpnString)
         )
     }
     LazyColumn(

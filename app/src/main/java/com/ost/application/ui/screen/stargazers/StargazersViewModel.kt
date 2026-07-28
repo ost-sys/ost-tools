@@ -1,17 +1,17 @@
 package com.ost.application.ui.screen.stargazers
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ost.application.data.model.GitHubRepo
 import com.ost.application.data.model.GitHubUser
 import com.ost.application.data.remote.RetrofitClient
+import com.ost.application.settings.GithubTokenRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 class StargazersViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = application.getSharedPreferences("github_prefs", Context.MODE_PRIVATE)
+    private val tokenRepository = GithubTokenRepository(application, viewModelScope)
     private val _userToken = MutableStateFlow("")
     val userToken = _userToken.asStateFlow()
     private val _repos = MutableStateFlow<List<GitHubRepo>>(emptyList())
@@ -29,7 +29,7 @@ class StargazersViewModel(application: Application) : AndroidViewModel(applicati
     private val pageSize = 30
     private var loadJob: Job? = null
     init {
-        val savedToken = prefs.getString("token", "") ?: ""
+        val savedToken = tokenRepository.token.value
         if (savedToken.isNotBlank()) {
             _userToken.value = savedToken
             loadMyRepositories()
@@ -40,12 +40,12 @@ class StargazersViewModel(application: Application) : AndroidViewModel(applicati
             _error.value = "Token cannot be empty"
             return
         }
-        prefs.edit().putString("token", token).apply()
+        tokenRepository.setToken(token)
         _userToken.value = token
         loadMyRepositories()
     }
     fun logout() {
-        prefs.edit().remove("token").apply()
+        tokenRepository.clearToken()
         _userToken.value = ""
         _repos.value = emptyList()
         clearSelection()
@@ -61,7 +61,7 @@ class StargazersViewModel(application: Application) : AndroidViewModel(applicati
             } catch (e: Exception) {
                 _error.value = e.localizedMessage
                 _userToken.value = ""
-                prefs.edit().remove("token").apply()
+                tokenRepository.clearToken()
             } finally {
                 _isLoading.value = false
             }

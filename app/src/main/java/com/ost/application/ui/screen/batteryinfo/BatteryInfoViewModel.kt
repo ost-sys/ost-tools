@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.ost.application.core.settings.TemperatureUnit
+import com.ost.application.core.settings.formatTemperatureFloat
+import com.ost.application.settings.PhoneTemperatureUnitRepository
+
 private const val GRAPH_HISTORY_SIZE = 30
 @Stable
 data class BatteryInfoUiState(
@@ -32,12 +36,15 @@ data class BatteryInfoUiState(
     val healthStatus: BatteryHealth = BatteryHealth.UNKNOWN,
     val status: String = "...",
     val temperature: String = "...",
+    val temperatureUnit: TemperatureUnit = TemperatureUnit.DEFAULT,
     val voltage: String = "...",
     val technology: String = "...",
     val capacity: String = "...",
     val isLoadingCapacity: Boolean = true,
     val displayMode: BatteryDisplayMode = BatteryDisplayMode.NORMAL,
     val cycleCount: String = "...",
+    val current: String = "...",
+    val chargeTimeRemaining: String? = null,
     val temperatureHistory: List<BatterySample> = emptyList(),
     val voltageHistory: List<BatterySample> = emptyList(),
     val temperatureMin: Float? = null,
@@ -48,6 +55,7 @@ data class BatteryInfoUiState(
 class BatteryInfoViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(BatteryInfoUiState())
     val uiState: StateFlow<BatteryInfoUiState> = _uiState.asStateFlow()
+    private val temperatureRepository = PhoneTemperatureUnitRepository(application, viewModelScope)
     private var batteryUpdateJob: Job? = null
     private var capacityJob: Job? = null
     private var samplingJob: Job? = null
@@ -78,6 +86,16 @@ class BatteryInfoViewModel(application: Application) : AndroidViewModel(applicat
         loadBatteryCapacity()
         startObservingBatteryUpdates()
         startSampling()
+        viewModelScope.launch {
+            temperatureRepository.unit.collect { unit ->
+                _uiState.update { state ->
+                    val formattedTemp = latestBatteryInfo?.temperatureCelsius?.let {
+                        formatTemperatureFloat(it, unit)
+                    } ?: strings.unknown
+                    state.copy(temperatureUnit = unit, temperature = formattedTemp)
+                }
+            }
+        }
     }
     fun setScreenVisible(visible: Boolean) {
         samplingController.setScreenVisible(visible)
@@ -88,6 +106,7 @@ class BatteryInfoViewModel(application: Application) : AndroidViewModel(applicat
             .onEach { info ->
                 latestBatteryInfo = info
                 val iconRes = info.statusIcon.toResId()
+                val currentUnit = temperatureRepository.unit.value
                 _uiState.update {
                     it.copy(
                         levelPercent = info.levelPercent,
@@ -95,11 +114,11 @@ class BatteryInfoViewModel(application: Application) : AndroidViewModel(applicat
                         health = info.health.toDisplayString(strings),
                         healthStatus = info.health,
                         status = info.toChargingSourceText(strings),
-                        temperature = info.temperatureCelsius?.let {
-                            String.format(Locale.getDefault(), "%.1f°C", it)
+                        temperature = info.temperatureCelsius?.let { temp ->
+                            formatTemperatureFloat(temp, currentUnit)
                         } ?: strings.unknown,
-                        voltage = info.voltageVolts?.let {
-                            String.format(Locale.getDefault(), "%.2fV", it)
+                        voltage = info.voltageVolts?.let { volts ->
+                            String.format(Locale.getDefault(), "%.2fV", volts)
                         } ?: strings.unknown,
                         technology = info.technology ?: strings.unknown,
                         displayMode = info.displayMode,
@@ -125,6 +144,7 @@ class BatteryInfoViewModel(application: Application) : AndroidViewModel(applicat
     private fun recordSample() {
         val info = latestBatteryInfo ?: return
         val now = System.currentTimeMillis()
+        updateCurrentAndChargeTime(info)
         info.temperatureCelsius?.let { temp ->
             if (temperatureHistory.size >= GRAPH_HISTORY_SIZE) temperatureHistory.removeFirst()
             temperatureHistory.addLast(BatterySample(now, temp, info.voltageVolts ?: 0f))
@@ -145,6 +165,31 @@ class BatteryInfoViewModel(application: Application) : AndroidViewModel(applicat
                 voltageMax = voltValues.maxOrNull()
             )
         }
+    }
+    private fun updateCurrentAndChargeTime(info: BatteryInfo) {
+        val currentMa = BatteryInfoProvider.getCurrentNowMilliAmps(getApplication(), info.isCharging)
+        val currentText = if (currentMa != null) {
+            val watts = info.voltageVolts?.let { volts ->
+                String.format(Locale.getDefault(), " (%.1f W)", kotlin.math.abs(currentMa) / 1000f * volts)
+            } ?: ""
+            val sign = if (currentMa > 0) "+" else ""
+            "$sign$currentMa ${getString(R.string.ma)}$watts"
+        } else {
+            strings.notAvailable
+        }
+        val chargeTimeText = if (info.isCharging) {
+            BatteryInfoProvider.getChargeTimeRemainingMillis(getApplication())?.let { formatDuration(it) }
+        } else {
+            null
+        }
+        _uiState.update { it.copy(current = currentText, chargeTimeRemaining = chargeTimeText) }
+    }
+    private fun formatDuration(millis: Long): String {
+        val totalMinutes = millis / 60_000
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return if (hours > 0) "$hours ${getString(R.string.h)} $minutes ${getString(R.string.min)}"
+        else "$minutes ${getString(R.string.min)}"
     }
     private fun loadBatteryCapacity() {
         capacityJob?.cancel()

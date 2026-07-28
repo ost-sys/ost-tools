@@ -1,7 +1,6 @@
 package com.ost.application.settings
 import android.content.Context
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
 import com.ost.application.core.settings.TimingPrefKeys
 import com.ost.application.core.settings.TimingSettings
 import com.ost.application.core.settings.TimingSettingsRepository
@@ -16,7 +15,8 @@ class PhoneTimingSettingsRepository(
     context: Context,
     private val scope: CoroutineScope
 ) : TimingSettingsRepository {
-    private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
     private val syncClient = SettingsSyncClient(context)
     private val _settings = MutableStateFlow(loadSettings())
     override val settings: StateFlow<TimingSettings> = _settings.asStateFlow()

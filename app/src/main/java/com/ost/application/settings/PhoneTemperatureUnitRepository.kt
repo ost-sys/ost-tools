@@ -1,7 +1,6 @@
 package com.ost.application.settings
 import android.content.Context
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
 import androidx.core.content.edit
 import com.ost.application.core.settings.TemperaturePrefKeys
 import com.ost.application.core.settings.TemperatureUnit
@@ -15,7 +14,8 @@ class PhoneTemperatureUnitRepository(
     context: Context,
     private val scope: CoroutineScope
 ) {
-    private val prefs: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
     private val syncClient = SettingsSyncClient(context)
     private val _unit = MutableStateFlow(loadUnit())
     val unit: StateFlow<TemperatureUnit> = _unit.asStateFlow()

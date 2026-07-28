@@ -2,6 +2,7 @@
 package com.ost.application.explorer.music
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -25,6 +26,9 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.android.horologist.annotations.ExperimentalHorologistApi
 import com.google.android.horologist.audio.SystemAudioRepository
 import com.google.android.horologist.audio.ui.VolumeViewModel
@@ -38,16 +42,17 @@ class MusicActivity : ComponentActivity() {
         const val MODE_FULL_PLAYER = "mode_full"
         const val MODE_SINGLE_FILE = "mode_single"
     }
-    private lateinit var player: ExoPlayer
+    private var player: Player? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
     private var musicUri: Uri? = null
     private var launchMode by mutableStateOf(MODE_SINGLE_FILE)
     private var pendingAction: (() -> Unit)? = null
     private val musicViewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (!::player.isInitialized) { throw IllegalStateException("Player not initialized for ViewModel") }
+            val activePlayer = player ?: throw IllegalStateException("Player not initialized for ViewModel")
             if (modelClass.isAssignableFrom(MusicViewModel::class.java)) {
-                return MusicViewModel(player, PlayerRepositoryImpl()) as T
+                return MusicViewModel(activePlayer, PlayerRepositoryImpl()) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
@@ -80,8 +85,9 @@ class MusicActivity : ComponentActivity() {
         val musicPath = incomingIntent.getStringExtra("musicPath")
         when {
             modeExtra == MODE_FULL_PLAYER || (action == Intent.ACTION_MAIN && data == null) -> {
-                launchMode = MODE_FULL_PLAYER
-                musicUri = null
+                startActivity(Intent(this, LibraryActivity::class.java))
+                finish()
+                return
             }
             (action == Intent.ACTION_VIEW && data != null) || (modeExtra == MODE_SINGLE_FILE && data != null) -> {
                 launchMode = MODE_SINGLE_FILE
@@ -119,37 +125,31 @@ class MusicActivity : ComponentActivity() {
             finish()
             return
         }
-        player = ExoPlayer.Builder(this)
-            .setSeekForwardIncrementMs(SEEK_INCREMENT_MS)
-            .setSeekBackIncrementMs(SEEK_INCREMENT_MS)
-            .build()
-            .apply {
-                addListener(object : Player.Listener {
-                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        Log.d(MUSIC_ACTIVITY_TAG, "Media item transition: ${mediaItem?.mediaId}, reason: $reason")
-                    }
-                    override fun onPlayerError(error: PlaybackException) {
-                        Log.e(MUSIC_ACTIVITY_TAG, "ExoPlayer error", error)
-                    }
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        Log.d(MUSIC_ACTIVITY_TAG, "Playback state changed: $playbackState")
-                    }
-                    override fun onIsPlayingChanged(isPlaying: Boolean) {
-                        Log.d(MUSIC_ACTIVITY_TAG, "Is playing changed: $isPlaying")
-                    }
-                })
+        val future = MediaController.Builder(
+            this,
+            SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        ).buildAsync()
+        controllerFuture = future
+        future.addListener({
+            val controller = runCatching { future.get() }.getOrNull()
+            if (controller == null) {
+                Log.e(MUSIC_ACTIVITY_TAG, "Failed to connect MediaController")
+                finish()
+                return@addListener
             }
-        setContent {
-            OSTToolsTheme {
-                MainPlayerScreen(
-                    launchMode = launchMode,
-                    singleTrackUri = musicUri,
-                    singleTrackViewModel = musicViewModel,
-                    volumeViewModel = volumeViewModel,
-                    context = this
-                )
+            player = controller
+            setContent {
+                OSTToolsTheme {
+                    MainPlayerScreen(
+                        launchMode = launchMode,
+                        singleTrackUri = musicUri,
+                        singleTrackViewModel = musicViewModel,
+                        volumeViewModel = volumeViewModel,
+                        context = this
+                    )
+                }
             }
-        }
+        }, ContextCompat.getMainExecutor(this))
     }
     @SuppressLint("ServiceCast")
     fun createVolumeViewModel(): VolumeViewModel {
@@ -165,6 +165,7 @@ class MusicActivity : ComponentActivity() {
     }
     override fun onDestroy() {
         super.onDestroy()
-        if (::player.isInitialized) { player.release() }
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        player = null
     }
 }

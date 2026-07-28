@@ -27,16 +27,16 @@ class WearTemperatureUnitRepository(
                     WearSyncState.Enabled -> {
                         val phoneUnit = syncClient.getLastSyncedTemperatureUnit()
                         if (phoneUnit != null) _unit.value = phoneUnit
-                        scope.launch {
-                            syncClient.observeTemperatureUnit().collect { synced ->
-                                if (syncState.value == WearSyncState.Enabled) _unit.value = synced
-                            }
-                        }
                     }
                     WearSyncState.Disabled, WearSyncState.Unavailable -> {
                         _unit.value = loadLocalUnit()
                     }
                 }
+            }
+        }
+        scope.launch {
+            syncClient.observeTemperatureUnit().collect { synced ->
+                if (syncState.value == WearSyncState.Enabled) _unit.value = synced
             }
         }
     }

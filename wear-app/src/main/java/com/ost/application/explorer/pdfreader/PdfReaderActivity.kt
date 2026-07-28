@@ -17,12 +17,16 @@ class PdfReaderActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val filePath = intent.getStringExtra(EXTRA_FILE_PATH)
-        if (filePath == null) {
-            Log.e("PdfReaderActivity", "No file path provided")
-            finish()
-            return
+        val dataUri = intent.data
+        when {
+            filePath != null -> viewModel.loadDocument(filePath)
+            dataUri != null -> viewModel.loadDocument(dataUri)
+            else -> {
+                Log.e("PdfReaderActivity", "No file path or data URI provided")
+                finish()
+                return
+            }
         }
-        viewModel.loadDocument(filePath)
         setContent {
             OSTToolsTheme {
                 val uiState by viewModel.uiState.collectAsState()

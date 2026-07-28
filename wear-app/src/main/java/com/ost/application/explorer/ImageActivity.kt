@@ -1,4 +1,5 @@
 package com.ost.application.explorer
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,8 +36,11 @@ import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.IconButton
 import androidx.wear.compose.material3.IconButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
+import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.ost.application.R
 import com.ost.application.theme.OSTToolsTheme
@@ -45,15 +49,15 @@ import java.io.File
 class ImageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val imagePath = intent.getStringExtra("imagePath")
-        if (imagePath == null) {
+        val model: Any? = intent.getStringExtra("imagePath")?.let { File(it) } ?: intent.data
+        if (model == null) {
             finish()
             return
         }
         setContent {
             OSTToolsTheme {
                 ImageViewerScreen(
-                    imagePath = imagePath,
+                    model = model,
                     onDismiss = { finish() }
                 )
             }
@@ -61,7 +65,7 @@ class ImageActivity : ComponentActivity() {
     }
 }
 @Composable
-fun ImageViewerScreen(imagePath: String, onDismiss: () -> Unit) {
+fun ImageViewerScreen(model: Any, onDismiss: () -> Unit) {
     val swipeState = rememberSwipeToDismissBoxState()
     SwipeToDismissBox(
         state = swipeState,
@@ -70,11 +74,11 @@ fun ImageViewerScreen(imagePath: String, onDismiss: () -> Unit) {
         contentKey = "content",
         hasBackground = false
     ) {
-        ZoomableImageViewer(imagePath = imagePath)
+        ZoomableImageViewer(model = model)
     }
 }
 @Composable
-fun ZoomableImageViewer(imagePath: String) {
+fun ZoomableImageViewer(model: Any) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var isLoading by remember { mutableStateOf(true) }
@@ -100,20 +104,38 @@ fun ZoomableImageViewer(imagePath: String) {
                 )
             }
             .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
+                detectTransformGestures { centroid, pan, zoom, _ ->
                     val newScale = (scale * zoom).coerceIn(1f, 6f)
+                    val zoomChange = newScale / scale
+                    val centroidFromCenter = centroid - Offset(size.width / 2f, size.height / 2f)
+                    val unclamped = centroidFromCenter - (centroidFromCenter - offset) * zoomChange + pan
                     scale = newScale
-                    offset = if (newScale == 1f) Offset.Zero else offset + pan
+                    val maxX = size.width * (newScale - 1f) / 2f
+                    val maxY = size.height * (newScale - 1f) / 2f
+                    offset = if (newScale == 1f) Offset.Zero else Offset(
+                        unclamped.x.coerceIn(-maxX, maxX),
+                        unclamped.y.coerceIn(-maxY, maxY)
+                    )
                     controlsVisible = true
                 }
             },
         contentAlignment = Alignment.Center
     ) {
+        val context = LocalContext.current
+        val gifCapableLoader = remember {
+            ImageLoader.Builder(context)
+                .components {
+                    if (Build.VERSION.SDK_INT >= 28) add(ImageDecoderDecoder.Factory())
+                    else add(GifDecoder.Factory())
+                }
+                .build()
+        }
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(File(imagePath))
+            model = ImageRequest.Builder(context)
+                .data(model)
                 .crossfade(true)
                 .build(),
+            imageLoader = gifCapableLoader,
             contentDescription = "Image viewer",
             contentScale = ContentScale.Fit,
             onState = { state ->

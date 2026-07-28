@@ -74,7 +74,7 @@ import com.ost.application.ui.components.LanguagePickerDialog
 import com.ost.application.ui.theme.OSTToolsTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import org.xmlpull.v1.XmlPullParser
+import com.ost.application.core.locale.SupportedLocalesLoader
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -372,23 +372,8 @@ fun WelcomeScreen(
     }
 }
 fun parseSupportedLocales(context: Context): List<Locale> {
-    val locales = mutableListOf<Locale>()
-    try {
-        val parser = context.resources.getXml(R.xml.locales_config)
-        var eventType = parser.eventType
-        while (eventType != XmlPullParser.END_DOCUMENT) {
-            if (eventType == XmlPullParser.START_TAG && parser.name == "locale") {
-                val langTag = parser.getAttributeValue("http://schemas.android.com/apk/res/android", "name")
-                if (langTag != null) {
-                    locales.add(Locale.forLanguageTag(langTag))
-                }
-            }
-            eventType = parser.next()
-        }
-    } catch (e: Exception) {
-        Log.e("LocaleParser", "Error parsing locales_config", e)
-        return listOf(Locale.ENGLISH)
-    }
+    val locales = SupportedLocalesLoader.load(context, R.xml.locales_config)
+    if (locales.isEmpty()) return listOf(Locale.ENGLISH)
     val current = LocaleHelper.getCurrentLocale()
     return locales.sortedWith(compareByDescending<Locale> { it.language == current.language }
         .thenByDescending { it.language == "en" })

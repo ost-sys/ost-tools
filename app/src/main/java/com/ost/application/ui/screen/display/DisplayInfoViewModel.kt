@@ -26,6 +26,7 @@ data class DisplayInfoUiState(
     val diagonal: String = "N/A",
     val orientation: String = "N/A",
     val stylusSupport: String = "N/A",
+    val cornerRadius: String = "N/A",
     val isLoading: Boolean = true
 )
 private fun DisplayInfo.toUiState(isLoading: Boolean) = DisplayInfoUiState(
@@ -35,6 +36,7 @@ private fun DisplayInfo.toUiState(isLoading: Boolean) = DisplayInfoUiState(
     diagonal = diagonal,
     orientation = orientation,
     stylusSupport = stylusSupport,
+    cornerRadius = cornerRadius,
     isLoading = isLoading
 )
 class DisplayInfoViewModel : ViewModel() {
@@ -75,5 +77,6 @@ private fun Context.toDisplayInfoStrings() = DisplayInfoStrings(
     portrait = getString(R.string.portrait),
     landscape = getString(R.string.landscape),
     supported = getString(R.string.support),
-    unsupported = getString(R.string.unsupported)
+    unsupported = getString(R.string.unsupported),
+    px = getString(R.string.px)
 )

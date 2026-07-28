@@ -103,7 +103,13 @@ private fun buildBatteryItems(uiState: WearBatteryInfoUiState): List<ListItem> =
     ListItem(stringResource(R.string.voltage), uiState.voltage, null, true, CardPosition.MIDDLE, null),
     ListItem(stringResource(R.string.technology), uiState.technology, null, true, CardPosition.MIDDLE, null),
     ListItem(stringResource(R.string.capacity), if (uiState.isLoadingCapacity) "..." else uiState.capacity, null, true, CardPosition.MIDDLE, null),
-    ListItem(stringResource(R.string.cycle_count), uiState.cycleCount, null, true, CardPosition.BOTTOM, null)
+    ListItem(stringResource(R.string.cycle_count), uiState.cycleCount, null, true, CardPosition.MIDDLE, null),
+    ListItem(stringResource(R.string.battery_current), uiState.current, null, true,
+        if (uiState.chargeTimeRemaining != null) CardPosition.MIDDLE else CardPosition.BOTTOM, null)
+) + listOfNotNull(
+    uiState.chargeTimeRemaining?.let {
+        ListItem(stringResource(R.string.time_to_full_charge), it, null, true, CardPosition.BOTTOM, null)
+    }
 )
 @Preview(device = "id:wearos_small_round")
 @Composable

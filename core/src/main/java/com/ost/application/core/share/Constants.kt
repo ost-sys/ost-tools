@@ -48,6 +48,7 @@ object Constants {
     const val TAG = "OST_Share"
     const val CONFIRMATION_TIMEOUT_MILLIS = 3000L
     const val INCOMING_REQUEST_RESPONSE_TIMEOUT_MILLIS = 30000L
+    const val SENDER_RESPONSE_TIMEOUT_MILLIS = 40000L
     const val INCOMING_REQUEST_TIMEOUT_MS = 30000L
 }
 fun String.encodeForURL(): String {

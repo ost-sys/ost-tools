@@ -1,10 +1,6 @@
 package com.ost.application.ui.screen.batteryinfo
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
+
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -15,23 +11,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,53 +39,36 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ost.application.LocalBottomSpacing
 import com.ost.application.R
 import com.ost.application.core.battery.BatteryDisplayMode
 import com.ost.application.core.battery.BatteryHealth
+import com.ost.application.core.settings.convertTemperature
+import com.ost.application.core.settings.formatTemperatureFloat
 import com.ost.application.util.CardPosition
 import com.ost.application.util.CustomCardItem
-import kotlin.math.max
 import java.util.Locale
+import kotlin.math.max
+
 private enum class GridCardKind { HEALTH, TEMPERATURE, VOLTAGE, CYCLE_COUNT }
-private fun GridCardKind.narrowGridShape(bigRadius: Dp, smallRadius: Dp): RoundedCornerShape =
-    when (this) {
-        GridCardKind.HEALTH -> RoundedCornerShape(
-            topStart = bigRadius, topEnd = smallRadius,
-            bottomStart = smallRadius, bottomEnd = smallRadius
-        )
-        GridCardKind.TEMPERATURE -> RoundedCornerShape(
-            topStart = smallRadius, topEnd = bigRadius,
-            bottomStart = smallRadius, bottomEnd = smallRadius
-        )
-        GridCardKind.VOLTAGE -> RoundedCornerShape(
-            topStart = smallRadius, topEnd = smallRadius,
-            bottomStart = bigRadius, bottomEnd = smallRadius
-        )
-        GridCardKind.CYCLE_COUNT -> RoundedCornerShape(
-            topStart = smallRadius, topEnd = smallRadius,
-            bottomStart = smallRadius, bottomEnd = bigRadius
-        )
-    }
 private enum class GridLayoutTier { NARROW, WIDE_STACK, WIDE_ROW }
+
 private fun BatteryHealth.toHeartIconResId(): Int = when (this) {
     BatteryHealth.GOOD, BatteryHealth.COLD -> R.drawable.ic_favorite_fill_24dp
     BatteryHealth.OVERHEAT, BatteryHealth.DEAD,
     BatteryHealth.OVER_VOLTAGE, BatteryHealth.UNSPECIFIED_FAILURE -> R.drawable.ic_heart_broken_24dp
     BatteryHealth.UNKNOWN -> R.drawable.ic_favorite_outline_24dp
 }
+
 @Composable
 private fun BatteryHealth.toHeartColor(): Color = when (this) {
     BatteryHealth.GOOD -> MaterialTheme.colorScheme.primary
@@ -99,60 +77,66 @@ private fun BatteryHealth.toHeartColor(): Color = when (this) {
     BatteryHealth.OVER_VOLTAGE, BatteryHealth.UNSPECIFIED_FAILURE -> MaterialTheme.colorScheme.error
     BatteryHealth.UNKNOWN -> MaterialTheme.colorScheme.outline
 }
+
 @Composable
 private fun HealthCardContent(
     healthStatus: BatteryHealth,
     healthText: String,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "heart_pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "heart_pulse_scale"
-    )
-    Box(modifier = modifier.fillMaxSize().padding(12.dp)) {
+    val heartColor = healthStatus.toHeartColor()
+    val heartIcon = healthStatus.toHeartIconResId()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                painter = painterResource(heartIcon),
+                contentDescription = null,
+                tint = heartColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = stringResource(R.string.health),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Text(
             text = healthText,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = healthStatus.toHeartColor(),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = heartColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
-        Icon(
-            painter = painterResource(healthStatus.toHeartIconResId()),
-            contentDescription = null,
-            tint = healthStatus.toHeartColor(),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxSize(0.72f)
-                .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale)
-        )
-        Text(
-            text = stringResource(R.string.health),
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-        )
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = heartColor.copy(alpha = 0.15f),
+            contentColor = heartColor
+        ) {
+            Text(
+                text = if (healthStatus == BatteryHealth.GOOD) "100%" else healthStatus.name,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+            )
+        }
     }
 }
+
 @Composable
 private fun SparklineGraph(
     values: List<Float>,
     modifier: Modifier = Modifier
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
-    val gradientTop = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-    val gradientBottom = MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+    val gradientTop = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    val gradientBottom = MaterialTheme.colorScheme.primary.copy(alpha = 0.0f)
     Canvas(modifier = modifier) {
         if (values.size < 2) return@Canvas
         val minValue = values.min()
@@ -164,7 +148,7 @@ private fun SparklineGraph(
             val x = index * stepX
             val y = if (hasRange) {
                 val normalized = (value - minValue) / range
-                size.height - (normalized * size.height)
+                size.height - (normalized * size.height * 0.7f) - (size.height * 0.1f)
             } else {
                 size.height / 2f
             }
@@ -191,94 +175,115 @@ private fun SparklineGraph(
         drawPath(
             path = linePath,
             color = lineColor,
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
     }
 }
+
 @Composable
-private fun GraphCardContent(
-    titleText: String,
+private fun GraphMetricCardContent(
+    iconRes: Int,
+    title: String,
+    currentValueText: String,
     minText: String,
     maxText: String,
     history: List<Float>,
-    isNarrowLayout: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = titleText,
-            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.align(Alignment.TopStart)
-        )
-        Row(
+    Box(modifier = modifier.fillMaxSize()) {
+        if (history.size >= 2) {
+            SparklineGraph(
+                values = history,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .align(Alignment.BottomCenter)
+            )
+        }
+        Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            if (isNarrowLayout) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
                 Text(
-                    text = "$minText | $maxText",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            } else {
-                Column {
-                    Text(
-                        text = minText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = maxText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            if (history.size >= 2) {
-                Spacer(modifier = Modifier.width(8.dp))
-                SparklineGraph(
-                    values = history,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(0.85f)
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+            Text(
+                text = currentValueText,
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "$minText • $maxText",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
+
 @Composable
 private fun CycleCountCardContent(
     cycleCountText: String,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize().padding(12.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_refresh_24dp),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = stringResource(R.string.cycle_count),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Text(
             text = cycleCountText,
-            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
-            softWrap = false,
-            autoSize = TextAutoSize.StepBased(minFontSize = 16.sp, maxFontSize = 57.sp),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(0.85f)
+            overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = stringResource(R.string.cycle_count),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = FontFamily(Font(R.font.google_sans_flex)),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
+            text = stringResource(R.string.total),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
     }
 }
+
 @Composable
 private fun BatteryLevelIndicator(
     levelPercent: Int,
@@ -296,7 +301,7 @@ private fun BatteryLevelIndicator(
         label = "wave_amplitude"
     )
     Box(
-        modifier = modifier.size(160.dp),
+        modifier = modifier.size(150.dp),
         contentAlignment = Alignment.Center
     ) {
         CircularWavyProgressIndicator(
@@ -310,11 +315,72 @@ private fun BatteryLevelIndicator(
             text = "$levelPercent%",
             fontFamily = FontFamily(Font(R.font.google_sans_flex)),
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
+
+@Composable
+private fun BatteryHeroCard(
+    levelPercent: Int,
+    isCharging: Boolean,
+    statusText: String,
+    chargeTimeRemaining: String?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = if (isCharging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (isCharging) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(if (isCharging) R.drawable.ic_charger_24dp else R.drawable.ic_battery_full_24dp),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (isCharging) statusText else stringResource(R.string.discharging),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            BatteryLevelIndicator(
+                levelPercent = levelPercent,
+                isCharging = isCharging
+            )
+            if (isCharging && chargeTimeRemaining != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = chargeTimeRemaining,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun BatteryInfoScreen(
     modifier: Modifier = Modifier,
@@ -322,8 +388,6 @@ fun BatteryInfoScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val bottomSpacing = LocalBottomSpacing.current
-    val bigRadius = 24.dp
-    val smallRadius = 4.dp
     val minCardSize = 150.dp
     val wideRowMinWidth = 850.dp
     val gridItems = listOf(
@@ -346,48 +410,33 @@ fun BatteryInfoScreen(
             GridLayoutTier.WIDE_STACK -> 6
             GridLayoutTier.WIDE_ROW -> 12
         }
-        val cardSpacing = 4.dp
+        val cardSpacing = 8.dp
         val unitWidth = (availableWidth - cardSpacing * (gridColumns - 1)) / gridColumns
         val isCharging = uiState.displayMode == BatteryDisplayMode.CHARGING
+
         LazyVerticalGrid(
             columns = GridCells.Fixed(gridColumns),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 16.dp, end = 16.dp,
+                start = 0.dp, end = 0.dp,
                 top = 16.dp, bottom = 16.dp + bottomSpacing
             ),
-            horizontalArrangement = Arrangement.spacedBy(cardSpacing),
-            verticalArrangement = Arrangement.spacedBy(cardSpacing)
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    BatteryLevelIndicator(
-                        levelPercent = uiState.levelPercent,
-                        isCharging = isCharging
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = if (isCharging) stringResource(R.string.charging) else stringResource(R.string.discharging),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center
-                    )
-                    if (isCharging) {
-                        Text(
-                            text = uiState.status,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                BatteryHeroCard(
+                    levelPercent = uiState.levelPercent,
+                    isCharging = isCharging,
+                    statusText = uiState.status,
+                    chargeTimeRemaining = uiState.chargeTimeRemaining,
+                    modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp)
+                )
             }
-            items(
+
+            itemsIndexed(
                 items = gridItems,
-                span = { kind ->
+                span = { _, kind ->
                     when (tier) {
                         GridLayoutTier.NARROW -> GridItemSpan(1)
                         GridLayoutTier.WIDE_STACK, GridLayoutTier.WIDE_ROW -> when (kind) {
@@ -396,53 +445,67 @@ fun BatteryInfoScreen(
                         }
                     }
                 }
-            ) { kind ->
-                val shape = if (tier == GridLayoutTier.NARROW) {
-                    kind.narrowGridShape(bigRadius, smallRadius)
-                } else {
-                    RoundedCornerShape(smallRadius)
+            ) { index, kind ->
+                val cardShape = RoundedCornerShape(20.dp)
+                val paddingModifier = when (tier) {
+                    GridLayoutTier.NARROW, GridLayoutTier.WIDE_STACK -> {
+                        if (index % 2 == 0) Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)
+                        else Modifier.padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 4.dp)
+                    }
+                    GridLayoutTier.WIDE_ROW -> {
+                        when (index) {
+                            0 -> Modifier.padding(start = 16.dp, end = 4.dp)
+                            3 -> Modifier.padding(start = 4.dp, end = 16.dp)
+                            else -> Modifier.padding(horizontal = 4.dp)
+                        }
+                    }
                 }
                 val cardModifier = if (tier == GridLayoutTier.NARROW) {
-                    Modifier.fillMaxWidth().aspectRatio(1f)
+                    paddingModifier.fillMaxWidth().aspectRatio(1f)
                 } else {
                     val cardHeight = unitWidth * 2 + cardSpacing
-                    Modifier.fillMaxWidth().height(cardHeight)
+                    paddingModifier.fillMaxWidth().height(cardHeight)
                 }
-                Card(shape = shape, modifier = cardModifier) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Card(
+                    shape = cardShape,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    modifier = cardModifier
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         when (kind) {
                             GridCardKind.HEALTH -> HealthCardContent(
                                 healthStatus = uiState.healthStatus,
                                 healthText = uiState.health
                             )
                             GridCardKind.TEMPERATURE -> {
-                                val tempValues = uiState.temperatureHistory.map { it.temperatureCelsius }
-                                GraphCardContent(
-                                    titleText = uiState.temperatureHistory.lastOrNull()
-                                        ?.temperatureCelsius
-                                        ?.let { "${it.toInt()}°" }
-                                        ?: "...",
-                                    minText = uiState.temperatureMin?.let { stringResource(R.string.min_value, it.toInt()) }
-                                        ?: "...",
-                                    maxText = uiState.temperatureMax?.let { stringResource(R.string.max_value, it.toInt()) }
-                                        ?: "...",
-                                    history = tempValues,
-                                    isNarrowLayout = tier == GridLayoutTier.NARROW
+                                val tempUnit = uiState.temperatureUnit
+                                val tempValues = uiState.temperatureHistory.map { convertTemperature(it.temperatureCelsius, tempUnit) }
+                                val currentTempStr = uiState.temperatureHistory.lastOrNull()
+                                    ?.temperatureCelsius
+                                    ?.let { formatTemperatureFloat(it, tempUnit) }
+                                    ?: uiState.temperature
+                                GraphMetricCardContent(
+                                    iconRes = R.drawable.ic_offline_bolt_24dp,
+                                    title = stringResource(R.string.temperature),
+                                    currentValueText = currentTempStr,
+                                    minText = uiState.temperatureMin?.let { stringResource(R.string.min_value, formatTemperatureFloat(it, tempUnit)) } ?: "...",
+                                    maxText = uiState.temperatureMax?.let { stringResource(R.string.max_value, formatTemperatureFloat(it, tempUnit)) } ?: "...",
+                                    history = tempValues
                                 )
                             }
                             GridCardKind.VOLTAGE -> {
                                 val voltValues = uiState.voltageHistory.map { it.voltageVolts }
-                                GraphCardContent(
-                                    titleText = uiState.voltageHistory.lastOrNull()
-                                        ?.voltageVolts
-                                        ?.let { String.format(Locale.getDefault(), "%.2f", it) }
-                                        ?: "...",
-                                    minText = uiState.voltageMin?.let { stringResource(R.string.min_value_decimal, it) }
-                                        ?: "...",
-                                    maxText = uiState.voltageMax?.let { stringResource(R.string.max_value_decimal, it) }
-                                        ?: "...",
-                                    history = voltValues,
-                                    isNarrowLayout = tier == GridLayoutTier.NARROW
+                                val currentVoltStr = uiState.voltageHistory.lastOrNull()
+                                    ?.voltageVolts
+                                    ?.let { String.format(Locale.getDefault(), "%.2f V", it) }
+                                    ?: uiState.voltage
+                                GraphMetricCardContent(
+                                    iconRes = R.drawable.ic_flash_on_24dp,
+                                    title = stringResource(R.string.voltage),
+                                    currentValueText = currentVoltStr,
+                                    minText = uiState.voltageMin?.let { stringResource(R.string.min_value_decimal, it) } ?: "...",
+                                    maxText = uiState.voltageMax?.let { stringResource(R.string.max_value_decimal, it) } ?: "...",
+                                    history = voltValues
                                 )
                             }
                             GridCardKind.CYCLE_COUNT -> CycleCountCardContent(
@@ -452,20 +515,46 @@ fun BatteryInfoScreen(
                     }
                 }
             }
+
             item(span = { GridItemSpan(maxLineSpan) }) {
-                val summaryText = if (uiState.isLoadingCapacity) stringResource(R.string.loading) else uiState.capacity
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                val summaryCapacity = if (uiState.isLoadingCapacity) stringResource(R.string.loading) else uiState.capacity
                 CustomCardItem(
                     title = stringResource(R.string.capacity),
-                    summary = summaryText,
-                    position = CardPosition.SINGLE
+                    summary = summaryCapacity,
+                    icon = R.drawable.ic_storage_24dp,
+                    position = CardPosition.TOP
                 )
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 CustomCardItem(
                     title = stringResource(R.string.technology),
                     summary = uiState.technology,
-                    position = CardPosition.SINGLE
+                    icon = R.drawable.ic_build_24dp,
+                    position = CardPosition.MIDDLE
                 )
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                val hasChargeTime = uiState.chargeTimeRemaining != null
+                CustomCardItem(
+                    title = stringResource(R.string.battery_current),
+                    summary = uiState.current,
+                    icon = R.drawable.ic_power_new_24dp,
+                    position = if (hasChargeTime) CardPosition.MIDDLE else CardPosition.BOTTOM
+                )
+            }
+            uiState.chargeTimeRemaining?.let { remaining ->
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    CustomCardItem(
+                        title = stringResource(R.string.time_to_full_charge),
+                        summary = remaining,
+                        icon = R.drawable.ic_schedule_24dp,
+                        position = CardPosition.BOTTOM
+                    )
+                }
             }
         }
     }

@@ -17,7 +17,11 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.ost.application.core.settings.formatTemperatureFloat
+import com.ost.application.settings.WearTemperatureUnitRepository
+import com.ost.application.settings.WearTimingSettingsRepository
 import java.util.Locale
+
 data class WearBatteryInfoUiState(
     val levelText: String = "...",
     val iconResId: Int = R.drawable.ic_battery_full_24dp,
@@ -29,13 +33,20 @@ data class WearBatteryInfoUiState(
     val capacity: String = "...",
     val isLoadingCapacity: Boolean = true,
     val displayMode: BatteryDisplayMode = BatteryDisplayMode.NORMAL,
-    val cycleCount: String = "..."
+    val cycleCount: String = "...",
+    val current: String = "...",
+    val chargeTimeRemaining: String? = null
 )
+
 class WearBatteryInfoViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(WearBatteryInfoUiState())
     val uiState: StateFlow<WearBatteryInfoUiState> = _uiState.asStateFlow()
+    private val timingRepository = WearTimingSettingsRepository(application, viewModelScope)
+    private val temperatureRepository = WearTemperatureUnitRepository(application, viewModelScope, timingRepository.syncState)
     private var batteryUpdateJob: Job? = null
     private var capacityJob: Job? = null
+    private var currentPollJob: Job? = null
+    private var latestInfo: com.ost.application.core.battery.BatteryInfo? = null
     private val strings = BatteryInfoStrings(
         charging = getString(R.string.charging),
         chargingAc = getString(R.string.charging_ac),
@@ -58,11 +69,52 @@ class WearBatteryInfoViewModel(application: Application) : AndroidViewModel(appl
     init {
         loadBatteryCapacity()
         startObservingBatteryUpdates()
+        startCurrentPolling()
+        viewModelScope.launch {
+            temperatureRepository.unit.collect { unit ->
+                _uiState.update { state ->
+                    val formattedTemp = latestInfo?.temperatureCelsius?.let {
+                        formatTemperatureFloat(it, unit)
+                    } ?: strings.unknown
+                    state.copy(temperature = formattedTemp)
+                }
+            }
+        }
+    }
+    private fun startCurrentPolling() {
+        currentPollJob?.cancel()
+        currentPollJob = viewModelScope.launch {
+            while (true) {
+                latestInfo?.let { info ->
+                    val currentMa = BatteryInfoProvider.getCurrentNowMilliAmps(getApplication(), info.isCharging)
+                    val currentText = if (currentMa != null) {
+                        val watts = info.voltageVolts?.let { volts ->
+                            String.format(Locale.getDefault(), " (%.1f W)", kotlin.math.abs(currentMa) / 1000f * volts)
+                        } ?: ""
+                        "${if (currentMa > 0) "+" else ""}$currentMa ${getString(R.string.ma)}$watts"
+                    } else strings.notAvailable
+                    val chargeTime = if (info.isCharging) {
+                        BatteryInfoProvider.getChargeTimeRemainingMillis(getApplication())?.let { formatDuration(it) }
+                    } else null
+                    _uiState.update { it.copy(current = currentText, chargeTimeRemaining = chargeTime) }
+                }
+                kotlinx.coroutines.delay(2000)
+            }
+        }
+    }
+    private fun formatDuration(millis: Long): String {
+        val totalMinutes = millis / 60_000
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return if (hours > 0) "$hours ${getString(R.string.h)} $minutes ${getString(R.string.min)}"
+        else "$minutes ${getString(R.string.min)}"
     }
     private fun startObservingBatteryUpdates() {
         batteryUpdateJob?.cancel()
         batteryUpdateJob = BatteryInfoProvider.observeBatteryInfo(getApplication())
             .onEach { info ->
+                latestInfo = info
+                val currentUnit = temperatureRepository.unit.value
                 _uiState.update {
                     it.copy(
                         levelText = if (info.levelPercent >= 0) {
@@ -72,11 +124,11 @@ class WearBatteryInfoViewModel(application: Application) : AndroidViewModel(appl
                         iconResId = info.statusIcon.toResId(),
                         health = info.health.toDisplayString(strings),
                         status = info.toChargingSourceText(strings),
-                        temperature = info.temperatureCelsius?.let {
-                            String.format(Locale.getDefault(), "%.1f°C", it)
+                        temperature = info.temperatureCelsius?.let { temp ->
+                            formatTemperatureFloat(temp, currentUnit)
                         } ?: strings.unknown,
-                        voltage = info.voltageVolts?.let {
-                            String.format(Locale.getDefault(), "%.2fV", it)
+                        voltage = info.voltageVolts?.let { volts ->
+                            String.format(Locale.getDefault(), "%.2fV", volts)
                         } ?: strings.unknown,
                         technology = info.technology ?: strings.unknown,
                         displayMode = info.displayMode,
@@ -105,6 +157,7 @@ class WearBatteryInfoViewModel(application: Application) : AndroidViewModel(appl
         super.onCleared()
         batteryUpdateJob?.cancel()
         capacityJob?.cancel()
+        currentPollJob?.cancel()
     }
 }
 private fun BatteryStatusIcon.toResId(): Int = when (this) {

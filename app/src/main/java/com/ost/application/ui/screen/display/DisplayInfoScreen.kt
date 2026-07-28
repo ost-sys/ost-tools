@@ -74,7 +74,8 @@ fun DisplayInfoScreen(
             DisplayInfoRow(R.string.refresh_rate, uiState.refreshRate),
             DisplayInfoRow(R.string.dpi_dots_per_inch, uiState.dpi),
             DisplayInfoRow(R.string.orientation, uiState.orientation),
-            DisplayInfoRow(R.string.stylus_support, uiState.stylusSupport)
+            DisplayInfoRow(R.string.stylus_support, uiState.stylusSupport),
+            DisplayInfoRow(R.string.screen_corner_radius, uiState.cornerRadius)
         )
     }
     val actionRows = remember(context) {

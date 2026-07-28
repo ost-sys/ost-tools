@@ -11,6 +11,12 @@ interface DeviceRepository {
     fun getDeviceModel(): String
     fun getCodename(): String
     fun getDeviceFormFactor(): DeviceFormFactor
+    fun getSecurityPatch(): String
+    fun getKernelVersion(): String
+    fun getBootloader(): String
+    fun getRadioVersion(): String
+    fun getPartitionStyle(): String
+    fun isTrebleSupported(): Boolean
 }
 class DeviceRepositoryImpl(private val context: Context) : DeviceRepository {
     override fun getAndroidVersion(): String {
@@ -39,6 +45,13 @@ class DeviceRepositoryImpl(private val context: Context) : DeviceRepository {
             else -> DeviceFormFactor.UNKNOWN
         }
     }
+    override fun getSecurityPatch(): String = Build.VERSION.SECURITY_PATCH ?: "N/A"
+    override fun getKernelVersion(): String = System.getProperty("os.version") ?: "N/A"
+    override fun getBootloader(): String = Build.BOOTLOADER ?: "N/A"
+    override fun getRadioVersion(): String = Build.getRadioVersion()?.takeIf { it.isNotBlank() } ?: "N/A"
+    override fun getPartitionStyle(): String =
+        if (getSystemProperty("ro.build.ab_update") == "true") "A/B (Seamless)" else "A-only"
+    override fun isTrebleSupported(): Boolean = getSystemProperty("ro.treble.enabled") == "true"
     private fun getLatestCodename(): String {
         val allCodenames = getSystemProperty("ro.build.version.known_codenames") ?: ""
         if (allCodenames.isEmpty()) return "Unknown"

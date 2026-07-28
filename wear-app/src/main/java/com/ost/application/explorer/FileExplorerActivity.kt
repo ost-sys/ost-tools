@@ -22,6 +22,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -55,6 +56,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
@@ -87,6 +93,7 @@ import androidx.wear.compose.material3.AppCard
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
+import androidx.wear.compose.material3.CardDefaults
 import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
@@ -105,6 +112,7 @@ import com.ost.application.share.ShareActivity
 import com.ost.application.theme.OSTToolsTheme
 import com.ost.application.util.CardPosition
 import com.ost.application.util.FailDialog
+import com.ost.application.util.ThumbnailCache
 import com.ost.application.util.SuccessDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -131,6 +139,8 @@ data class ClipboardState(val files: Set<File>, val operation: ClipboardOperatio
 class FileExplorerActivity : ComponentActivity() {
     private val rootPath = Environment.getExternalStorageDirectory().absolutePath
     private val currentPath = mutableStateOf(rootPath)
+    private val explorerPrefs by lazy { getSharedPreferences("explorer_prefs", MODE_PRIVATE) }
+    private val showHiddenFiles = mutableStateOf(false)
     private val _fileList = MutableStateFlow<List<File>>(emptyList())
     val fileList: StateFlow<List<File>> = _fileList.asStateFlow()
     private val dialogInfo = mutableStateOf<FileDialogInfo?>(null)
@@ -154,8 +164,14 @@ class FileExplorerActivity : ComponentActivity() {
         }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        showHiddenFiles.value = explorerPrefs.getBoolean("show_hidden", false)
         setContent { FileManagerApp() }
         checkAndRequestPermissions()
+    }
+    private fun setShowHiddenFiles(show: Boolean) {
+        showHiddenFiles.value = show
+        explorerPrefs.edit().putBoolean("show_hidden", show).apply()
+        loadFiles(currentPath.value)
     }
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
@@ -336,14 +352,21 @@ class FileExplorerActivity : ComponentActivity() {
         val files = fileList.collectAsState().value
         val currentDialogInfo by dialogInfo
         val currentActionsDialogFile by _showActionsDialogForFile
+        var showExplorerSettings by remember { mutableStateOf(false) }
         OSTToolsTheme {
+            if (showExplorerSettings) {
+                ExplorerSettingsDialog(
+                    showHidden = showHiddenFiles.value,
+                    onShowHiddenChange = { setShowHiddenFiles(it) },
+                    onDismissRequest = { showExplorerSettings = false }
+                )
+            }
             AppScaffold(timeText = { TimeText() }) {
                 ScreenScaffold(
                     scrollState = listState,
                     contentPadding = PaddingValues(10.dp),
                     edgeButton = {
-                        EdgeButton(onClick = {
-                        }) {
+                        EdgeButton(onClick = { showExplorerSettings = true }) {
                             Icon(painterResource(R.drawable.ic_settings_24dp), "Settings")
                         }
                     }
@@ -483,15 +506,7 @@ class FileExplorerActivity : ComponentActivity() {
         }
         Crossfade(targetState = path, label = "FileListTransition") { currentDisplayPath ->
             ScalingLazyColumn(
-                modifier = modifier
-                    .focusRequester(focusRequester)
-                    .onRotaryScrollEvent {
-                        if (!isActionDialogVisible) {
-                            coroutineScope.launch { listState.scrollBy(it.verticalScrollPixels) }
-                            true
-                        } else false
-                    }
-                    .focusable(),
+                modifier = modifier,
                 contentPadding = PaddingValues(top = 28.dp, bottom = 40.dp, start = 8.dp, end = 8.dp),
                 state = listState
             ) {
@@ -563,6 +578,10 @@ class FileExplorerActivity : ComponentActivity() {
                             }
                         }
                         val lastModifiedText = remember(file.lastModified()) { formatLastModified(file.lastModified()) }
+                        val thumbnailState = remember(file.absolutePath) { mutableStateOf<android.graphics.Bitmap?>(null) }
+                        LaunchedEffect(file.absolutePath, file.lastModified(), file.length()) {
+                            thumbnailState.value = ThumbnailCache.load(context, file)
+                        }
                         CardItem(
                             title = file.name,
                             summary = summaryState.value,
@@ -570,6 +589,7 @@ class FileExplorerActivity : ComponentActivity() {
                             itemType = itemType,
                             itemIcon = itemIcon,
                             time = lastModifiedText,
+                            thumbnail = thumbnailState.value,
                             onOpenFile = {
                                 if (file.isDirectory) {
                                     if (file.canRead()) onPathChange(file.absolutePath)
@@ -730,7 +750,9 @@ class FileExplorerActivity : ComponentActivity() {
                         }
                         emptyList()
                     } else {
-                        files.toList().sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase(Locale.getDefault()) }))
+                        files.toList()
+                            .filter { showHiddenFiles.value || !it.name.startsWith(".") }
+                            .sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase(Locale.getDefault()) }))
                     }
                 } catch (e: Exception) {
                     Log.e(Constants.TAG, "Error listing files for: $path", e)
@@ -829,45 +851,30 @@ class FileExplorerActivity : ComponentActivity() {
         return isSameDay(yesterday, date)
     }
     fun openFile(context: Context, file: File, showDialog: (message: String, isError: Boolean) -> Unit) {
-        val ext = file.extension.lowercase(Locale.ROOT)
-        val intent: Intent? = when {
-            ext == "apk" -> { installApk(context, file) { msg, isErr -> showDialog(msg, isErr) }; null }
-            ext in setOf("txt", "json", "xml", "log") ->
-                Intent(context, TextEditorActivity::class.java).apply { putExtra("filePath", file.absolutePath) }
-            ext in setOf("png", "jpg", "jpeg", "gif", "bmp") ->
-                Intent(context, ImageActivity::class.java).apply { putExtra("imagePath", file.absolutePath) }
-            ext in setOf("mp4", "avi", "mkv", "webm") ->
-                Intent(context, VideoActivity::class.java).apply { putExtra("videoPath", file.absolutePath) }
-            ext in setOf("mp3", "m4a", "wav", "ogg", "aac") ->
-                Intent(context, MusicActivity::class.java).apply { putExtra("musicPath", file.absolutePath) }
-            ext == "pdf" ->
-                Intent(context, PdfReaderActivity::class.java).apply {
-                    putExtra(PdfReaderActivity.EXTRA_FILE_PATH, file.absolutePath)
-                }
-            else -> {
-                try {
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                    val mimeType = context.contentResolver.getType(uri) ?: "*/*"
-                    Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, mimeType)
-                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                } catch (e: IllegalArgumentException) {
-                    Log.e(Constants.TAG, "Error getting Uri for ${file.name}", e)
-                    showDialog(getString(R.string.error_accessing_file_e, e.localizedMessage), true)
-                    null
-                } catch (e: Exception) {
-                    Log.e(Constants.TAG, "Error creating intent for ${file.name}", e)
-                    showDialog(getString(R.string.cannot_open_file_type), true)
-                    null
-                }
-            }
+        if (file.extension.lowercase(Locale.ROOT) == "apk") {
+            installApk(context, file) { msg, isErr -> showDialog(msg, isErr) }
+            return
         }
         try {
-            intent?.let { context.startActivity(it) }
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val mimeType = android.webkit.MimeTypeMap.getSingleton()
+                .getMimeTypeFromExtension(file.extension.lowercase(Locale.ROOT))
+                ?: context.contentResolver.getType(uri)
+                ?: "*/*"
+            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(viewIntent, null).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
         } catch (e: ActivityNotFoundException) {
             Log.e(Constants.TAG, "ActivityNotFoundException for: ${file.name}", e)
             showDialog(getString(R.string.no_app_installed_to_open_this_file_type), true)
+        } catch (e: IllegalArgumentException) {
+            Log.e(Constants.TAG, "Error getting Uri for ${file.name}", e)
+            showDialog(getString(R.string.error_accessing_file_e, e.localizedMessage), true)
         } catch (e: Exception) {
             Log.e(Constants.TAG, "Error opening file: ${file.name}", e)
             showDialog(getString(R.string.error_opening_file_e, e.localizedMessage), true)
@@ -893,6 +900,38 @@ class FileExplorerActivity : ComponentActivity() {
         }
     }
 }
+@Composable
+fun ExplorerSettingsDialog(
+    showHidden: Boolean,
+    onShowHiddenChange: (Boolean) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        val listState = rememberScalingLazyListState()
+        AppScaffold(timeText = { TimeText() }) {
+            ScreenScaffold(
+                scrollState = listState,
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            ) {
+                ScalingLazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    anchorType = ScalingLazyListAnchorType.ItemCenter
+                ) {
+                    item { ListHeader { Text(stringResource(R.string.settings)) } }
+                    item {
+                        SwitchButton(
+                            checked = showHidden,
+                            onCheckedChange = onShowHiddenChange,
+                            label = { Text(stringResource(R.string.show_hidden_files)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 @OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun CardItem(
@@ -902,6 +941,7 @@ fun CardItem(
     itemIcon: Int,
     time: String,
     position: CardPosition,
+    thumbnail: android.graphics.Bitmap? = null,
     onOpenFile: () -> Unit,
     onDeleteSwipe: () -> Unit,
     onShowActionsRequest: () -> Unit
@@ -932,23 +972,57 @@ fun CardItem(
             )
         },
         content = {
-            AppCard(
-                onClick = onOpenFile,
-                modifier = Modifier.fillMaxWidth(),
-                shape = shape,
-                appName = { Text(itemType, maxLines = 1) },
-                appImage = {
-                    Icon(
-                        painter = painterResource(id = itemIcon),
-                        contentDescription = itemType,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
+            Box(modifier = Modifier.fillMaxWidth().clip(shape)) {
+                if (thumbnail != null) {
+                    Image(
+                        bitmap = thumbnail.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize()
                     )
-                },
-                title = { Text(title, maxLines = 2) },
-                time = { Text(time) }
-            ) {
-                summary?.let { Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1) }
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.85f),
+                                        Color.Black.copy(alpha = 0.55f),
+                                        Color.Black.copy(alpha = 0.25f)
+                                    )
+                                )
+                            )
+                    )
+                }
+                AppCard(
+                    onClick = onOpenFile,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = shape,
+                    colors = if (thumbnail != null) {
+                        CardDefaults.cardColors(
+                            containerColor = Color.Transparent,
+                            appNameColor = Color.White.copy(alpha = 0.85f),
+                            titleColor = Color.White,
+                            contentColor = Color.White.copy(alpha = 0.85f),
+                            timeColor = Color.White.copy(alpha = 0.7f)
+                        )
+                    } else {
+                        CardDefaults.cardColors()
+                    },
+                    appName = { Text(itemType, maxLines = 1) },
+                    appImage = {
+                        Icon(
+                            painter = painterResource(id = itemIcon),
+                            contentDescription = itemType,
+                            modifier = Modifier.size(20.dp),
+                            tint = if (thumbnail != null) Color.White else MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    title = { Text(title, maxLines = 2) },
+                    time = { Text(time) }
+                ) {
+                    summary?.let { Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1) }
+                }
             }
         },
         onSwipePrimaryAction = { onDeleteSwipe() }
@@ -986,13 +1060,7 @@ fun FileActionsDialog(
                 ScalingLazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .background(MaterialTheme.colorScheme.background)
-                        .onRotaryScrollEvent {
-                            coroutineScope.launch { listState.scrollBy(it.verticalScrollPixels) }
-                            true
-                        }
-                        .focusable(),
+                        .background(MaterialTheme.colorScheme.background),
                     state = listState,
                     anchorType = ScalingLazyListAnchorType.ItemCenter,
                 ) {

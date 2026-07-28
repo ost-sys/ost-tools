@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.ost.application.ui.screen.applist.AppListScreen
 import com.ost.application.ui.screen.batteryinfo.BatteryInfoScreen
 import com.ost.application.ui.screen.converters.ConvertersScreen
+import com.ost.application.ui.screen.cpu.CpuInfoScreen
 import com.ost.application.ui.screen.deviceinfo.DeviceInfoScreen
 import com.ost.application.ui.screen.display.DisplayInfoScreen
 import com.ost.application.ui.screen.network.NetworkInfoScreen
@@ -38,6 +39,7 @@ fun ContentArea(
         "app_list" -> AppListScreen()
         "stargazers" -> StargazersScreen(viewModel = stargazersViewModel)
         "about_device" -> DeviceInfoScreen(modifier = modifier)
+        "cpu" -> CpuInfoScreen(modifier = modifier)
         "battery" -> BatteryInfoScreen(modifier = modifier)
         "display" -> DisplayInfoScreen(modifier = modifier)
         "network" -> NetworkInfoScreen(modifier = modifier)

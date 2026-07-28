@@ -1,9 +1,6 @@
 package com.ost.application.ui.screen.settings
 import android.app.Application
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
-import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ost.application.R
@@ -11,6 +8,7 @@ import com.ost.application.core.locale.LocaleHelper
 import com.ost.application.core.locale.SupportedLocalesLoader
 import com.ost.application.core.settings.TemperatureUnit
 import com.ost.application.core.settings.sync.SettingsSyncClient
+import com.ost.application.settings.GithubTokenRepository
 import com.ost.application.settings.PhoneTemperatureUnitRepository
 import com.ost.application.settings.PhoneTimingSettingsRepository
 import com.ost.application.ui.activity.about.AboutActivity
@@ -23,13 +21,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
-object PrefKeys {
-    const val TOTAL_DURATION = "total_duration"
-    const val NOISE_DURATION = "noise_duration"
-    const val BLACK_WHITE_NOISE_DURATION = "black_white_noise_duration"
-    const val HORIZONTAL_DURATION = "horizontal_duration"
-    const val VERTICAL_DURATION = "vertical_duration"
-}
 data class SettingsUiState(
     val totalDuration: Int = 30,
     val noiseDuration: Int = 1,
@@ -54,7 +45,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val timingRepository = PhoneTimingSettingsRepository(application, viewModelScope)
     private val temperatureRepository = PhoneTemperatureUnitRepository(application, viewModelScope)
     private val syncClient = SettingsSyncClient(application)
-    private val githubPrefs: SharedPreferences = application.getSharedPreferences("github_prefs", Context.MODE_PRIVATE)
+    private val tokenRepository = GithubTokenRepository(application, viewModelScope)
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
     private val _action = Channel<SettingsAction>(Channel.BUFFERED)
@@ -78,9 +69,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 _uiState.update { it.copy(temperatureUnit = unit) }
             }
         }
-        val storedToken = githubPrefs.getString("token", "") ?: ""
-        _uiState.update { it.copy(githubToken = storedToken) }
-        viewModelScope.launch { syncClient.pushGithubTokenPresence(storedToken.isNotBlank()) }
+        _uiState.update { it.copy(githubToken = tokenRepository.token.value) }
+        tokenRepository.pushPresence()
         loadSupportedLocales()
         refreshDeveloperMode()
     }
@@ -114,14 +104,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(githubToken = token) }
     }
     fun saveGithubToken() {
-        val token = _uiState.value.githubToken
-        githubPrefs.edit { putString("token", token) }
-        viewModelScope.launch { syncClient.pushGithubTokenPresence(token.isNotBlank()) }
+        tokenRepository.setToken(_uiState.value.githubToken)
     }
     fun clearGithubToken() {
-        githubPrefs.edit { remove("token") }
+        tokenRepository.clearToken()
         _uiState.update { it.copy(githubToken = "") }
-        viewModelScope.launch { syncClient.pushGithubTokenPresence(false) }
     }
     fun onAboutAppClicked() {
         val intent = Intent(getApplication(), AboutActivity::class.java)
