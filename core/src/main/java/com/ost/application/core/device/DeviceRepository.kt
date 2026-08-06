@@ -50,7 +50,11 @@ class DeviceRepositoryImpl(private val context: Context) : DeviceRepository {
     override fun getBootloader(): String = Build.BOOTLOADER ?: "N/A"
     override fun getRadioVersion(): String = Build.getRadioVersion()?.takeIf { it.isNotBlank() } ?: "N/A"
     override fun getPartitionStyle(): String =
-        if (getSystemProperty("ro.build.ab_update") == "true") "A/B (Seamless)" else "A-only"
+        if (getSystemProperty("ro.build.ab_update") == "true") {
+            "A/B (Seamless)"
+        } else {
+            if (getSystemProperty("ro.build.system_root_image") == "true") "A-only SAR" else "A-only"
+        }
     override fun isTrebleSupported(): Boolean = getSystemProperty("ro.treble.enabled") == "true"
     private fun getLatestCodename(): String {
         val allCodenames = getSystemProperty("ro.build.version.known_codenames") ?: ""
